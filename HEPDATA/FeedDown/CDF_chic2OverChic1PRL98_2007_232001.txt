@@ -1,0 +1,8 @@
+CDF, ratio*BR-prompt chic, sqrt(s) = 1.96 TeV; PRL98 (2007) 232001; rel syst. uncertainty = 0.037%
+values from http://hepdata.cedar.ac.uk/View/7114001; Lint = 1.1 fb-1; |eta(J/psi)| <1.0, pT(photon) > 1 GeV/c
+rapMin  rapMax  pTMean  pTMin  pTMax    ratio   stat-pos stat-neg
+0.	1.	5.0	4.0	6.0	0.457	+0.039	-0.039	
+0.	1.	7.0	6.0	8.0	0.384	+0.034	-0.034	
+0.	1.	9.0	8.0	10.0	0.455	+0.053	-0.053	
+0.	1.	11.6	10.0	100.0	0.309	+0.045	-0.045	
+0.	1.	4.	4.0	4.0	0.395	+0.016	-0.016	

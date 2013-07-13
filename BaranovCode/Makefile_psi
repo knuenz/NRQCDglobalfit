@@ -1,0 +1,22 @@
+
+F_COMP=/usr/bin/g77
+F_FLAGS=-c -O0 -g -fbounds-check -fno-automatic  -fno-backslash  -fpic -ffixed-line-length-132
+
+LOADER=/usr/bin/f77
+CERN_LIBS=/afs/cern.ch/sw/lcg/external/cernlib/2005/slc4_amd64_gcc34/lib  -lmathlib -lkernlib -lpacklib
+
+MAIN_OBJS = ups_LHC.o  js_aux.o js_red.o vegas.o \
+            blueml.o  ccfmstfg.o  dfridr.o  d_xgx.o \
+            pdfset.o  structm.o  xglu.o \
+            cauniglu.o  ccfmstfu.o  dgrv_nln.o  ktstfu.o \
+            ryssha.o  structp.o  xgx.o
+
+jpsi:	$(MAIN_OBJS)
+	$(LOADER) -o jpsi $(MAIN_OBJS) \
+      -L$(CERN_LIBS) \
+	$(LD_FLAGS)
+
+.f.o:	
+	$(F_COMP) $(F_FLAGS) $*.f
+.F.o:
+	 $(F_COMP) $(F_FLAGS) $(F_INCLUDEDIRS) $*.F

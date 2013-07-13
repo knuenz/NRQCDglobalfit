@@ -1,0 +1,72 @@
+alias source_setenvcmsenv source /afs/hephy.at/user/k/knuenz/SCRIPTS/SCRIPT_setenvcmsenv
+alias source_klogcern source /afs/hephy.at/user/k/knuenz/SCRIPTS/SCRIPT_tokenCERN
+alias source_crabcern source /afs/hephy.at/user/k/knuenz/SCRIPTS/SCRIPT_gridenv
+###HELP###
+alias toHELP cd /afs/hephy.at/user/k/knuenz/HELP
+alias moreHELP lh /afs/hephy.at/user/k/knuenz/HELP
+#
+alias HELPCopyFile more /afs/hephy.at/user/k/knuenz/HELP/HELP_CopyFile
+alias HELPRun_Emanuele more /afs/hephy.at/user/k/knuenz/HELP/HELP_Run_Emanuele
+alias HELPRun_Ernest more /afs/hephy.at/user/k/knuenz/HELP/HELP_Run_Ernest
+alias HELPprocess_AN more /afs/hephy.at/user/k/knuenz/HELP/HELP_process_AN
+alias HELPprocess_PAPER more /afs/hephy.at/user/k/knuenz/HELP/HELP_process_PAPER
+alias HELPsetenv more /afs/hephy.at/user/k/knuenz/HELP/HELP_setenv
+alias HELPsource_root529 more /afs/hephy.at/user/k/knuenz/HELP/HELP_source_root529
+alias HELPgridenv more /afs/hephy.at/user/k/knuenz/HELP/HELP_gridenv
+alias HELPtippp more /afs/hephy.at/user/k/knuenz/HELP/HELP_tippp
+alias HELPtokenCERN more /afs/hephy.at/user/k/knuenz/HELP/HELP_tokenCERN
+alias HELPdpm more /afs/hephy.at/user/k/knuenz/HELP/HELP_DPMinfo
+alias HELPCRABlocationOfScripts more /afs/hephy.at/user/k/knuenz/HELP/HELP_CRABlocationOfScripts
+##########
+alias toQuad cd /afs/hephy.at/scratch/k/knuenz/Quad
+alias to6107 cd /afs/hephy.at/scratch/k/knuenz/Quad/CMSSW_6_1_0_pre7/src
+alias to610 cd /afs/hephy.at/scratch/k/knuenz/Quad/CMSSW_6_1_0/src
+alias to6108 cd /afs/hephy.at/scratch/k/knuenz/Quad/CMSSW_6_1_0_pre8/src
+alias toQuad610pre6Clean cd /afs/hephy.at/scratch/k/knuenz/Quad/Clean614pre6/CMSSW_6_1_0_pre6/src
+alias toQuad610pre6 cd /afs/hephy.at/scratch/k/knuenz/Quad/Quad614pre6/CMSSW_6_1_0_pre6/src
+alias toPromptAnalsis cd /afs/hephy.at/scratch/k/knuenz/CMSSW_5_2_5_patch3/src
+alias toPromptAnalsisC cd /afs/hephy.at/scratch/k/knuenz/CMSSW_5_3_3_patch2/src
+alias toCombinedRecoStudy cd /afs/hephy.at/scratch/k/knuenz/CMSSW_5_3_3_patch1/src
+alias toErnestCRAB cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_8/src/HeavyBaryonsAnalysis/CRAB
+alias spacestuff du -h --max-depth=1
+alias spacestuff2 du -h --max-depth=2
+alias toPsiPreliminary cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/PsiPol/macros
+alias toPATification cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_3/src/HeavyFlavorAnalysis/Onia2MuMu
+alias lh ls -lah 
+alias lh ls -lh
+alias toDQM cd /afs/hephy.at/scratch/k/knuenz/CMSSW_5_3_2/src/DQMTools/Tests/test
+alias lxplus ssh -Y knuenz@lxplus.cern.ch
+alias lxplus254 ssh -Y knuenz@lxplus254.cern.ch
+alias kloghephy klog -principal knuenz -cell hephy.at
+alias aklogcern aklog -c cern.ch
+alias kinitcern kinit knuenz@CERN.CH
+alias gridcern source /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.csh
+alias crabcern source /afs/cern.ch/cms/ccs/wm/scripts/Crab/crab.csh 
+alias toscratch cd /afs/hephy.at/scratch/k/knuenz/
+alias toErnestRecoStudy cd /afs/hephy.at/scratch/k/knuenz/ErnestArea/CMSSW_4_2_3/src
+alias toSeedValidator cd /afs/hephy.at/scratch/k/knuenz/CMSSW_6_0_0/src
+alias toUpsilon cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/UpsilonPol/macros/polFit
+alias toPsi cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/PsiPol2011/macros/polFit
+alias toLGray cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/LGray
+alias toChib cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/Chib2011/Chi2OniaGamma/analysis
+alias toRootInput cd /scratch/knuenz/Polarization/RootInput
+alias .. cd ..
+alias .... cd ../..
+alias toAnalysisNotes cd /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/AnalysisNotes
+#setenv PATH /afs/hephy.at/scratch/k/knuenz/standaloneroot/root/bin:$PATH
+#setenv LD_LIBRARY_PATH /afs/hephy.at/scratch/k/knuenz/standaloneroot/root/lib:$LD_LIBRARY_PATH
+alias moreroot more /afs/hephy.at/scratch/k/knuenz/standaloneroot/root/root529
+alias storagedir more /afs/hephy.at/scratch/k/knuenz/CMSSW_4_2_4_patch2/src/UpsilonPol/macros/polFit/storagedir
+alias dpmenv1 setenv DPNS_HOST hephyse.oeaw.ac.at
+alias dpmenv2 setenv DPM_HOST hephyse.oeaw.ac.at
+alias storageelement $LCG_LOCATION/bin/dpm/rfdir /dpm/oeaw.ac.at/home/cms/store/user/knuenz
+alias storageelementhephy $LCG_LOCATION/bin/rfdir /dpm/oeaw.ac.at/home/cms/store/user/knuenz
+alias moreErnest echo /afs/cern.ch/user/e/eaguiloc/scratch0/
+
+cp .tcshrc /afs/hephy.at/user/k/knuenz/public/forMyself/
+
+toPsi
+#cmsenv
+
+#to610
+#source_setenvcmsenv
