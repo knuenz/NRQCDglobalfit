@@ -340,27 +340,34 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	      errStatNeg[0][iP] = fabs(errStatNeg[0][iP]);
 	      errSystNeg[0][iP] = fabs(errSystNeg[0][iP]);
 
-	      if(nState == NRQCDvars::PSI_1S){
-		if(nExp == NRQCDvars::LHCb || nExp == NRQCDvars::ALICE)
-		  scaleFac = 1 / 0.0593; //BR used by LHCb
-		else if(nExp == NRQCDvars::CDF)
-		  scaleFac = 2*0.6; //correct for the rap-interval
+	      switch( nState ){
+	      case NRQCDvars::PSI_1S:
+			if(nExp == NRQCDvars::LHCb || nExp == NRQCDvars::ALICE){
+				scaleFac = 1 / 0.0593; //BR used by LHCb
+			}
+			else if(nExp == NRQCDvars::CDF){
+				scaleFac = 2*0.6; //correct for the rap-interval
+			}
+			break;
+	      case NRQCDvars::PSI_2S:
+			if(nExp == NRQCDvars::CMS){
+			  scaleFac = 0.0077; //to compare with LHCb we need to correct for the BR
+			}
+			else if(nExp == NRQCDvars::LHCb){
+			  scaleFac = (4.5 - 2.); //data not normalized to deltaY
+			}
+			else if(nExp == NRQCDvars::CDF){
+			  scaleFac = 0.0077 * 2*0.6 * 1000; //correct for mumu BR (for comparison to LHCb) and the rap-interval
+			}
+			break;
 	      }
-	      else if(nState == NRQCDvars::PSI_2S){
-		if(nExp == NRQCDvars::CMS)
-		  scaleFac = 0.0077; //to compare with LHCb we need to correct for the BR
-		else if(nExp == NRQCDvars::LHCb)
-		  scaleFac = (4.5 - 2.); //data not normalized to deltaY
-		if(nExp == NRQCDvars::CDF)
-		  scaleFac = 0.0077 * 2*0.6 * 1000; //correct for mumu BR (for comparison to LHCb) and the rap-interval
-	      }
-	      else if(nState == NRQCDvars::UPS_1S || nState == NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S){
-		if(nExp == NRQCDvars::CMS) //normalize to the bin-width (pT and y)
-		  scaleFac = (deltaRap * deltaPT);
-		else if(nExp == NRQCDvars::LHCb)
-		  scaleFac = 1000.; //pb --> nb
-		else if(nExp == NRQCDvars::ATLAS)
-		  scaleFac = 1e6; //fb --> nb
+	      if(nState == NRQCDvars::UPS_1S || nState == NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S){
+			if(nExp == NRQCDvars::CMS) //normalize to the bin-width (pT and y)
+			  scaleFac = (deltaRap * deltaPT);
+			else if(nExp == NRQCDvars::LHCb)
+			  scaleFac = 1000.; //pb --> nb
+			else if(nExp == NRQCDvars::ATLAS)
+			  scaleFac = 1e6; //fb --> nb
 	      }
 	      sigma[0][iP] /= scaleFac;
 	      errStatPos[0][iP] /= scaleFac;

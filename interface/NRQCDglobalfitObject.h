@@ -28,9 +28,9 @@ typedef vector<int> ivector;
 class NRQCDglobalfitObject {
  public:
 
-	  double *fraction;
-	  double *sampleValues;
-	  double *sampleWidths;
+//	  double *fraction;
+//	  double *sampleValues;
+//	  double *sampleWidths;
 
 	  // constructors
 	  NRQCDglobalfitObject(){}
