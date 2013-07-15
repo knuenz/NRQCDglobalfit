@@ -37,7 +37,7 @@ class NRQCDglobalfitObject {
 //	  NRQCDglobalfitObject(const int& numStates);
 	  NRQCDglobalfitObject(const NRQCDglobalfitObject &other);
 
-	  void initFractions(const int& nDim);
+//	  void initFractions(const int& nDim);
 //	  NRQCDglobalfitObject(const int nrows, const int ncolumns);
   
 	  void Dump(const int Input_nStates, bool DumpData, bool DumpModel); //Dumps all available information about the object
@@ -146,7 +146,7 @@ class NRQCDglobalfitObject {
 	  string getObjectID() {return Object_ObjectID;}
 	  bool getisDataValid() {return Object_isDataValid;}
 	  bool getisModelValid() {return Object_isModelValid;}
-	  void getFractionValues();
+//	  void getFractionValues();
 
 	  dvector getShortDistanceCoef(int Input_nState) {return Object_ShortDistanceCoef[Input_nState];}
 	  dvector getOctetCompLamth(int Input_nState) {return Object_OctetCompLamth[Input_nState];}

@@ -37,6 +37,11 @@ Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
+
+const int nColorChannels_S=6;//includes CS
+const int nColorChannels_P=4;//includes CS
+const int nColorChannels4States[nStates]={nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P};
+
 double FeedDownBranchingRatio[nStates][nStates]={
 		//one row for each state; elements: BR of BR(x->y), [iDaughter][iMother]
 		{0,   34.1,   19.4,   58.7,     0,   0,     0,      0,       0,     0,   0,   0,   0},   // 1...Jpsi

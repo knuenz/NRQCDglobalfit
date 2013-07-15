@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
 							}
 							NRQCDglobalfitObject readDataModelObject;
 							in >> readDataModelObject;
-							readDataModelObject.initFractions(nDim); //TODO (?): dimension of fractions vector to be read from state
+							//readDataModelObject.initFractions(nDim); //TODO (?): dimension of fractions vector to be read from state
 
 							if(NRQCDvars::debug) readDataModelObject.Dump(nStates, true, true);
 							in.close();
@@ -201,8 +201,11 @@ int main(int argc, char** argv) {
 	cout << "Number of considered data points: " << nDataPoints << endl;
 
 
+	//TODO: open model file, get sigma_star, c_star, close model file
+
 	//Observable parameters Op (Matrix elements)
 	dmatrix Op(nStates);
+
 
 	//Nuisance parameters Np
 
@@ -218,7 +221,6 @@ int main(int argc, char** argv) {
 	Np_US.push_back(Np_US_1);
 	double likelihood=0;
 
-  	setFractionsSetup(NRQCDvars::nFractionDim, NRQCDvars::MetropolisHastings ); // modified by Joao: Set environment for sampling of fractions
 
   	TTree*  data = new TTree("data","data"); // data tree
 
@@ -240,6 +242,34 @@ int main(int argc, char** argv) {
 
 	cout<<"Start sampling"<<endl;
 	cout<<"Progress:"<<endl;
+
+  	setKernel(NRQCDvars::MetropolisHastings ); // modified by Joao: Set environment for sampling of fractions
+
+
+	dmatrix Fractions(nStates);
+	vector<double> Fractions_S (NRQCDvars::nColorChannels_S-1,0);
+	vector<double> Fractions_P (NRQCDvars::nColorChannels_P-1,0);
+
+	dmatrix Candidates(nStates);
+	vector<double> Candidates_S (NRQCDvars::nColorChannels_S-1,0);
+	vector<double> Candidates_P (NRQCDvars::nColorChannels_P-1,0);
+
+	dmatrix SampleWidths(nStates);
+	vector<double> SampleWidths_S (NRQCDvars::nColorChannels_S-1,0);
+	vector<double> SampleWidths_P (NRQCDvars::nColorChannels_P-1,0);
+
+	dmatrix PreviousCandidates (NRQCDvars::nStates);
+	vector<double> PreviousCandidates_S (NRQCDvars::nColorChannels_S-1,0);
+	vector<double> PreviousCandidates_P (NRQCDvars::nColorChannels_P-1,0);
+
+
+	double sigma_star=1.; //TODO: get from model files, set model files
+	double c_star=1.; //TODO: get from model files, set model files
+
+
+	// Set all matrices to a starting value
+
+
 
 	for(int iSampledPoint = 1; iSampledPoint <= nSampledPoints; iSampledPoint++){ // Sampling loop
 
@@ -264,24 +294,38 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		///// Set toyMatrixElements
+		///// Set Fractions -> calculate Matrix Elements Op
 
 		if(NRQCDvars::debug) cout<< "fill Op" << endl;
 
-		vector<double> Op_state(NRQCDvars::nColorChannels,0);
+
+		PreviousCandidates=Candidates;
+
 		for (int i=0; i<NRQCDvars::nStates; i++){
-			for (int j=0; j<NRQCDvars::nColorChannels; j++){
-				if(j==0) Op_state[j]=gRandom->Gaus(NRQCDvars::ColorSingletME[i], NRQCDvars::errColorSingletME[i]); //Just to set it to some value for debugging purposes
-				else Op_state[j]=gRandom->Uniform(0,1);
+			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+			if(isSstate){
+			  	setFractionDimension(NRQCDvars::nColorChannels_S-1);
+			  	getFractionValues(Fractions_S, Candidates_S, SampleWidths_S);
+			  	Fractions.push_back(Fractions_S);
 			}
-			Op[i]=Op_state;
+			else{
+			  	setFractionDimension(NRQCDvars::nColorChannels_P-1);
+			  	getFractionValues(Fractions_P, Candidates_P, SampleWidths_P);
+			  	Fractions.push_back(Fractions_P);
+			}
 		}
+
+
+
+		// Relate Op to R, fi -> getObjectLikelihood
+
+			transformFractionsToOps(Op, Fractions, sigma_star, c_star);
+
 
 		if(NRQCDvars::debug) cout << "getObjectLikelihood" << endl;
 
 		likelihood=0;
 		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
-			getFractionValues(state->fraction, state->sampleValues, state->sampleWidths);
 			likelihood+= state->getObjectLikelihood(Op, Np_BR, Np_US, state->fraction);
 			if(NRQCDvars::debug) {
 				cout << "iDataPoint: " << distance(DataModelObject.begin(), state) << endl;
@@ -300,41 +344,50 @@ int main(int argc, char** argv) {
 
 }
 
-void (*getFractionValues)(double* fraction, double* candidate, double* width );
+void (*getFractionValues)(dvector &fraction, dvector &candidate, dvector &width );
 double (*kernelFunction)(double& par0, double& par1 );
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sets the quantities to calculate with operator fractions
 
-void setFractionsSetup(const int& nDim, const int& kernelType ){
-	switch(kernelType){                     // Set kernel function
-	case NRQCDvars::Metropolis:
-		kernelFunction=MetropolisKernel;
-		break;
-	case NRQCDvars::MetropolisHastings:
-		kernelFunction=MetropolisHastingsKernel;
-		break;
-	default:
-		cerr << "Error: Unsupported kernel type! Execution stop" << endl;
-		exit(1);
-	}
-	switch(nDim){                          // Set the fractions generating function depending on dimensionality
-	case 3:
-		getFractionValues=genFractionValues3D;
-		break;
-	case 4:
-		getFractionValues=genFractionValues4D;
-		break;
-	case 5:
-		getFractionValues=genFractionValues5D;
-		break;
-	case 6:
-		getFractionValues=genFractionValues6D;
-		break;
-	default:
-		cerr << "Error: Fractions for " << nDim << "dimensions are not available! Execution stop." << endl;
-		exit(1);
-	}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Sets the kernel function
+
+void setKernel( const int& kernelType ){
+   switch(kernelType){
+   case NRQCDvars::Metropolis:
+       kernelFunction=MetropolisKernel;
+       break;
+   case NRQCDvars::MetropolisHastings:
+       kernelFunction=MetropolisHastingsKernel;
+       break;
+   default:
+       cerr << "Error: Unsupported kernel type! Execution stop" << endl;
+       exit(1);
+   }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Sets the fractions generating function depending on dimensionality
+
+void setFractionDimension( const int& nDim ){//nDim number of color octet channels
+   switch(nDim-1){
+   case 3:
+       getFractionValues=genFractionValues3D;
+       break;
+   case 4:
+       getFractionValues=genFractionValues4D;
+       break;
+   case 5:
+       getFractionValues=genFractionValues5D;
+       break;
+   case 6:
+       getFractionValues=genFractionValues6D;
+       break;
+   default:
+       cerr << "Error: Fractions for " << nDim << "dimensions are not available! Execution stop." << endl;
+       exit(1);
+   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -343,17 +396,20 @@ void setFractionsSetup(const int& nDim, const int& kernelType ){
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void genFractionValues3D(double* fraction, double* candidate, double* width ){
+void genFractionValues3D(dvector &fraction, dvector &candidate, dvector &width ){
 	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
 	static const double a0=1./3., a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.);
 
 	//Generate new candidates
-	for(int i=1; i < 3; ++i){
+	for(int i=1; i < 4; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
-	fraction[0]=a0-(a1*candidate[1]+a2*candidate[2]);
-	fraction[1]=a0+(a1*candidate[1]-a2*candidate[2]);
-	fraction[2]=a0+2.*a2*candidate[2];
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=a0-(a1*candidate[1]+a2*candidate[2]);
+	fraction[2]=a0+(a1*candidate[1]-a2*candidate[2]);
+	fraction[3]=a0+2.*a2*candidate[2];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -362,18 +418,21 @@ void genFractionValues3D(double* fraction, double* candidate, double* width ){
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void genFractionValues4D(double* fraction, double* candidate, double* width ){
+void genFractionValues4D(dvector &fraction, dvector &candidate, dvector &width ){
 	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
 	static const double a0=0.25, a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(2.), a3=0.5;
 
 	//Generate new candidates
-	for(int i=1; i < 4; ++i){
+	for(int i=1; i < 5; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
-	fraction[0]=a0-(a1*candidate[1]-a3*candidate[3]);
-	fraction[1]=a0+(a1*candidate[1]+a3*candidate[3]);
-	fraction[2]=a0+(a2*candidate[2]-a3*candidate[3]);
-	fraction[3]=a0-(a2*candidate[2]+a3*candidate[3]);
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=a0-(a1*candidate[1]-a3*candidate[3]);
+	fraction[2]=a0+(a1*candidate[1]+a3*candidate[3]);
+	fraction[3]=a0+(a2*candidate[2]-a3*candidate[3]);
+	fraction[4]=a0-(a2*candidate[2]+a3*candidate[3]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -382,19 +441,22 @@ void genFractionValues4D(double* fraction, double* candidate, double* width ){
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void genFractionValues5D(double* fraction, double* candidate, double* width ){
+void genFractionValues5D(dvector &fraction, dvector &candidate, dvector &width ){
 	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
 	static const double a0=0.2, a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.), a3=1./TMath::Sqrt(2.), a4=1./TMath::Sqrt(30.);
 
 	//Generate new candidates
-	for(int i=1; i < 5; ++i){
+	for(int i=1; i < 6; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
-	fraction[0]=a0-(a1*candidate[1]+a2*candidate[2])+2.*a4*candidate[4];
-	fraction[1]=a0+(a1*candidate[1]-a2*candidate[2])+2.*a4*candidate[4];
-	fraction[2]=a0+2.*(a2*candidate[2]+a4*candidate[4]);
-	fraction[3]=a0+(a3*candidate[3]-3.*a4*candidate[4]);
-	fraction[4]=a0-(a3*candidate[3]+3.*a4*candidate[4]);
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=a0-(a1*candidate[1]+a2*candidate[2])+2.*a4*candidate[4];
+	fraction[2]=a0+(a1*candidate[1]-a2*candidate[2])+2.*a4*candidate[4];
+	fraction[3]=a0+2.*(a2*candidate[2]+a4*candidate[4]);
+	fraction[4]=a0+(a3*candidate[3]-3.*a4*candidate[4]);
+	fraction[5]=a0-(a3*candidate[3]+3.*a4*candidate[4]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -403,21 +465,24 @@ void genFractionValues5D(double* fraction, double* candidate, double* width ){
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void genFractionValues6D(double* fraction, double* candidate, double* width ){
+void genFractionValues6D(dvector &fraction, dvector &candidate, dvector &width ){
 	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
 	static const double a0=1./6., a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.), a3=1./TMath::Sqrt(2.),
 			            a4=1./TMath::Sqrt(6.), a5=1./TMath::Sqrt(6.);
 
 	//Generate new candidates
-	for(int i=1; i < 6; ++i){
+	for(int i=1; i < 7; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
-	fraction[0]=a0-(a1*candidate[1]+a2*candidate[2])+a5*candidate[5];
-	fraction[1]=a0+(a1*candidate[1]-a2*candidate[2])+a5*candidate[5];
-	fraction[2]=a0+2.*a2*candidate[2]+a5*candidate[5];
-	fraction[3]=a0+2.*a4*candidate[4]-a5*candidate[5];
-	fraction[4]=a0+a3*candidate[3]-(a4*candidate[4]+a5*candidate[5]);
-	fraction[5]=a0-(a3*candidate[3]+a4*candidate[4]+a5*candidate[5]);
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=a0-(a1*candidate[1]+a2*candidate[2])+a5*candidate[5];
+	fraction[2]=a0+(a1*candidate[1]-a2*candidate[2])+a5*candidate[5];
+	fraction[3]=a0+2.*a2*candidate[2]+a5*candidate[5];
+	fraction[4]=a0+2.*a4*candidate[4]-a5*candidate[5];
+	fraction[5]=a0+a3*candidate[3]-(a4*candidate[4]+a5*candidate[5]);
+	fraction[6]=a0-(a3*candidate[3]+a4*candidate[4]+a5*candidate[5]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -427,16 +492,14 @@ void genFractionValues6D(double* fraction, double* candidate, double* width ){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double MetropolisKernel(const double& candidate, const double& proposalWidth ){
-	if ( proposalWidth < 0. ) {
-	   do {                      // Uniform proposal pdf with "large" sigma
-		   candidate = gRandom->Uniform( candidate-0.5*NRQCDvars::proposalWidthBurnIn, candidate+0.5*NRQCDvars::proposalWidthBurnIn );
-	   }
-	   while ( candidate < 0 );
+	double new_candidate;
+	if ( proposalWidth < 0. ) {// Uniform proposal pdf with "large" sigma
+		new_candidate = gRandom->Uniform( candidate-0.5*NRQCDvars::proposalWidthBurnIn, candidate+0.5*NRQCDvars::proposalWidthBurnIn );
 	}
 	else {                      // Uniform proposal pdf with possibly smaller sigmas
-		candidate = gRandom->Uniform( candidate-0.5*proposalWidth, candidate+0.5*proposalWidth );; // Gaussian proposal pdf with possibly smaller sigmas
+		new_candidate = gRandom->Uniform( candidate-0.5*proposalWidth, candidate+0.5*proposalWidth );; // Gaussian proposal pdf with possibly smaller sigmas
 	}
-	return candidate;
+	return new_candidate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -446,14 +509,28 @@ double MetropolisKernel(const double& candidate, const double& proposalWidth ){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double MetropolisHastingsKernel(double& candidate, double& proposalWidth ){
+	double new_candidate;
 	if ( proposalWidth < 0. ) {
-	   do {
-		   candidate = gRandom->Gaus( candidate, NRQCDvars::proposalWidthBurnIn ); // Gaussian proposal pdf with "large" sigma
-	   }
-	   while ( candidate < 0 );
+		new_candidate = gRandom->Gaus( candidate, NRQCDvars::proposalWidthBurnIn ); // Gaussian proposal pdf with "large" sigma
 	}
 	else {
-		candidate = gRandom->Gaus ( candidate, proposalWidth ); // Gaussian proposal pdf with possibly smaller sigmas
+		new_candidate = gRandom->Gaus ( candidate, proposalWidth ); // Gaussian proposal pdf with possibly smaller sigmas
 	}
-	return candidate;
+	return new_candidate;
+}
+
+
+void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, double sigma_star, double c_star){
+
+	double star_ratio = sigma_star/c_star;
+
+	int iMax = Fractions.size();
+	for(int i=0; i < iMax; i++){
+		dvector Op_state;
+		for(dvector::iterator j = Fractions[i].begin(); j != Fractions[i].end(); ++j){
+			Op_state.push_back(Fractions[i][j]*star_ratio);
+		}
+		Op.push_back(Op_state);
+	}
+
 }

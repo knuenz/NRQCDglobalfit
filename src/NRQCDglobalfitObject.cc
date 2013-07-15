@@ -18,13 +18,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //NRQCDglobalfitObject::NRQCDglobalfitObject(){}
 
-void NRQCDglobalfitObject::initFractions(const int& nDim){
-	fraction = newCVector<double>(nDim);
-  	sampleValues = newCVector<double>(NRQCDvars::nFractionDim-1);       // TODO (?): nFractionDim from object
-  	--sampleValues;                                                     // index starts at 1
-  	sampleWidths = newCVector<double>(NRQCDvars::nFractionDim-1);       //
-  	--sampleWidths;                                                     // index starts at 1
-}
+//void NRQCDglobalfitObject::initFractions(const int& nDim){
+//	fraction = newCVector<double>(nDim);
+//  	sampleValues = newCVector<double>(NRQCDvars::nFractionDim-1);       // TODO (?): nFractionDim from object
+//  	--sampleValues;                                                     // index starts at 1
+//  	sampleWidths = newCVector<double>(NRQCDvars::nFractionDim-1);       //
+//  	--sampleWidths;                                                     // index starts at 1
+//}
 
 //NRQCDglobalfitObject::NRQCDglobalfitObject(const int& numOperatorStates){
 //	this->setFractionsBasis(const int& numOperatorStates);
