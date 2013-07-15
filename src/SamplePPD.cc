@@ -143,8 +143,8 @@ int main(int argc, char** argv) {
 
 				    	//if(iState!=4 || iMeasurementID!=0 || iExperiment!=2 || iRap!=0 || iP!=0) continue;
 
-						char inname[200];
-						char datadirname[200];
+						char inname[2000];
+						char datadirname[2000];
 						sprintf(datadirname,"DataID");
 						gSystem->mkdir(datadirname);
 						sprintf(datadirname,"%s/%s",datadirname,DataID);
