@@ -5,10 +5,10 @@ DataID=July13_Data #store here the NRQCDglobalfitObjects containing data and mod
 ModelID=July13_Model #store here the ModelIngredients.root file
 JobID=July13_Sample #store here the output TTree of the likelihood sampling
 
-run_ConvertDataInput=0
+run_ConvertDataInput=1
 run_ConvertNTupleToTTree=0
 run_ConvertModelInput=0
-run_CombineDataModel=1
+run_CombineDataModel=0
 run_SamplePPD=0
 
 ##################################

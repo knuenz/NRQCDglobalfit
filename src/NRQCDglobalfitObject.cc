@@ -1318,7 +1318,7 @@ T* newCVector(const int& nEls){
 
 template <class T>
 T** newCMatrix(const int& nRows, const int& nCols){
-	T **matrix;
+	T **matrix = newCVector<T*>(nRows);
 	matrix[0] = newCVector<T>(nRows*nCols);
 	for(int row=1; row < nRows; ++row) matrix[row]=matrix[row-1]+nCols;
 	return matrix;

@@ -50,10 +50,10 @@ int main(int argc, char** argv) {
   	}
 
 
-	char outname[200];
-	char inname[200];
-	char predirname[200];
-	char dirname[200];
+	char outname[2000];
+	char inname[2000];
+	char predirname[2000];
+	char dirname[2000];
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

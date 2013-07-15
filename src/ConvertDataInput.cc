@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
-				cout<<"Load data"<<endl;
 				LoadData(iState, iMeasurementID, iExperiment, DataID);
 			}
 		}
@@ -70,7 +69,6 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 
 
 
-
 	//'local' variables (Allocations modified by Joao)
 	Int_t const nMaxRapBins = 6;
 	Int_t *npTBins = newCVector< Int_t > (nMaxRapBins);
@@ -82,6 +80,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	Float_t **pTMean = newCMatrix< Float_t > (nMaxRapBins, 100);
 	Float_t **pTMin = newCMatrix< Float_t > (nMaxRapBins, 100);
 	Float_t **pTMax = newCMatrix< Float_t > (nMaxRapBins, 100);
+
 
 	TGraphAsymmErrors *gSigma[kNbPolScenario][nMaxRapBins];
 	TGraphAsymmErrors *gSigma_syst[kNbPolScenario][nMaxRapBins];
@@ -103,7 +102,6 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	  //////   Define Input File   /////////
 	  //////////////////////////////////////
 
-
 	  FILE *fIn;
 	  Int_t maxPTPoints[nMaxRapBins];
 
@@ -115,6 +113,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 			 switch( nState ){
 			 case NRQCDvars::PSI_1S:
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_promptJpsi_EPJC71_2011_1645.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 14; maxPTPoints[1] = 14; maxPTPoints[2] = 14; maxPTPoints[3] = 13; maxPTPoints[4] = 11;
 				 npTBins[0] = 14; npTBins[1] = 14; npTBins[2] = 14;
@@ -123,6 +124,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::PSI_2S:
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_promptPsiPrime_EPJC72_2012_2100.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=1;
 				 maxPTPoints[0] = 12;
 				 npTBins[0] = 12;
@@ -130,6 +134,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_1S:
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_Ups1S_EPJC72_2012_2025.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_1S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 15; maxPTPoints[1] = 15; maxPTPoints[2] = 15; maxPTPoints[3] = 15; maxPTPoints[4] = 15;
 				 npTBins[0] = 15; npTBins[1] = 15; npTBins[2] = 15;
@@ -138,6 +145,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_2S:
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_Ups2S_EPJC72_2012_2025.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_2S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 15; maxPTPoints[1] = 15; maxPTPoints[2] = 15; maxPTPoints[3] = 12; maxPTPoints[4] = 10;
 				 npTBins[0] = 15; npTBins[1] = 15; npTBins[2] = 15;
@@ -146,6 +156,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_3S:
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_Ups3S_EPJC72_2012_2025.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 15; maxPTPoints[1] = 15; maxPTPoints[2] = 15; maxPTPoints[3] = 12; maxPTPoints[4] = 9;
 				 npTBins[0] = 15; npTBins[1] = 15; npTBins[2] = 15;
@@ -154,13 +167,16 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for LHCb. Execution stop!" << endl;
-				 exit(2);
+				 break;
 			 }
 			 break;
 		 case NRQCDvars::CMS:
 			 switch( nState ){
 			 case NRQCDvars::PSI_1S:
 				 fIn = fopen("HEPDATA/CrossSections/CMS_promptJpsi_JHEP02_2012_011.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 10; maxPTPoints[1] = 6; maxPTPoints[2] = 11; maxPTPoints[3] = 11; maxPTPoints[4] = 6;
 				 npTBins[0] = 10; npTBins[1] = 6; npTBins[2] = 11;
@@ -169,6 +185,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::PSI_2S:
 				 fIn = fopen("HEPDATA/CrossSections/CMS_psiPrime_JHEP02_2012_011.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
 				 nRapBins=3;
 				 maxPTPoints[0] = 9; maxPTPoints[1] = 7; maxPTPoints[2] = 7;
 				 npTBins[0] = 9; npTBins[1] = 7; npTBins[2] = 7;
@@ -176,13 +195,16 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
-				 exit(2);
+				 break;
 			 }
 			 break;
 		 case NRQCDvars::ATLAS:
 			 switch( nState ){
 			 case NRQCDvars::PSI_1S:
 				 fIn = fopen("HEPDATA/CrossSections/ATLAS_promptJpsi_NPB850_2011_387.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	             }
 				 nRapBins=4;
 				 maxPTPoints[0] = 14; maxPTPoints[1] = 18; maxPTPoints[2] = 19; maxPTPoints[3] = 13;
 				 npTBins[0] = 14; npTBins[1] = 18;
@@ -191,6 +213,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_1S:
 				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups1S_arXiv1211_7255.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_1S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	             }
 				 nRapBins=2;
 				 maxPTPoints[0] = 50; maxPTPoints[1] = 50;
 				 npTBins[0] = 50; npTBins[1] = 50;
@@ -198,6 +223,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_2S:
 				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups2S_arXiv1211_7255.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_2S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	             }
 				 nRapBins=2;
 				 maxPTPoints[0] = 25; maxPTPoints[1] = 24;
 				 npTBins[0] = 25; npTBins[1] = 24;
@@ -205,6 +233,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::UPS_3S:
 				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups3S_arXiv1211_7255.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	             }
 				 nRapBins=2;
 				 maxPTPoints[0] = 25; maxPTPoints[1] = 24;
 				 npTBins[0] = 25; npTBins[1] = 25;
@@ -212,13 +243,16 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for ATLAS. Execution stop!" << endl;
-				 exit(2);
+				 break;
 			 }
 			 break;
 		 case NRQCDvars::CDF:
 			 switch( nState ){
 			 case NRQCDvars::PSI_1S:
 				 fIn = fopen("HEPDATA/CrossSections/CDF_promptJPsi_PRD71_2005_032001.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CDF << "not found" << endl;
+	             }
 				 nRapBins=1;
 				 maxPTPoints[0] = 26;
 				 npTBins[0] = 26;
@@ -226,6 +260,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 case NRQCDvars::PSI_2S:
 				 fIn = fopen("HEPDATA/CrossSections/CDF_promptPsiP_PRD80_2009_031103.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CDF << "not found" << endl;
+	             }
 				 nRapBins=1;
 				 maxPTPoints[0] = 25;
 				 npTBins[0] = 25;
@@ -233,13 +270,16 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for CDF. Execution stop!" << endl;
-				 exit(2);
+				 break;
 			 }
 			 break;
 		 case NRQCDvars::ALICE:
 			 switch( nState ){
 			 case NRQCDvars::PSI_1S:
 				 fIn = fopen("HEPDATA/CrossSections/ALICE_promptJpsi_JHEP11_2012_065_polUnc.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	             }
 				 nRapBins=1;
 				 maxPTPoints[0] = 4;
 				 npTBins[0] = 4;
@@ -247,30 +287,30 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for ALICE. Execution stop!" << endl;
-				 exit(2);
+				 break;
 			 }
 			 break;
 	  }
 
-		 isMeasurementAvailable=false;
+//		 isMeasurementAvailable=false;
 	  if (isMeasurementAvailable){
 
 
 	  Char_t line[1000];
-	  Char_t name[100];
-	  float* pT = newCVector< Float_t > (100);
-	  float* pTBinsForHisto = newCVector< Float_t > (100);
-	  float** sigma = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float* errX = newCVector< Float_t > (100);
-	  float* errX_syst = newCVector< Float_t > (100);
-	  float** errStatPos = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float** errSystPos = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float** errSystNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float** errStatNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float* errPolPos = newCVector< Float_t > (100);
-	  float* errPolNeg = newCVector< Float_t > (100);
-	  float** errTotPos = newCMatrix< Float_t > (kNbPolScenario, 100);
-	  float** errTotNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  //Char_t name[100];
+	  Float_t* pT = newCVector< Float_t > (100);
+	  Float_t* pTBinsForHisto = newCVector< Float_t > (100);
+	  Float_t** sigma = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t* errX = newCVector< Float_t > (100);
+	  Float_t* errX_syst = newCVector< Float_t > (100);
+	  Float_t** errStatPos = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t** errSystPos = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t** errSystNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t** errStatNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t* errPolPos = newCVector< Float_t > (100);
+	  Float_t* errPolNeg = newCVector< Float_t > (100);
+	  Float_t** errTotPos = newCMatrix< Float_t > (kNbPolScenario, 100);
+	  Float_t** errTotNeg = newCMatrix< Float_t > (kNbPolScenario, 100);
 	  fgets(line, sizeof(line), fIn); //comment
 	  fgets(line, sizeof(line), fIn); //comment
 	  fgets(line, sizeof(line), fIn); //comment
@@ -294,6 +334,8 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 
 	      pT[iP] = pTMin[iRap][iP] + 0.5*(pTMax[iRap][iP] - pTMin[iRap][iP]); //use the bin centre, since we will be fitting with a histogram!
 	      pTBinsForHisto[iP] = pTMin[iRap][iP];
+
+//	      cout<<"pT[iP] "<<pT[iP]<<", iP = "<<iP<<endl;
 
 	      errStatNeg[0][iP] = fabs(errStatNeg[0][iP]);
 	      errSystNeg[0][iP] = fabs(errSystNeg[0][iP]);
@@ -462,10 +504,10 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 
 
 
-	    char outname[200];
-	    char inname[200];
-	    char predirname[200];
-	    char dirname[200];
+	    char outname[2000];
+	    char inname[2000];
+	    char predirname[2000];
+	    char dirname[2000];
 	    sprintf(predirname,"DataID");
 	    gSystem->mkdir(predirname);
 	    sprintf(dirname,"%s/%s",predirname,DataID);
@@ -494,5 +536,8 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 
 	 else cout<<"--->  Measurement not (yet) available"<<endl;
 
+
+
+	 return;
 
 }
