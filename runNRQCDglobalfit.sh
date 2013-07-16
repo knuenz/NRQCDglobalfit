@@ -1,15 +1,15 @@
 #!/bin/sh
 
 OriginalNTupleID=BaranovSmallFile #This is the location of the original model nTuple (provided by Sergey)
-DataID=July13_Data #store here the NRQCDglobalfitObjects containing data and model prediction
-ModelID=July13_Model #store here the ModelIngredients.root file
-JobID=July13_Sample #store here the output TTree of the likelihood sampling
+DataID=July16_Data #store here the NRQCDglobalfitObjects containing data and model prediction
+ModelID=July16_Toy100000_Model #July16_Toy100000_Model #store here the ModelIngredients.root file
+JobID=July16_Sample #store here the output TTree of the likelihood sampling
 
-run_ConvertDataInput=1
+run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
-run_SamplePPD=0
+run_SamplePPD=1
 
 ##################################
 ########## SETTINGS ##############
@@ -20,13 +20,13 @@ run_SamplePPD=0
 ### ConvertDataInput
 
 ### ConvertModelInput
-useToyModel=false
+useToyModel=true
 
 ### CombineDataModel
 
 ### SamplePPD
-nSample=10000
-nBurnIn=2000
+nSample=20
+nBurnIn=20
 
 ##################################
 ########## SELECTION #############
@@ -68,5 +68,5 @@ then
 fi
 if [ ${run_SamplePPD} -eq 1 ]
 then
-./SamplePPD ${JobID}=JobID ${DataID}=DataID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
+./SamplePPD ${nBurnIn}nBurnIn ${nSample}nSample ${JobID}=JobID ${DataID}=DataID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
 fi

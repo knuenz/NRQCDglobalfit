@@ -39,8 +39,8 @@ int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, 
 
 
 const int nColorChannels_S=6;//includes CS
-const int nColorChannels_P=4;//includes CS
-const int nColorChannels4States[nStates]={nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P};
+const int nColorChannels_P=2;//includes CS
+//const int nColorChannels4States[nStates]={nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P};
 
 double FeedDownBranchingRatio[nStates][nStates]={
 		//one row for each state; elements: BR of BR(x->y), [iDaughter][iMother]
@@ -102,6 +102,8 @@ double errFeedDownBranchingRatio[nStates][nStates]={
 
 double ColorSingletME[nStates]={1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
 double errColorSingletME[nStates]={0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}; //uncertainty on ColorSinglet matrix elements taken from literature
+const double pT_star=15;
+const double rap_star=1;
 
 int randomSeed = 23101987;
 const int nMaxCascades = 20;//Used to define the size of an array containing all decay cascades of a certain mother->daughter link

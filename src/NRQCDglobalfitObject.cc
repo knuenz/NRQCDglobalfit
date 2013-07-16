@@ -92,6 +92,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 
 	int nOp=Op[nState].size();
 	int nModelSystematicScales_ = Np_US[1].size();
+	//cout<<"nOp "<<nOp<<endl;
 
 	//calculate direct production cross section (sum of individual octet contributions)
 	dvector ShortDistanceCoef_ = getShortDistanceCoef(nState);
@@ -112,6 +113,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 			ShortDistanceCoef_corrected[i]=sigma_Central*GlobalSystCorrectionFactor;
 		}
 		if(nModelSystematicScales_==0) ShortDistanceCoef_corrected[i]=sigma_Central;
+		//cout<<"ShortDistanceCoef_corrected[i] "<<ShortDistanceCoef_corrected[i]<<endl;
 	}
 
 	double DirectCrossSect=0;
@@ -343,13 +345,13 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 	}
 
 #ifdef mydebug
-	for(int iFeedDownState=0; iFeedDownState<nStates; iFeedDownState++){
+	for(int iFeedDownState=0; iFeedDownState<NRQCDvars::nStates; iFeedDownState++){
 		cout<<"BranchingRatio from state "<<iFeedDownState<<": "<<ListFeedDownStateBranchingFractions[iFeedDownState]<<endl;
 	}
-	for(int iFeedDownState=0; iFeedDownState<nStates; iFeedDownState++){
+	for(int iFeedDownState=0; iFeedDownState<NRQCDvars::nStates; iFeedDownState++){
 		cout<<"PromptCrossSectCont[ "<<iFeedDownState<<"]: "<<PromptCrossSectCont[iFeedDownState]<<endl;
 	}
-	for(int iFeedDownState=0; iFeedDownState<nStates; iFeedDownState++){
+	for(int iFeedDownState=0; iFeedDownState<NRQCDvars::nStates; iFeedDownState++){
 		cout<<"PromptContFraction[ "<<iFeedDownState<<"]: "<<PromptContFraction[iFeedDownState]<<endl;
 	}
 #endif
@@ -501,9 +503,15 @@ double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, d
 		exit(1);
 	}
 
+
     double ObjectLikelihood;
     double BufferLikelihood=(ModelPrediction-Object_CentralValue)/Combined_DataModel_PointByPoint_Untertainty;
     ObjectLikelihood=BufferLikelihood*BufferLikelihood;
+
+	//cout << "ModelPrediction: " << ModelPrediction << endl;
+	//cout << "Object_CentralValue: " << Object_CentralValue << endl;
+	//cout << "Combined_DataModel_PointByPoint_Untertainty: " << Combined_DataModel_PointByPoint_Untertainty << endl;
+	//cout << "ObjectLikelihood: " << ObjectLikelihood << endl;
 
     return ObjectLikelihood;
 

@@ -28,14 +28,10 @@ typedef vector<int> ivector;
 class NRQCDglobalfitObject {
  public:
 
-//	  double *fraction;
-//	  double *sampleValues;
-//	  double *sampleWidths;
-
 	  // constructors
 	  NRQCDglobalfitObject(){}
 //	  NRQCDglobalfitObject(const int& numStates);
-	  NRQCDglobalfitObject(const NRQCDglobalfitObject &other);
+//	  NRQCDglobalfitObject(const NRQCDglobalfitObject &other);
 
 //	  void initFractions(const int& nDim);
 //	  NRQCDglobalfitObject(const int nrows, const int ncolumns);

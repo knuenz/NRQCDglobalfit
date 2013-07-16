@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 //				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 //				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
-				    	if(iState!=3 || iMeasurementID!=0 || iExperiment!=4 /*|| iRap!=0 || iP!=0*/) continue;
+				    	//if(iState!=3 || iMeasurementID!=0 || iExperiment!=4 /*|| iRap!=0 || iP!=0*/) continue;
 				    	cout<<"calculate and set model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]/*<<", iRap="<<iRap<<", iP="<<iP*/<<endl;
 
 
@@ -490,9 +490,11 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 	for(int i=0; i<nContributions; i++){
 		ContributionIntegral+=lamVecContributions[i];
 	}
+	if(ContributionIntegral==0) {cerr << "ContributionIntegral is 0 -> exit!"<<endl; exit(2);}
 	vector<double> lamVecContributionFraction (nContributions,0);
 	for(int i=0; i<nContributions; i++){
 		lamVecContributionFraction[i]=lamVecContributions[i]/ContributionIntegral;
+
 	}
 
 	vector<double> LamthVec (nContributions);
@@ -504,6 +506,7 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 			LamthVec[i]=lamMatrix[i][0];
 			LamphVec[i]=lamMatrix[i][1];
 			LamtpVec[i]=lamMatrix[i][2];
+
 		}
 	}
 
@@ -535,6 +538,7 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 }
 
 vector<double> GeneralPolarizationTransformation(vector<double> lamVecOriginal, double t1, double t2, double t3){
+
 
 	vector<double> lamVecTransformed (3,0);
 
@@ -677,6 +681,7 @@ vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> D
 		cout<<"lamVecTransfer[1] "<<lamVecTransfer[1]<<endl;
 		cout<<"lamVecTransfer[2] "<<lamVecTransfer[2]<<endl;
 	}
+
 
 	return lamVecTransfer;
 }

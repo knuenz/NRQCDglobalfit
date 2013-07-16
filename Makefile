@@ -16,11 +16,11 @@ LIBS+=-L/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
 	$(CXX) -c $<
 
 
-#all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
-all: ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
+all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
+#all: ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
 
-#SamplePPD: src/SamplePPD.cc
-#	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+SamplePPD: src/SamplePPD.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
 
 ConvertDataInput: src/ConvertDataInput.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
@@ -37,6 +37,6 @@ ConvertNTupleToTTree: src/ConvertNTupleToTTree.cc
 
 									
 clean: 
-#	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
-	rm ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
+	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
+#	rm ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
 	

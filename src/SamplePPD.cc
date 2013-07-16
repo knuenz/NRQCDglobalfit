@@ -16,6 +16,7 @@
 #include <string>
 
 //rootincludes
+#include "TMath.h"
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1.h"
@@ -24,6 +25,20 @@
 //#include "TMatrixD.h"
 
 using namespace NRQCDvars;
+
+void setKernel( const int& kernelType );
+void setFractionDimension( const int& nDim );
+void genFractionValues1D(dvector &fraction, dvector &candidate, dvector &width );
+void genFractionValues2D(dvector &fraction, dvector &candidate, dvector &width );
+void genFractionValues3D(dvector &fraction, dvector &candidate, dvector &width );
+void genFractionValues4D(dvector &fraction, dvector &candidate, dvector &width );
+void genFractionValues5D(dvector &fraction, dvector &candidate, dvector &width );
+void genFractionValues6D(dvector &fraction, dvector &candidate, dvector &width );
+double MetropolisKernel(const double& candidate, const double& proposalWidth );
+double MetropolisHastingsKernel(const double& candidate, const double& proposalWidth );
+void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star);
+void (*getFractionValues)(dvector &fraction, dvector &candidate, dvector &width );
+double (*kernelFunction)(const double& par0, const double& par1 );
 
 
 int main(int argc, char** argv) {
@@ -43,12 +58,32 @@ int main(int argc, char** argv) {
   	std::string filename("data");
   	std::string properties;
 
+  	int 	nBurnIn=-1;
+  	int 	nSample=-1;
+
+
   	for( int i=0;i < argc; ++i ) {
+	    if(std::string(argv[i]).find("nBurnIn") != std::string::npos) {
+	    	char* nBurnInchar = argv[i];
+	    	char* nBurnInchar2 = strtok (nBurnInchar, "n");
+	    	nBurnIn = atoi(nBurnInchar2);
+	    	cout<<"nBurnIn = "<<nBurnIn<<endl;
+			properties.append("_nBurnIn");
+			properties.append(nBurnInchar2);
+	    }
+	    if(std::string(argv[i]).find("nSample") != std::string::npos) {
+	    	char* nSamplechar = argv[i];
+	    	char* nSamplechar2 = strtok (nSamplechar, "n");
+	    	nSample = atoi(nSamplechar2);
+	    	cout<<"nSample = "<<nSample<<endl;
+			properties.append("_nSample");
+			properties.append(nSamplechar2);
+	    }
 		if(std::string(argv[i]).find("JobID") != std::string::npos) {
 			char* JobIDchar = argv[i];
 			char* JobIDchar2 = strtok (JobIDchar, "=");
 			JobID = JobIDchar2;
-			cout<< "_JobID = " << JobID << endl;
+			cout<< "JobID = " << JobID << endl;
 			properties.append("_JobID");
 			properties.append(JobIDchar2);
 		}
@@ -95,7 +130,7 @@ int main(int argc, char** argv) {
 	    if(std::string(argv[i]).find("useOnlyState") != std::string::npos) {
 	    	char* useOnlyStatechar = argv[i];
 	    	char* useOnlyStatechar2 = strtok (useOnlyStatechar, "u");
-	    	useOnlyState = atof(useOnlyStatechar2);
+	    	useOnlyState = atoi(useOnlyStatechar2);
 	    	cout<<"useOnlyState = "<<useOnlyState<<endl;
 			properties.append("_useOnlyState");
 			properties.append(useOnlyStatechar2);
@@ -141,7 +176,7 @@ int main(int argc, char** argv) {
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
-				    	//if(iState!=4 || iMeasurementID!=0 || iExperiment!=2 || iRap!=0 || iP!=0) continue;
+				    	if(iState!=0 || iMeasurementID!=0 || iExperiment!=0 || iRap!=0 || iP!=0) continue;
 
 						char inname[2000];
 						char datadirname[2000];
@@ -203,8 +238,6 @@ int main(int argc, char** argv) {
 
 	//TODO: open model file, get sigma_star, c_star, close model file
 
-	//Observable parameters Op (Matrix elements)
-	dmatrix Op(nStates);
 
 
 	//Nuisance parameters Np
@@ -233,54 +266,164 @@ int main(int argc, char** argv) {
 //  	data->Branch("nColorChannels", &nColorChannels, "nColorChannels/I");
   	data->Branch("Np_BR", &Np_BR);
   	data->Branch("Np_US", &Np_US);
-  	data->Branch("Op", &Op);
+//  	data->Branch("Op", &Op);
 
-	int nSampledPoints=100;
 
+	int nSampledPoints=nBurnIn+nSample;
 	int nStep = nSampledPoints/10;  // visualize progress of the parameter sampling
 	int nStep_ = 1;
 
-	cout<<"Start sampling"<<endl;
-	cout<<"Progress:"<<endl;
 
   	setKernel(NRQCDvars::MetropolisHastings ); // modified by Joao: Set environment for sampling of fractions
 
+	//Observable parameters Op (Matrix elements)
+	dmatrix Op(NRQCDvars::nStates);
+	vector<double> Op_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> Op_P (NRQCDvars::nColorChannels_P,0);
 
-	dmatrix Fractions(nStates);
-	vector<double> Fractions_S (NRQCDvars::nColorChannels_S-1,0);
-	vector<double> Fractions_P (NRQCDvars::nColorChannels_P-1,0);
+	dmatrix Fractions(NRQCDvars::nStates);
+	vector<double> Fractions_S (NRQCDvars::nColorChannels_S,0);//f0...R, fi: i going from 1 to n=nColorChannels, fn=1-sum(fi_i-(n-1))
+	vector<double> Fractions_P (NRQCDvars::nColorChannels_P,0);
 
-	dmatrix Candidates(nStates);
-	vector<double> Candidates_S (NRQCDvars::nColorChannels_S-1,0);
-	vector<double> Candidates_P (NRQCDvars::nColorChannels_P-1,0);
+	dmatrix Candidates(NRQCDvars::nStates);
+	vector<double> Candidates_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> Candidates_P (NRQCDvars::nColorChannels_P,0);
 
-	dmatrix SampleWidths(nStates);
-	vector<double> SampleWidths_S (NRQCDvars::nColorChannels_S-1,0);
-	vector<double> SampleWidths_P (NRQCDvars::nColorChannels_P-1,0);
+	dmatrix SampleWidths(NRQCDvars::nStates);
+	vector<double> SampleWidths_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> SampleWidths_P (NRQCDvars::nColorChannels_P,0);
 
 	dmatrix PreviousCandidates (NRQCDvars::nStates);
-	vector<double> PreviousCandidates_S (NRQCDvars::nColorChannels_S-1,0);
-	vector<double> PreviousCandidates_P (NRQCDvars::nColorChannels_P-1,0);
+	vector<double> PreviousCandidates_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> PreviousCandidates_P (NRQCDvars::nColorChannels_P,0);
+
+	dmatrix consts_star(NRQCDvars::nStates);
+	vector<double> consts_star_S (NRQCDvars::nColorChannels_S,0);//0...sigma_star_CS, i going from 1 to n=nColorChannels, representing c_i star for a given state and pT_star
+	vector<double> consts_star_P (NRQCDvars::nColorChannels_P,0);
 
 
-	double sigma_star=1.; //TODO: get from model files, set model files
-	double c_star=1.; //TODO: get from model files, set model files
-
+	double loglikelihood_PreviousCandidate = -1.e30;  // intial (arbitrary) values
+	double loglikelihood_Candidate = -1.e30;  // intial (arbitrary) values
 
 	// Set all matrices to a starting value
 
+	cout<<"set starting point of Candidates"<<endl;
 
-
-	for(int iSampledPoint = 1; iSampledPoint <= nSampledPoints; iSampledPoint++){ // Sampling loop
-
-		if (iSampledPoint%nStep == 0) {
-			cout << nStep_*10 << " % " <<endl; ++nStep_;
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				consts_star_S.at(j)=1.;//TODO: define starting values for these constants
+			}
+			consts_star.at(i)=consts_star_S;
 		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				consts_star_P.at(j)=1.;
+			}
+			consts_star.at(i)=consts_star_P;
+		}
+	}
 
+	//TODO: set proposal width matrices for burn in
+	bool BurnIn=true;
 
-		///// This code is to be run in the loop over all samplings:::
+	cout<<"set starting point of Candidates"<<endl;
 
-		// Fill Nuisance parameter matrices Np_BR and Np_US. Np_US[0]: Data-related, Np_US[1]: Model-related uncertainty scales
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				Candidates_S.at(j)=0.;//TODO: define starting values for Candidates
+			}
+			Candidates.at(i)=Candidates_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				Candidates_P.at(j)=0.;
+			}
+			Candidates.at(i)=Candidates_P;
+		}
+	}
+
+	cout<<"set starting point of Op's"<<endl;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				Op_S.at(j)=0.;//TODO: define starting values for Candidates
+			}
+			Op.at(i)=Op_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				Op_P.at(j)=0.;
+			}
+			Op.at(i)=Op_P;
+		}
+	}
+
+	//cout << "Candidates:"<<endl;
+	//cout << Candidates;
+
+	cout<<"set widths"<<endl;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				SampleWidths_S[j]=-1.;
+			}
+			SampleWidths.at(i)=SampleWidths_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				SampleWidths_P[j]=-1.;
+			}
+			SampleWidths.at(i)=SampleWidths_P;
+		}
+	}
+
+	int nSampledPointsTotal=1;
+	for(int iSampledPoint = 1; iSampledPoint <= nSampledPoints; nSampledPointsTotal++){ // Sampling loop
+
+		//if(nSampledPointsTotal>2) break;
+
+		cout << "iSampledPoint " << iSampledPoint <<endl;
+
+	//	if (iSampledPoint%nStep == 0) {
+	//		cout << nStep_*10 << " % " <<endl; ++nStep_;
+	//	}
+    //
+	//	if(iSampledPoint==nBurnIn){
+	//		BurnIn=false;
+	//		cout<<"BurnIn period finished"<<endl;
+    //
+	//		for (int i=0; i<NRQCDvars::nStates; i++){
+	//			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+	//			if(isSstate){
+	//				for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+	//					//TODO: implement histos, take rms as estimate of proposal width
+	//					SampleWidths_S[j]=NRQCDvars::proposalWidthBurnIn;
+	//				}
+	//				SampleWidths.at(i)=SampleWidths_S;
+	//			}
+	//			else{
+	//				for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+	//					SampleWidths_P[j]=NRQCDvars::proposalWidthBurnIn;
+	//				}
+	//				SampleWidths.at(i)=SampleWidths_P;
+	//			}
+	//		}
+    //
+	//		break;
+	//	}
+    //
+	//	///// This code is to be run in the loop over all samplings:::
+    //
+	//	// Fill Nuisance parameter matrices Np_BR and Np_US. Np_US[0]: Data-related, Np_US[1]: Model-related uncertainty scales
+		//cout << "Fill Nuisance parameter matrices" <<endl;
 
 		Np_US[0][0]=gRandom->Gaus( 0.,1. ); // Luminosity scaling
 
@@ -298,42 +441,113 @@ int main(int argc, char** argv) {
 
 		if(NRQCDvars::debug) cout<< "fill Op" << endl;
 
+		//cout << "PreviousCandidates=Candidates;" <<endl;
 
 		PreviousCandidates=Candidates;
 
+		//cout << "getFractionValues" <<endl;
+
 		for (int i=0; i<NRQCDvars::nStates; i++){
+
+			//cout << "i" <<i<<endl;
 			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 			if(isSstate){
+				//cout << "Sstate" <<endl;
+				//cout << "setFractionDimension:getFractionValues" <<NRQCDvars::nColorChannels_S-1<<"D"<<endl;
 			  	setFractionDimension(NRQCDvars::nColorChannels_S-1);
-			  	getFractionValues(Fractions_S, Candidates_S, SampleWidths_S);
-			  	Fractions.push_back(Fractions_S);
+			  	PreviousCandidates_S=PreviousCandidates.at(i);
+				getFractionValues(Fractions_S, PreviousCandidates_S, SampleWidths_S);
+				//cout << "sampled fractions:" <<endl;
+				//double SumFractions=0;
+				//for (int j=0; j<Fractions_S.size(); j++){
+				//	cout << "Fractions_S "<< Fractions_S[j] <<endl;
+				//	if(j>0) SumFractions+=Fractions_S[j];
+				//}
+				//cout << "Sum f[1]-f[n] "<< SumFractions <<endl;
+				Fractions.at(i)=Fractions_S;
 			}
 			else{
+				//cout << "Pstate" <<endl;
+				//cout << "setFractionDimension:getFractionValues" <<NRQCDvars::nColorChannels_P-1<<"D"<<endl;
 			  	setFractionDimension(NRQCDvars::nColorChannels_P-1);
-			  	getFractionValues(Fractions_P, Candidates_P, SampleWidths_P);
-			  	Fractions.push_back(Fractions_P);
+			  	PreviousCandidates_P=PreviousCandidates.at(i);
+			  	getFractionValues(Fractions_P, PreviousCandidates_P, SampleWidths_P);
+				//cout << "sampled fractions:" <<endl;
+				//double SumFractions=0;
+				//for (int j=0; j<Fractions_P.size(); j++){
+				//	cout << "Fractions_P "<< Fractions_P[j] <<endl;
+				//	if(j>0) SumFractions+=Fractions_P[j];
+				//}
+				//cout << "Sum f[1]-f[n] "<< SumFractions <<endl;
+				Fractions.at(i)=Fractions_P;
 			}
 		}
 
 
 
 		// Relate Op to R, fi -> getObjectLikelihood
+		//cout << "transformFractionsToOps" <<endl;
 
-			transformFractionsToOps(Op, Fractions, sigma_star, c_star);
+		transformFractionsToOps(Op, Fractions, consts_star);
 
+
+		//cout<<Op;
+        //
+		//cout<<"Op[0].size() "<<Op[0].size()<<endl;
+		//cout<<"Op[1].size() "<<Op[1].size()<<endl;
 
 		if(NRQCDvars::debug) cout << "getObjectLikelihood" << endl;
 
 		likelihood=0;
 		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
-			likelihood+= state->getObjectLikelihood(Op, Np_BR, Np_US, state->fraction);
+			//cout << "getObjectLikelihood" <<endl;
+			//state->Dump(NRQCDvars::nStates, true, true);
+			//int nOp=Op[0].size();
+			//cout<<"nOp "<<nOp<<endl;
+
+			likelihood+= state->getObjectLikelihood(Op, Np_BR, Np_US);
+			//cout << "likelihood: " << likelihood << endl;
 			if(NRQCDvars::debug) {
 				cout << "iDataPoint: " << distance(DataModelObject.begin(), state) << endl;
 				cout << "likelihood: " << likelihood << endl;
 			}
 		}
-		likelihood*=-0.5;
-		data->Fill();
+
+		//TODO: calculate log-likelihood, make likelihood criterion decision
+
+		//cout << "Sum_likelihood " << likelihood << endl;
+
+		 likelihood*=0.5;
+
+			//cout << "Sum_likelihood*0.5 " << likelihood << endl;
+
+		 loglikelihood_Candidate=log(likelihood);
+			cout << "loglikelihood_Candidate: " << loglikelihood_Candidate << endl;
+			cout << "loglikelihood_PreviousCandidate: " << loglikelihood_PreviousCandidate << endl;
+
+	     double loglikelihood_difference = loglikelihood_Candidate - loglikelihood_PreviousCandidate;
+	     if(  loglikelihood_difference > 0.  ||  log( gRandom->Uniform(1.) ) < loglikelihood_difference  ) {
+	    	 PreviousCandidates=Candidates;
+	    	 loglikelihood_PreviousCandidate=loglikelihood_Candidate;
+//	    	 if(!BurnIn) data->Fill();
+	    	 iSampledPoint++;
+	    	 cout<<"MH accepts event: YES"<<endl;
+	    	// cout<<"loglikelihood_Candidate = "<<loglikelihood_Candidate<<endl;
+	    	//	cout << "PreviousCandidates:"<<endl;
+	    	//	cout << PreviousCandidates;
+	    	//	cout << "Candidates:"<<endl;
+	    	//	cout << Candidates;
+
+	     }
+	    else{
+	     cout<<"MH accepts event: NO"<<endl;
+	    }
+	    //	cout << "PreviousCandidates:"<<endl;
+	    //	cout << PreviousCandidates;
+	    //	cout << "Candidates:"<<endl;
+	    //	cout << Candidates;
+	    //}
+
 		if(NRQCDvars::debug) cout << "Sum likelihood: " << likelihood << endl;
 	}
 
@@ -344,15 +558,15 @@ int main(int argc, char** argv) {
 
 }
 
-void (*getFractionValues)(dvector &fraction, dvector &candidate, dvector &width );
-double (*kernelFunction)(double& par0, double& par1 );
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sets the kernel function
 
 void setKernel( const int& kernelType ){
-   switch(kernelType){
+	cout<<"setKernel"<<endl;
+
+	switch(kernelType){
    case NRQCDvars::Metropolis:
        kernelFunction=MetropolisKernel;
        break;
@@ -371,7 +585,13 @@ void setKernel( const int& kernelType ){
 // Sets the fractions generating function depending on dimensionality
 
 void setFractionDimension( const int& nDim ){//nDim number of color octet channels
-   switch(nDim-1){
+   switch(nDim){
+   case 1:
+       getFractionValues=genFractionValues1D;
+       break;
+   case 2:
+       getFractionValues=genFractionValues2D;
+       break;
    case 3:
        getFractionValues=genFractionValues3D;
        break;
@@ -392,7 +612,48 @@ void setFractionDimension( const int& nDim ){//nDim number of color octet channe
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                                                                //
-//                                              Function to gen the fractions in 3D case                                                          //
+//                                              Function to gen the fractions in 1D case (1 CO channel)                                                         //
+//                                                                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void genFractionValues1D(dvector &fraction, dvector &candidate, dvector &width ){
+	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
+
+	//Generate new candidates
+	for(int i=0; i < 1; ++i){
+		candidate[i]=kernelFunction(candidate[i], width[i]);
+	}
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=1.;
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                                                //
+//                                              Function to gen the fractions in 2D case (2 CO channels)                                                          //
+//                                                                                                                                                //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void genFractionValues2D(dvector &fraction, dvector &candidate, dvector &width ){
+	//basis vectors for random sampling: basis vectors in hyperplane are orthonormal
+	static const double a0=1./2., a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.);
+
+	//Generate new candidates
+	for(int i=0; i < 2; ++i){
+		candidate[i]=kernelFunction(candidate[i], width[i]);
+	}
+
+	fraction[0]=candidate[0];
+
+	fraction[1]=1./2.*(1+candidate[1]);
+	fraction[2]=1-fraction[1];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                                                //
+//                                              Function to gen the fractions in 3D case (3 CO channels)                                                          //
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -401,7 +662,7 @@ void genFractionValues3D(dvector &fraction, dvector &candidate, dvector &width )
 	static const double a0=1./3., a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.);
 
 	//Generate new candidates
-	for(int i=1; i < 4; ++i){
+	for(int i=0; i < 3; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
 
@@ -414,7 +675,7 @@ void genFractionValues3D(dvector &fraction, dvector &candidate, dvector &width )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                                                                //
-//                                              Function to gen the fractions in 4D case                                                          //
+//                                              Function to gen the fractions in 4D case (4 CO channels)                                                          //
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -423,7 +684,7 @@ void genFractionValues4D(dvector &fraction, dvector &candidate, dvector &width )
 	static const double a0=0.25, a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(2.), a3=0.5;
 
 	//Generate new candidates
-	for(int i=1; i < 5; ++i){
+	for(int i=0; i < 4; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
 
@@ -437,7 +698,7 @@ void genFractionValues4D(dvector &fraction, dvector &candidate, dvector &width )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                                                                //
-//                                              Function to gen the fractions in 5D case                                                          //
+//                                              Function to gen the fractions in 5D case (5 CO channels)                                                          //
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -446,7 +707,7 @@ void genFractionValues5D(dvector &fraction, dvector &candidate, dvector &width )
 	static const double a0=0.2, a1=1./TMath::Sqrt(2.), a2=1./TMath::Sqrt(6.), a3=1./TMath::Sqrt(2.), a4=1./TMath::Sqrt(30.);
 
 	//Generate new candidates
-	for(int i=1; i < 6; ++i){
+	for(int i=0; i < 5; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
 
@@ -461,7 +722,7 @@ void genFractionValues5D(dvector &fraction, dvector &candidate, dvector &width )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                                                                //
-//                                              Function to gen the fractions in 6D case                                                          //
+//                                              Function to gen the fractions in 6D case (6 CO channels)                                                          //
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -471,7 +732,7 @@ void genFractionValues6D(dvector &fraction, dvector &candidate, dvector &width )
 			            a4=1./TMath::Sqrt(6.), a5=1./TMath::Sqrt(6.);
 
 	//Generate new candidates
-	for(int i=1; i < 7; ++i){
+	for(int i=0; i < 6; ++i){
 		candidate[i]=kernelFunction(candidate[i], width[i]);
 	}
 
@@ -508,7 +769,7 @@ double MetropolisKernel(const double& candidate, const double& proposalWidth ){
 //                                                                                                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double MetropolisHastingsKernel(double& candidate, double& proposalWidth ){
+double MetropolisHastingsKernel(const double& candidate, const double& proposalWidth ){
 	double new_candidate;
 	if ( proposalWidth < 0. ) {
 		new_candidate = gRandom->Gaus( candidate, NRQCDvars::proposalWidthBurnIn ); // Gaussian proposal pdf with "large" sigma
@@ -516,21 +777,25 @@ double MetropolisHastingsKernel(double& candidate, double& proposalWidth ){
 	else {
 		new_candidate = gRandom->Gaus ( candidate, proposalWidth ); // Gaussian proposal pdf with possibly smaller sigmas
 	}
+	//cout<<"candidate: "<<candidate<<endl;
+	//cout<<"new_candidate: "<<new_candidate<<endl;
 	return new_candidate;
 }
 
 
-void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, double sigma_star, double c_star){
+void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star){
 
-	double star_ratio = sigma_star/c_star;
 
 	int iMax = Fractions.size();
 	for(int i=0; i < iMax; i++){
+		//cout<<"i "<<i<<endl;
 		dvector Op_state;
-		for(dvector::iterator j = Fractions[i].begin(); j != Fractions[i].end(); ++j){
-			Op_state.push_back(Fractions[i][j]*star_ratio);
+		Op_state.push_back(NRQCDvars::ColorSingletME[i]);
+		for(dvector::iterator j = Fractions[i].begin()+1; j != Fractions[i].end(); ++j){
+			int k=j-Fractions[i].begin();
+			//cout<<"k "<<k<<endl;
+			Op_state.push_back(Fractions[i][k]*Fractions[i][0]*consts_star[i][0]/consts_star[i][k]);
 		}
-		Op.push_back(Op_state);
+		Op.at(i)=Op_state;
 	}
-
 }
