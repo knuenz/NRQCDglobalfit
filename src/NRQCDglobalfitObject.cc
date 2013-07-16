@@ -461,7 +461,7 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US, double* fractions)  { // TODO: enter fractions
+double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US)  {
 	//Returns per-object likelihood
 //	cout<<"NRQCDglobalfitObject::getObjectLikelihood"<<endl;
 

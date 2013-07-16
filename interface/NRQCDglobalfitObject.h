@@ -169,7 +169,7 @@ class NRQCDglobalfitObject {
 	  dvector getDirectProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
 	  dvector getPromptProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
 	  double getCorrPromptCrossSect(dvector &PromptCrossSect, dmatrix &Np_BR, dmatrix &Np_US); //Polarization correction: Uses getPromptLambdas() and PredPromptCrossSect. Luminosity correction: Uses getErrGlobal() and LuminosityFactor (randomly drawn outside from a gaussian with mu=1,sigma=1 and passed with the Nuisance parameters Np), one for each CrossSect measurement. Branching fraction uncertainty correction: Same as Luminosity correction (gaussian variation of Np in general), Returns corrected value of prompt Cross section
-	  double getObjectLikelihood(dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US, double* fractions);
+	  double getObjectLikelihood(dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
 
 	  void setState(const int& state) {Object_nState=state;}
 	  void setStateDenom(const int& stateDenom) {Object_nStateDenom=stateDenom;}
