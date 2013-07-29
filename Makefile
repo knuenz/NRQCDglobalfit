@@ -16,8 +16,7 @@ LIBS+=-L/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
 	$(CXX) -c $<
 
 
-all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
-#all: ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree
+all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel
 
 SamplePPD: src/SamplePPD.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
@@ -33,10 +32,17 @@ CombineDataModel: src/CombineDataModel.cc
 
 ConvertNTupleToTTree: src/ConvertNTupleToTTree.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
-					
 
-									
+GenerateToyData: src/GenerateToyData.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+
+InterpretPPD: src/InterpretPPD.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+
+PlotCompareDataModel: src/PlotCompareDataModel.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+					
+								
 clean: 
-	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
-#	rm ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree*.o
+	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel*.o
 	

@@ -1,20 +1,16 @@
 /*
- * CombineDataModel.cc
+ * GenerateToyData.cc
  *
- *  Created on: Jun 30, 2013
+ *  Created on: Jul 26, 2013
  *      Author: valentinknuenz
  */
 
-/*
- * ConvertModelInput.cc
- *
- *  Created on: Jun 18, 2013
- *      Author: valentinknuenz
- */
+
 
 #include "../interface/NRQCDglobalfitObject.h"
 #include "../src/NRQCDglobalfitObject.cc"
 #include "../interface/GlobalVar.h"
+#include "../interface/ToyData.h"
 
 #include <iostream>
 #include <sstream>
@@ -41,11 +37,13 @@
 
 
 using namespace NRQCDvars;
+using namespace toyData;
 
 
 vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> DecayChain);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 vector<double> GeneralPolarizationTransformation(vector<double> lamVecOriginal, double t1, double t2, double t3);
+void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star);
 
 int main(int argc, char** argv) {
 
@@ -90,13 +88,104 @@ int main(int argc, char** argv) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Read in NRQCDglobalfitObjects, Model input: nTuples of previous step
-// Loop through NRQCDglobalfitObjects, calculate predictions specific for the MeasurementID, pT/rapidity bins and nState
-// Fill NRQCDglobalfitObjects with model and model uncertainties, save into output file
+// Generate toy-data NRQCDglobalfitObjects (empty 'results')
+// Loop through toy-data NRQCDglobalfitObjects, calculate predictions specific for the MeasurementID, pT/rapidity bins and nState
+// Fill NRQCDglobalfitObjects with model and model uncertainties
+// Generate 'results' according to specific fi or Oi, save in output files
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	//SDC: number of events in pT rap bin, weighted
-	//Polarization: project lambdas, for each decayChannel of iMother-> iDaughter do all transformations (simple function: from Pietro), sum up contributions with Branchingratiofractions.
+
+
+
+
+
+
+	NRQCDglobalfitObject *DummyDataObject[toyData::Toy_nStates][toyData::Toy_nMeasurementIDs][toyData::Toy_nExperiments][toyData::Toy_nRapBins][toyData::Toy_nPtBins];
+	NRQCDglobalfitObject *ModelObject[toyData::Toy_nStates][toyData::Toy_nMeasurementIDs][toyData::Toy_nExperiments][toyData::Toy_nRapBins][toyData::Toy_nPtBins];
+	NRQCDglobalfitObject *ToyDataModelObject[toyData::Toy_nStates][toyData::Toy_nMeasurementIDs][toyData::Toy_nExperiments][toyData::Toy_nRapBins][toyData::Toy_nPtBins];
+
+	bool DoesDummyDataExist[NRQCDvars::nStates][NRQCDvars::nMeasurementIDs][NRQCDvars::nExperiments][NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
+
+	for(int iState=0;iState<NRQCDvars::nStates;iState++){
+		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
+			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
+
+				 bool isAbsRap=false;
+					switch( iExperiment ){
+					case NRQCDvars::CMS:
+						isAbsRap=true;
+						break;
+					case NRQCDvars::LHCb:
+						isAbsRap=false;
+						break;
+					case NRQCDvars::ATLAS:
+						isAbsRap=true;
+						break;
+					case NRQCDvars::ALICE:
+						isAbsRap=false;
+						break;
+					case NRQCDvars::CDF:
+						isAbsRap=true;
+						break;
+					}
+
+				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
+				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
+
+
+				    	DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]=true;
+
+				    	if(iState>toyData::Toy_nStates-1 || iMeasurementID>toyData::Toy_nMeasurementIDs-1 || iExperiment>toyData::Toy_nExperiments-1 || iRap>toyData::Toy_nRapBins-1 || iP>toyData::Toy_nPtBins-1){
+				    		DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]=false;
+					    	continue;
+				    	}
+
+				    	cout<<"Generating dummy data object for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap<<", iP="<<iP<<endl;
+
+				    	double Dummy_CentralValue=999.;
+				    	double Dummy_Error=999.;
+
+				    	int setData_nState=iState;
+				    	int setData_nStateRatioDenom=999;
+				    	int setData_nExp=iExperiment;
+				    	double setData_CentralValue=Dummy_CentralValue;
+				    	double setData_ErrStatPos=Dummy_Error;
+				    	double setData_ErrStatNeg=Dummy_Error;
+				    	double setData_ErrSystPos=Dummy_Error;
+				    	double setData_ErrSystNeg=Dummy_Error;
+				    	double setData_ErrTotPos=Dummy_Error;
+				    	double setData_ErrTotNeg=Dummy_Error;
+				    	double setData_ErrGlobalPos=Dummy_Error;
+				    	double setData_ErrGlobalNeg=Dummy_Error;
+				    	double setData_yMin=toyData::rapRange[iRap];
+				    	double setData_yMax=toyData::rapRange[iRap+1];
+				    	double setData_yMean=(setData_yMin+setData_yMax)/2.;
+				    	double setData_pTMin=toyData::pTRange[iRap][iP];
+				    	double setData_pTMax=toyData::pTRange[iRap][iP+1];
+				    	double setData_pTMean=(setData_pTMin+setData_pTMax)/2.;
+				    	vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Dummy_CentralValue; setData_PolCorrParams[1]=Dummy_CentralValue;
+				    	int setData_MeasurementID=iMeasurementID;
+				    	string setData_ObjectID="teststring";
+				    	bool setData_isDataValid=false;
+				    	bool setData_isAbsRap=isAbsRap;
+
+				    	if(NRQCDvars::debug) cout<<"setData"<<endl;
+
+				    	DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP] = new NRQCDglobalfitObject();
+				    	DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(setData_nState, setData_nStateRatioDenom, setData_CentralValue,  setData_ErrStatPos, setData_ErrStatNeg, setData_ErrSystPos,
+				    			  setData_ErrSystNeg, setData_ErrTotPos, setData_ErrTotNeg, setData_ErrGlobalPos, setData_ErrGlobalNeg,
+				    			  setData_yMin, setData_yMax, setData_yMean, setData_pTMin, setData_pTMax, setData_pTMean,
+				    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid, setData_isAbsRap);
+
+				    }
+				}
+			}
+		}
+	}
+
+
+	//TODO: Calc Model for toy-data kinematics
+	//TODO: Generate toy-data from fi/Oi and model
 
 
   	sprintf(inname,"%s/ModelIngredients.root",modeldirname);
@@ -107,15 +196,11 @@ int main(int argc, char** argv) {
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
-//				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
-//				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
 				    	//if(iState!=3 || iMeasurementID!=0 || iExperiment!=4 /*|| iRap!=0 || iP!=0*/) continue;
 				    	cout<<"calculate and set model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]/*<<", iRap="<<iRap<<", iP="<<iP*/<<endl;
 
 
-				    	NRQCDglobalfitObject *DataObject[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
-				    	NRQCDglobalfitObject *ModelObject[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 				    	bool doesDataExist[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 						bool doesAnyDataExist=false;
 
@@ -123,45 +208,39 @@ int main(int argc, char** argv) {
 						for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 						    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
-								//get data input file
-								sprintf(inname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",datadirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
-								ifstream in;
-								in.open(inname);
 
 								doesDataExist[iRap][iP]=false;
 								//read NRQCDglobalfitObject members of data file
-								if(in!=NULL){
+								if(DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]){
 									doesAnyDataExist=true;
 									doesDataExist[iRap][iP]=true;
-									DataObject[iRap][iP] = new NRQCDglobalfitObject();
-									in >> *DataObject[iRap][iP];
-									in.close();
+									//cout<<"DummyDataExists for rap "<<iRap<<", pT "<<iP<<endl;
 
 									//Clone DataObject -> ModelObject and set Data members correctly
-									ModelObject[iRap][iP] = new NRQCDglobalfitObject();
-									ModelObject[iRap][iP]->setData(DataObject[iRap][iP]->getState(),
-											DataObject[iRap][iP]->getStateDenom(),
-											DataObject[iRap][iP]->getCentralValue(),
-											DataObject[iRap][iP]->getErrStatPos(),
-											DataObject[iRap][iP]->getErrStatNeg(),
-											DataObject[iRap][iP]->getErrSystPos(),
-											DataObject[iRap][iP]->getErrSystNeg(),
-											DataObject[iRap][iP]->getErrTotPos(),
-											DataObject[iRap][iP]->getErrTotNeg(),
-											DataObject[iRap][iP]->getErrGlobalPos(),
-											DataObject[iRap][iP]->getErrGlobalNeg(),
-											DataObject[iRap][iP]->getyMin(),
-											DataObject[iRap][iP]->getyMax(),
-											DataObject[iRap][iP]->getyMean(),
-											DataObject[iRap][iP]->getpTMin(),
-											DataObject[iRap][iP]->getpTMax(),
-											DataObject[iRap][iP]->getpTMean(),
-											DataObject[iRap][iP]->getPolCorrParams(),
-											DataObject[iRap][iP]->getMeasurementID(),
-											DataObject[iRap][iP]->getExperiment(),
-											DataObject[iRap][iP]->getObjectID(),
-											DataObject[iRap][iP]->getisDataValid(),
-											DataObject[iRap][iP]->getisAbsRap());
+									ModelObject[iState][iMeasurementID][iExperiment][iRap][iP] = new NRQCDglobalfitObject();
+									ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getState(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getStateDenom(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getCentralValue(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrStatPos(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrStatNeg(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrSystPos(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrSystNeg(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrTotPos(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrTotNeg(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrGlobalPos(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getErrGlobalNeg(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMean(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getPolCorrParams(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getMeasurementID(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getExperiment(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectID(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisDataValid(),
+											DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisAbsRap());
 								}
 
 						    }
@@ -259,6 +338,8 @@ int main(int argc, char** argv) {
 											int n_events = int( nTupleModel_Transformed->GetEntries() );
 											cout<<n_events<<" events: Looping through nTuple of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
+											//n_events=n_events/10;//TODO remove
+
 											// loop over  events in the model ntuple
 											for ( int i_event = 1; i_event <= n_events; i_event++ ) {
 
@@ -273,11 +354,11 @@ int main(int argc, char** argv) {
 												    	if(!doesDataExist[iRap][iP]){
 												    		continue;
 												    	}
-												    	else if(!DataObject[iRap][iP]->getisAbsRap() && (model_pT_mother > ModelObject[iRap][iP]->getpTMin() && model_pT_mother < ModelObject[iRap][iP]->getpTMax() && model_rap_mother > ModelObject[iRap][iP]->getyMin() && model_rap_mother < ModelObject[iRap][iP]->getyMax())){
+												    	else if(!ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisAbsRap() && (model_pT_mother > ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin() && model_pT_mother < ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax() && model_rap_mother > ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin() && model_rap_mother < ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax())){
 															rap_index=iRap;
 															pT_index=iP;
 														}
-												    	else if(DataObject[iRap][iP]->getisAbsRap() && (model_pT_mother > ModelObject[iRap][iP]->getpTMin() && model_pT_mother < ModelObject[iRap][iP]->getpTMax() && fabs(model_rap_mother) > ModelObject[iRap][iP]->getyMin() && fabs(model_rap_mother) < ModelObject[iRap][iP]->getyMax())){
+												    	else if(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisAbsRap() && (model_pT_mother > ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin() && model_pT_mother < ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax() && fabs(model_rap_mother) > ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin() && fabs(model_rap_mother) < ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax())){
 															rap_index=iRap;
 															pT_index=iP;
 														}
@@ -301,11 +382,12 @@ int main(int argc, char** argv) {
 											    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 											    	if(!doesDataExist[iRap][iP]) continue;
 
+											    	//cout<<"Buffer_ShortDistanceCoef["<<iRap<<"]["<<iP<<"] "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
 											    	Buffer_ShortDistanceCoef[iRap][iP]*=nTupleModel_Transformed->GetWeight();
 
-											    	double deltaPt=DataObject[iRap][iP]->getpTMax()-DataObject[iRap][iP]->getpTMin();
-											    	double deltay=DataObject[iRap][iP]->getyMax()-DataObject[iRap][iP]->getyMin();
-											    	if(DataObject[iRap][iP]->getisAbsRap()) deltay*=2;
+											    	double deltaPt=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax()-ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin();
+											    	double deltay=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax()-ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin();
+											    	if(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisAbsRap()) deltay*=2;
 											    	Buffer_ShortDistanceCoef[iRap][iP]/=deltaPt*deltay;
 
 											vector<double> lamVecRaw(3,0);
@@ -458,7 +540,7 @@ int main(int argc, char** argv) {
 								    	if(!doesDataExist[iRap][iP]) continue;
 
 								    	//cout<<"ModelObject->setModel(iMother, ..."<<endl;
-								ModelObject[iRap][iP]->setModel(iMother,
+								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setModel(iMother,
 										  setModel_ShortDistanceCoef[iRap][iP], setModel_OctetCompLamth[iRap][iP], setModel_OctetCompLamph[iRap][iP], setModel_OctetCompLamtp[iRap][iP],
 										  setModel_ShortDistanceCoef_PointByPointSyst[iRap][iP], setModel_OctetCompLamth_PointByPointSyst[iRap][iP], setModel_OctetCompLamph_PointByPointSyst[iRap][iP], setModel_OctetCompLamtp_PointByPointSyst[iRap][iP],
 										  setModel_ShortDistanceCoef_globalSystPos[iRap][iP], setModel_ShortDistanceCoef_globalSystNeg[iRap][iP],
@@ -475,14 +557,14 @@ int main(int argc, char** argv) {
 							    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 							    	if(!doesDataExist[iRap][iP]) continue;
 
-							if(NRQCDvars::debug) ModelObject[iRap][iP]->Dump(NRQCDvars::nStates,true,true);
+							if(NRQCDvars::debug) ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->Dump(NRQCDvars::nStates,true,true);
 
-							//write updated NRQCDglobalfitObject containing data+model components to output file
-							sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
-							ofstream out;
-							out.open(outname);
-							out << *ModelObject[iRap][iP];
-							out.close();
+							////write updated NRQCDglobalfitObject containing data+model components to output file
+							//sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",modeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+							//ofstream out;
+							//out.open(outname);
+							//out << *ModelObject[iState][iMeasurementID][iExperiment][iRap][iP];
+							//out.close();
 
 							    }
 							}
@@ -496,6 +578,304 @@ int main(int argc, char** argv) {
 
 
 	ModelIngredientsFile->Close();
+
+
+
+
+//////////////////////////////
+///// GENERATE TOY DATA
+//////////////////////////////
+
+
+
+
+	//Observable parameters Op (Matrix elements)
+	dmatrix Op(NRQCDvars::nStates);
+	vector<double> Op_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> Op_P (NRQCDvars::nColorChannels_P,0);
+
+	dmatrix Fractions(NRQCDvars::nStates);
+	vector<double> Fractions_S (NRQCDvars::nColorChannels_S,0);//f0...R, fi: i going from 1 to n=nColorChannels, fn=1-sum(fi_i-(n-1))
+	vector<double> Fractions_P (NRQCDvars::nColorChannels_P,0);
+
+	cout<<"Initialize Op's"<<endl;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				Op_S.at(j)=0.;
+			}
+			Op.at(i)=Op_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				Op_P.at(j)=0.;
+			}
+			Op.at(i)=Op_P;
+		}
+	}
+
+	cout<<"Initialize Fractions"<<endl;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				Fractions_S.at(j)=0.;
+			}
+			Fractions.at(i)=Fractions_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				Fractions_P.at(j)=0.;
+			}
+			Fractions.at(i)=Fractions_P;
+		}
+	}
+
+	dmatrix consts_star;
+	dmatrix err_consts_star;
+
+	cout<<"read in dmatrix consts_star"<<endl;
+
+	sprintf(inname,"%s/ModelIngredients_consts_star.txt",modeldirname);
+	ifstream instar;
+	instar.open(inname);
+	instar >> consts_star;
+	instar >> err_consts_star;
+	instar.close();
+
+	cout << consts_star << endl;
+	cout << err_consts_star << endl;
+
+	dmatrix Np_BR; //Branching ratios, [nDauthgers][nMothers]
+	dmatrix Np_US; //Uncertainty scales, [0=Data, 1=Model][nScales]
+
+	dvector Np_BR_0 (NRQCDvars::nStates,0.);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR.push_back(Np_BR_0);
+
+	dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
+	dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
+	Np_US.push_back(Np_US_0);
+	Np_US.push_back(Np_US_1);
+
+	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+		Np_US[0][j]=0.;
+	}
+	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+		Np_US[1][j]=0.;
+	}
+
+	for(int i=0; i < nStates; i++){
+		for(int j=0; j < nStates; j++){
+			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+				Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01;
+			}
+			else Np_BR[i][j]=0;
+		}
+	}
+
+
+//SET TRUTH
+
+	if(toyData::isTRUTH_Ops){
+
+		cout<<"Initialize Op's"<<endl;
+
+		for (int i=0; i<NRQCDvars::nStates; i++){
+			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+			if(isSstate){
+				for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+					Op_S.at(j)=toyData::TRUTH_matrix[i][j];
+				}
+				Op.at(i)=Op_S;
+			}
+			else{
+				for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+					Op_P.at(j)=toyData::TRUTH_matrix[i][j];
+				}
+				Op.at(i)=Op_P;
+			}
+		}
+
+	}
+	else{
+
+		cout<<"Initialize Fractions"<<endl;
+
+		for (int i=0; i<NRQCDvars::nStates; i++){
+			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+			if(isSstate){
+				for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+					Fractions_S.at(j)=toyData::TRUTH_matrix[i][j];
+				}
+				Fractions.at(i)=Fractions_S;
+			}
+			else{
+				for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+					Fractions_P.at(j)=toyData::TRUTH_matrix[i][j];
+				}
+				Fractions.at(i)=Fractions_P;
+			}
+		}
+
+		cout<<"transformFractionsToOps"<<endl;
+		transformFractionsToOps(Op, Fractions, consts_star);
+
+	}
+
+
+
+
+
+	dvector ObjectLikelihoodVec;
+
+	bool isAbsRap;
+	for(int iState=0;iState<NRQCDvars::nStates;iState++){
+		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
+			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
+
+				switch( iExperiment ){
+				case NRQCDvars::CMS:
+					isAbsRap=true;
+					break;
+				case NRQCDvars::LHCb:
+					isAbsRap=false;
+					break;
+				case NRQCDvars::ATLAS:
+					isAbsRap=true;
+					break;
+				case NRQCDvars::ALICE:
+					isAbsRap=false;
+					break;
+				case NRQCDvars::CDF:
+					isAbsRap=true;
+					break;
+				}
+
+				double Toy_Luminosity_var=gRandom->Gaus(0,1);
+
+				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
+				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
+
+
+				    	if(DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]){
+				    		//Generate toy data from model
+
+				    		dcube directProductionCube;
+				    		dmatrix promptProductionMatrix;
+				    		double polCorrFactor;
+
+				    		if(iMeasurementID==0){
+								cout<<"Generating "<<MeasurementIDName[iMeasurementID]<<" toy-data results from model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap<<", iP="<<iP<<endl;
+
+								ObjectLikelihoodVec=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+								double ModelPrediction=ObjectLikelihoodVec[1];
+
+								double Toy_ModelPrediction_var=gRandom->Gaus(ModelPrediction, ModelPrediction*(toyData::Toy_totalUncertaintyPos+toyData::Toy_totalUncertaintyNeg)/2.);
+								Toy_ModelPrediction_var*=1+Toy_Luminosity_var*(toyData::Toy_globalUncertaintyPos+toyData::Toy_globalUncertaintyNeg)/2.;
+
+								vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Toy_ModelPrediction_var*(1+toyData::Toy_polarizationUncertaintyPos); setData_PolCorrParams[1]=Toy_ModelPrediction_var*(1-toyData::Toy_polarizationUncertaintyNeg);
+
+								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getState(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getStateDenom(),
+										Toy_ModelPrediction_var,
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyPos),
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyNeg),
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyPos),
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyNeg),
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyPos),
+										Toy_ModelPrediction_var*(toyData::Toy_totalUncertaintyNeg),
+										Toy_ModelPrediction_var*(toyData::Toy_globalUncertaintyPos),
+										Toy_ModelPrediction_var*(toyData::Toy_globalUncertaintyNeg),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMean(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean(),
+										setData_PolCorrParams,
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getMeasurementID(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getExperiment(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectID(),
+										true,
+										isAbsRap);
+				    		}
+
+				    		if( iMeasurementID>0 && iMeasurementID<4 ){
+								cout<<"Generating "<<MeasurementIDName[iMeasurementID]<<" toy-data results from model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap<<", iP="<<iP<<endl;
+
+								double Toy_totalUncertaintyPos_Lam;
+								double Toy_totalUncertaintyNeg_Lam;
+								if(iMeasurementID==1){
+									Toy_totalUncertaintyPos_Lam=toyData::Toy_totalUncertaintyPos_Lamth;
+									Toy_totalUncertaintyNeg_Lam=toyData::Toy_totalUncertaintyNeg_Lamth;
+								}
+								if(iMeasurementID==2){
+									Toy_totalUncertaintyPos_Lam=toyData::Toy_totalUncertaintyPos_Lamph;
+									Toy_totalUncertaintyNeg_Lam=toyData::Toy_totalUncertaintyNeg_Lamph;
+								}
+								if(iMeasurementID==3){
+									Toy_totalUncertaintyPos_Lam=toyData::Toy_totalUncertaintyPos_Lamtp;
+									Toy_totalUncertaintyNeg_Lam=toyData::Toy_totalUncertaintyNeg_Lamtp;
+								}
+
+								ObjectLikelihoodVec=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+								double ModelPrediction=ObjectLikelihoodVec[1];
+
+								double Toy_ModelPrediction_var=gRandom->Gaus(ModelPrediction, (Toy_totalUncertaintyPos_Lam+Toy_totalUncertaintyNeg_Lam)/2.);
+
+								vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=999.; setData_PolCorrParams[1]=999.;
+
+								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getState(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getStateDenom(),
+										Toy_ModelPrediction_var,
+										Toy_totalUncertaintyPos_Lam,
+										Toy_totalUncertaintyNeg_Lam,
+										Toy_totalUncertaintyPos_Lam,
+										Toy_totalUncertaintyNeg_Lam,
+										Toy_totalUncertaintyPos_Lam,
+										Toy_totalUncertaintyNeg_Lam,
+										999.,
+										999.,
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMean(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean(),
+										setData_PolCorrParams,
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getMeasurementID(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getExperiment(),
+										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectID(),
+										true,
+										isAbsRap);
+							}
+
+							//write updated NRQCDglobalfitObject containing data+model components to output file
+							sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+							ofstream out;
+							out.open(outname);
+							out << *ModelObject[iState][iMeasurementID][iExperiment][iRap][iP];
+							out.close();
+
+
+						}
+
+
+
+
+
+				    }
+				}
+			}
+		}
+	}
+
+
+
+
 
 return 0;
 
@@ -706,4 +1086,21 @@ vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> D
 
 
 	return lamVecTransfer;
+}
+
+void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star){
+
+
+	int iMax = Fractions.size();
+	for(int i=0; i < iMax; i++){
+		//cout<<"i "<<i<<endl;
+		dvector Op_state;
+		Op_state.push_back(NRQCDvars::ColorSingletME[i]);
+		for(dvector::iterator j = Fractions[i].begin()+1; j != Fractions[i].end(); ++j){
+			int k=j-Fractions[i].begin();
+			//cout<<"k "<<k<<endl;
+			Op_state.push_back(Fractions[i][k]*Fractions[i][0]*consts_star[i][0]*NRQCDvars::ColorSingletME[i]/consts_star[i][k]);
+		}
+		Op.at(i)=Op_state;
+	}
 }

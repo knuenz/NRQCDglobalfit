@@ -32,20 +32,22 @@ using namespace NRQCDvars;
 
 
 
-void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID);
+void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Char_t *storagedir);
 
 int main(int argc, char** argv) {
 
   	Char_t *DataID = "Default";
+	Char_t *storagedir = "Default"; //Storage Directory
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("DataID") != std::string::npos) {char* DataIDchar = argv[i]; char* DataIDchar2 = strtok (DataIDchar, "="); DataID = DataIDchar2; cout<<"DataID = "<<DataID<<endl;}
+		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
 	}
 
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
-				LoadData(iState, iMeasurementID, iExperiment, DataID);
+				LoadData(iState, iMeasurementID, iExperiment, DataID, storagedir);
 			}
 		}
 	}
@@ -58,7 +60,7 @@ int main(int argc, char** argv) {
 }
 
 
-void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
+void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Char_t *storagedir){
 //Data yet to be added:
 // Cross sections: CMS7/CMS8 UPS_NS
 // CMS polarization measurements
@@ -451,6 +453,26 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 
 	 if(isMeasurementAvailable){//Fill NRQCDglobalfitObjects
 
+
+		 bool isAbsRap=false;
+			switch( nExp ){
+			case NRQCDvars::CMS:
+				isAbsRap=true;
+				break;
+			case NRQCDvars::LHCb:
+				isAbsRap=false;
+				break;
+			case NRQCDvars::ATLAS:
+				isAbsRap=true;
+				break;
+			case NRQCDvars::ALICE:
+				isAbsRap=false;
+				break;
+			case NRQCDvars::CDF:
+				isAbsRap=true;
+				break;
+			}
+
 	  for(int iRap = 0; iRap < nRapBins; iRap++){
 
 	    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
@@ -480,8 +502,8 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	    	double setData_ErrSystNeg=gSigma_syst[0][iRap]->GetErrorYlow(iP);
 	    	double setData_ErrTotPos=gSigma_tot[0][iRap]->GetErrorYhigh(iP);
 	    	double setData_ErrTotNeg=gSigma_tot[0][iRap]->GetErrorYlow(iP);
-	    	double setData_ErrGlobalPos=999;
-	    	double setData_ErrGlobalNeg=999;
+	    	double setData_ErrGlobalPos=0;
+	    	double setData_ErrGlobalNeg=0;
 	    	double setData_yMin=rapMin[iRap];
 	    	double setData_yMax=rapMax[iRap];
 	    	double setData_yMean=(rapMin[iRap]+rapMax[iRap])/2.;
@@ -492,12 +514,13 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	    	int setData_MeasurementID=MeasurementID;
 	    	string setData_ObjectID="teststring";
 	    	bool setData_isDataValid=true;
+	    	bool setData_isAbsRap=isAbsRap;
 
 	    	if(NRQCDvars::debug) cout<<"setData"<<endl;
 	    	DataObject->setData(setData_nState, setData_nStateRatioDenom, setData_CentralValue,  setData_ErrStatPos, setData_ErrStatNeg, setData_ErrSystPos,
 	    			  setData_ErrSystNeg, setData_ErrTotPos, setData_ErrTotNeg, setData_ErrGlobalPos, setData_ErrGlobalNeg,
 	    			  setData_yMin, setData_yMax, setData_yMean, setData_pTMin, setData_pTMax, setData_pTMean,
-	    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid);
+	    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid, setData_isAbsRap);
 
 	    	DataObject->setInvalidModel(nStates, NRQCDvars::nColorChannels, NRQCDvars::nModelSystematicScales);
 
@@ -515,7 +538,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID){
 	    char inname[2000];
 	    char predirname[2000];
 	    char dirname[2000];
-	    sprintf(predirname,"DataID");
+	    sprintf(predirname,"%s/DataID", storagedir);
 	    gSystem->mkdir(predirname);
 	    sprintf(dirname,"%s/%s",predirname,DataID);
 	    gSystem->mkdir(dirname);

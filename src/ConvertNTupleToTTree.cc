@@ -43,10 +43,12 @@ int main(int argc, char** argv) {
 
   	Char_t *OriginalNTupleID = "Default";
   	Char_t *ModelID = "Default";
+	Char_t *storagedir = "Default"; //Storage Directory
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("OriginalNTupleID") != std::string::npos) {char* OriginalNTupleIDchar = argv[i]; char* OriginalNTupleIDchar2 = strtok (OriginalNTupleIDchar, "="); OriginalNTupleID = OriginalNTupleIDchar2; cout<<"OriginalNTupleID = "<<OriginalNTupleID<<endl;}
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
+		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
   	}
 
 
@@ -60,7 +62,7 @@ int main(int argc, char** argv) {
 // Read input model
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	sprintf(predirname,"ModelID");
+	sprintf(predirname,"%s/ModelID", storagedir);
 	gSystem->mkdir(predirname);
 	sprintf(dirname,"%s/%s",predirname,ModelID);
 	gSystem->mkdir(dirname);
@@ -74,7 +76,11 @@ int main(int argc, char** argv) {
 
 	for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
 		cout<<"Converting original model nTuple for nState = "<<iMother<<endl;
-		for (int iColorChannel=0; iColorChannel<NRQCDvars::nColorChannels; iColorChannel++){
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 			cout<<"		Color channel = "<<iColorChannel<<endl;
 
 			sprintf(predirname,"OriginalNTupleID");

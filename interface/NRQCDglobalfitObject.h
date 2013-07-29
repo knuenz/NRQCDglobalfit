@@ -52,7 +52,8 @@ class NRQCDglobalfitObject {
 			  int Input_MeasurementID,
 			  int Input_nExperiment,
 			  string Input_ObjectID,
-			  bool Input_isDataValid
+			  bool Input_isDataValid,
+			  bool Input_isAbsRap
 			  )
 	  {
 		  Object_nState = Input_nState;
@@ -69,6 +70,7 @@ class NRQCDglobalfitObject {
 		  Object_nExperiment = Input_nExperiment;
 		  Object_ObjectID = Input_ObjectID;
 		  Object_isDataValid = Input_isDataValid;
+		  Object_isAbsRap = Input_isAbsRap;
 	  }
 
 	  void setModel(int Input_nState,
@@ -142,6 +144,7 @@ class NRQCDglobalfitObject {
 	  string getObjectID() {return Object_ObjectID;}
 	  bool getisDataValid() {return Object_isDataValid;}
 	  bool getisModelValid() {return Object_isModelValid;}
+	  bool getisAbsRap() {return Object_isAbsRap;}
 //	  void getFractionValues();
 
 	  dvector getShortDistanceCoef(int Input_nState) {return Object_ShortDistanceCoef[Input_nState];}
@@ -162,10 +165,10 @@ class NRQCDglobalfitObject {
 	  dmatrix getOctetCompLamph_globalSystNeg(int Input_nState) {return Object_OctetCompLamph_globalSystNeg[Input_nState];}
 	  dmatrix getOctetCompLamtp_globalSystPos(int Input_nState) {return Object_OctetCompLamtp_globalSystPos[Input_nState];}
 	  dmatrix getOctetCompLamtp_globalSystNeg(int Input_nState) {return Object_OctetCompLamtp_globalSystNeg[Input_nState];}
-	  dvector getDirectProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
-	  dvector getPromptProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
-	  double getCorrPromptCrossSect(dvector &PromptCrossSect, dmatrix &Np_BR, dmatrix &Np_US); //Polarization correction: Uses getPromptLambdas() and PredPromptCrossSect. Luminosity correction: Uses getErrGlobal() and LuminosityFactor (randomly drawn outside from a gaussian with mu=1,sigma=1 and passed with the Nuisance parameters Np), one for each CrossSect measurement. Branching fraction uncertainty correction: Same as Luminosity correction (gaussian variation of Np in general), Returns corrected value of prompt Cross section
-	  double getObjectLikelihood(dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US);
+	  dvector getDirectProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dmatrix &directProductionMatrix);
+	  dvector getPromptProduction(int Input_nState, dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dcube &directProductionCube, dmatrix &promptProductionMatrix);
+	  double getCorrPromptCrossSect(dvector &PromptCrossSect, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, double &polCorrFactor);
+	  dvector getObjectLikelihood(dmatrix &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dcube &directProductionCube, dmatrix &promptProductionMatrix, double &polCorrFactor);
 
 	  void setState(const int& state) {Object_nState=state;}
 	  void setStateDenom(const int& stateDenom) {Object_nStateDenom=stateDenom;}
@@ -189,7 +192,8 @@ class NRQCDglobalfitObject {
 	  void setPolCorrParams(const dvector& PolCorrParams) {Object_PolCorrParams=PolCorrParams;}
 	  void setObjectID(const string& ObjectID) {Object_ObjectID=ObjectID;}
 	  void setisDataValid(const bool& DataValidFlag) {Object_isDataValid=DataValidFlag;}
-	  void setisModelValid(const double& ModelValidFlag) {Object_isModelValid=ModelValidFlag;}
+	  void setisModelValid(const bool& ModelValidFlag) {Object_isModelValid=ModelValidFlag;}
+	  void setisAbsRap(const bool& isAbsRapFlag) {Object_isAbsRap=isAbsRapFlag;}
 //	  void setFractionsDim(const int& nDim ) {nFractionDimension=nDim;}
 //	  void setFractionsBasis(const int& numOperatorStates);
 
@@ -234,6 +238,7 @@ class NRQCDglobalfitObject {
 	  friend ostream& operator<< (ostream& out, NRQCDglobalfitObject& fit_object);
 	  friend istream& operator>> (istream& in, NRQCDglobalfitObject &fit_object);
 
+	  void TestFunction(double &internalReturn){internalReturn=4.;}
 
 
  protected:
@@ -244,16 +249,17 @@ class NRQCDglobalfitObject {
   int Object_MeasurementID; //0...Cross section, 1...LamthHX, 2...LamphHX, 3...LamtpHX, 4...Cross section ratio, 5...Feed-down fraction
   int Object_nExperiment;
   double Object_CentralValue;
-  double Object_ErrStatPos, Object_ErrStatNeg;
-  double Object_ErrSystPos, Object_ErrSystNeg;
-  double Object_ErrTotPos, Object_ErrTotNeg;
-  double Object_ErrGlobalPos, Object_ErrGlobalNeg;
+  double Object_ErrStatPos, Object_ErrStatNeg; //absolute uncertainties
+  double Object_ErrSystPos, Object_ErrSystNeg; //absolute uncertainties
+  double Object_ErrTotPos, Object_ErrTotNeg; //absolute uncertainties
+  double Object_ErrGlobalPos, Object_ErrGlobalNeg; //absolute uncertainties
   double Object_yMin, Object_yMax, Object_yMean;
   double Object_pTMin, Object_pTMax, Object_pTMean;
 
-  dvector Object_PolCorrParams;
+  dvector Object_PolCorrParams;//Containing at [0] the cross section for LongHX, at [1] the cross section for TransHX
   string Object_ObjectID; // Experiment=XXX Energy=XXXTeV Observable=XXX Unit=XXX State=XXX
   bool Object_isDataValid;
+  bool Object_isAbsRap;
 
 //Model members
   dmatrix Object_ShortDistanceCoef; // [nMothers][nColorChannels], vector<double> ShortDistanceCoef are the Color Octet Components of one nState

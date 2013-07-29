@@ -1,15 +1,21 @@
 #!/bin/sh
 
+storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
+
 OriginalNTupleID=BaranovSmallFile #This is the location of the original model nTuple (provided by Sergey)
-DataID=July16_Data #store here the NRQCDglobalfitObjects containing data and model prediction
-ModelID=July16_Toy100000_Model #July16_Toy100000_Model #store here the ModelIngredients.root file
-JobID=July16_Sample #store here the output TTree of the likelihood sampling
+DataID=July27 #store here the NRQCDglobalfitObjects containing data measurements
+ModelID=July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
+DataModelCombID=July28_ToyDataToyModel_ToyAddPol #store here the NRQCD objects combining data and model predictions
+JobID=July28_ToyAddPol_MHtests2 #store here the output TTree of the likelihood sampling, and all Figures of the results
 
 run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
-run_ConvertModelInput=0
+run_ConvertModelInput=1
 run_CombineDataModel=0
+run_GenerateToyData=1
 run_SamplePPD=1
+run_InterpretPPD=1
+run_PlotCompareDataModel=1
 
 ##################################
 ########## SETTINGS ##############
@@ -24,9 +30,17 @@ useToyModel=true
 
 ### CombineDataModel
 
+### GenerateToyData
+
 ### SamplePPD
-nSample=20
-nBurnIn=20
+nBurnIn=1000
+nSample=10000
+
+### InterpretPPD
+nSigma=1
+MPValgo=3 		#1...mean,2...gauss,3...gauss-loop with chi2<2
+
+### PlotCompareDataModel
 
 ##################################
 ########## SELECTION #############
@@ -39,7 +53,7 @@ rapMin=-10
 rapMax=10
 useSstatesOnly=false
 usePstatesOnly=false
-useCharmoniumOnly=false
+useCharmoniumOnly=true
 useBottomoniumOnly=false
 useOnlyState=999 #switch off by setting it to an int > N_STATES
 
@@ -52,21 +66,36 @@ make
 
 if [ ${run_ConvertDataInput} -eq 1 ]
 then
-./ConvertDataInput ${DataID}=DataID
+./ConvertDataInput ${DataID}=DataID ${storagedir}=storagedir
 fi
 if [ ${run_ConvertNTupleToTTree} -eq 1 ]
 then
-./ConvertNTupleToTTree ${OriginalNTupleID}=OriginalNTupleID ${ModelID}=ModelID
+./ConvertNTupleToTTree ${OriginalNTupleID}=OriginalNTupleID ${ModelID}=ModelID ${storagedir}=storagedir
 fi
 if [ ${run_ConvertModelInput} -eq 1 ]
 then
-./ConvertModelInput ${ModelID}=ModelID useToyModel=${useToyModel}
+./ConvertModelInput ${ModelID}=ModelID useToyModel=${useToyModel} ${storagedir}=storagedir
 fi
 if [ ${run_CombineDataModel} -eq 1 ]
 then
-./CombineDataModel ${ModelID}=ModelID ${DataID}=DataID
+./CombineDataModel ${ModelID}=ModelID ${DataID}=DataID ${DataModelCombID}=DataModelCombID ${storagedir}=storagedir
+fi
+if [ ${run_GenerateToyData} -eq 1 ]
+then
+./GenerateToyData ${ModelID}=ModelID ${DataID}=DataID ${DataModelCombID}=DataModelCombID ${storagedir}=storagedir
+cp interface/ToyData.h ${storagedir}/DataModelCombID/${DataModelCombID}/ToyData.h
 fi
 if [ ${run_SamplePPD} -eq 1 ]
 then
-./SamplePPD ${nBurnIn}nBurnIn ${nSample}nSample ${JobID}=JobID ${DataID}=DataID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
+./SamplePPD ${nBurnIn}nBurnIn ${nSample}nSample ${ModelID}=ModelID  ${JobID}=JobID ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly} ${storagedir}=storagedir
 fi
+if [ ${run_InterpretPPD} -eq 1 ]
+then
+./InterpretPPD ${JobID}=JobID ${MPValgo}MPValgo ${nSigma}nSigma ${storagedir}=storagedir
+fi
+if [ ${run_PlotCompareDataModel} -eq 1 ]
+then
+./PlotCompareDataModel ${JobID}=JobID ${ModelID}=ModelID ${nSigma}nSigma ${storagedir}=storagedir ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
+fi
+
+top

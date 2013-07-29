@@ -18,8 +18,11 @@
 //rootincludes
 #include "TFile.h"
 #include "TH1.h"
+#include "TGraph.h"
+#include "TGraph2D.h"
 #include "TH2.h"
 #include "TF1.h"
+#include "TF2.h"
 #include "TRandom3.h"
 #include "TTree.h"
 #include "TSystem.h"
@@ -36,6 +39,7 @@
 using namespace NRQCDvars;
 
 
+dvector func_lam_gen(int iMother, int iColorChannel);
 double func_pT_gen(double* x, double* par);
 vector<double> Transform_kinematics_MotherToDaughter(int MotherState, int DaughterState, vector<double> Kinematics_Mother);
 
@@ -43,11 +47,13 @@ vector<double> Transform_kinematics_MotherToDaughter(int MotherState, int Daught
 int main(int argc, char** argv) {
 
   	Char_t *ModelID = "Default";
+	Char_t *storagedir = "Default"; //Storage Directory
   	bool useToyModel=false;
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("useToyModel=true") != std::string::npos) {  useToyModel=true, cout<<"useToyModel"<<endl;	}
+		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
 		}
 
 
@@ -61,7 +67,7 @@ int main(int argc, char** argv) {
 	double model_costhMin, model_costhMax;
 	double model_phiMin, model_phiMax;
 
-	model_pTMin=0;
+	model_pTMin=8;
 	model_pTMax=100;
 	model_rapMin=-5;
 	model_rapMax=5;
@@ -80,7 +86,7 @@ int main(int argc, char** argv) {
 	char inname[2000];
 	char predirname[2000];
 	char dirname[2000];
-	sprintf(predirname,"ModelID");
+	sprintf(predirname,"%s/ModelID", storagedir);
 	gSystem->mkdir(predirname);
 	sprintf(dirname,"%s/%s",predirname,ModelID);
 	gSystem->mkdir(dirname);
@@ -103,8 +109,12 @@ int main(int argc, char** argv) {
 
 			//Read in TTrees from ModelID/JobID folder
 			for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+				int nColorChannels_state;
+				bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
 				/*if(NRQCDvars::debug) */cout<<"Read in original TTree model for nState = "<<iMother<<endl;
-				for (int iColorChannel=0; iColorChannel<NRQCDvars::nColorChannels; iColorChannel++){
+				for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 					if(NRQCDvars::debug) cout<<"		Color channel = "<<iColorChannel<<endl;
 					sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iMother, iMother, iColorChannel);
 					nTupleModel[iMother][iColorChannel]=(TTree*)OriginalModelTTreeFile->Get(nTupleModelName);
@@ -125,11 +135,15 @@ int main(int argc, char** argv) {
 
 		if(useToyModel){
 			//double LuminosityPerModelEvent[NRQCDvars::nStates][NRQCDvars::nColorChannels];
-			int n_nTuple=1000;
+			int n_nTuple=1000000;
 			for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
-				/*if(NRQCDvars::debug) */cout<<"Generating toy model for nState = "<<iMother<<endl;
-				for (int iColorChannel=0; iColorChannel<NRQCDvars::nColorChannels; iColorChannel++){
-					if(NRQCDvars::debug) cout<<"		Color channel = "<<iColorChannel<<endl;
+				int nColorChannels_state;
+				bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
+				cout<<"Generating toy model for nState = "<<iMother<<endl;
+				for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
+					cout<<"		Color channel = "<<iColorChannel<<endl;
 
 					//LuminosityPerModelEvent[iMother][iColorChannel]=100.; // Sets weight of event, to take care of the normalization of the individual states and color channels
 
@@ -142,25 +156,67 @@ int main(int argc, char** argv) {
 					double model_phi;  nTupleModel[iMother][iColorChannel]->Branch("model_phi",      &model_phi,     "model_phi/D");
 					double model_weight; nTupleModel[iMother][iColorChannel]->Branch("weight",      &model_weight,     "weight/D");
 
+					int nStep = n_nTuple/10;  // visualize progress of the parameter sampling
+					int nStep_ = 0;
+					bool genAngDist2D=false;
+
 					for (int k=0; k<n_nTuple; k++){
 
-						//if(iColorChannel<2){
-						//TF1* pT_distr = new TF1("pT_distr",func_pT_gen,model_pTMin,model_pTMax,1);
-						//pT_distr->SetParameter(0,iMother);
-						//model_pT=pT_distr->GetRandom();
-						//}
-						//else
-							model_pT=gRandom->Uniform(model_pTMin,model_pTMax);
+				 		if (k%nStep == 0) {
+				 			cout << nStep_*10 <<"% (nState = "<<iMother<<", Color channel = "<<iColorChannel<<")"<<endl;;
+				 			++nStep_;
+				 		}
 
+						TF1* pT_distr;
 
+						model_pT=gRandom->Uniform(model_pTMin,model_pTMax);
 						model_rap=gRandom->Uniform(model_rapMin,model_rapMax);
 						model_costh=gRandom->Uniform(model_costhMin,model_costhMax);
 						model_phi=gRandom->Uniform(model_phiMin,model_phiMax);
-						model_weight=1.;
+
+						//Define pT distribution:
+						pT_distr = new TF1("pT_distr",func_pT_gen,model_pTMin,model_pTMax,2);
+						pT_distr->SetParameter(0,iMother);
+						pT_distr->SetParameter(1,iColorChannel);
+						model_weight=pT_distr->Eval(model_pT);
+
+						//Define angular distribution:
+
+
+						dvector model_lam = func_lam_gen(iMother, iColorChannel);
+						double model_lamth, model_lamph, model_lamtp;
+						model_lamth=model_lam[0];
+						model_lamph=model_lam[1];
+						model_lamtp=model_lam[2];
+
+						double polNormFactor;
+						if(genAngDist2D){
+							TF2 *fcosthphi;
+							fcosthphi = new TF2( "fcosthphi", "[0]*(1.+[1]*x[0]*x[0]+[2]*(1.-x[0]*x[0])*cos(2.*x[1]*0.0174532925)+[3]*2.*x[0]*sqrt(1.-x[0]*x[0])*cos(x[1]*0.0174532925))", -1., 1., -180., 180. );
+							fcosthphi->SetParameters(1.,model_lamth, model_lamph, model_lamtp);
+							model_weight*=fcosthphi->Eval(model_costh,model_phi);
+							polNormFactor=fcosthphi->Integral(-1., 1., -180., 180. );
+							model_weight*=2.*360./fcosthphi->Integral(-1., 1., -180., 180. );
+
+							delete fcosthphi;
+						}
+						if(!genAngDist2D){
+							TF1 *fcosth;
+							fcosth = new TF1( "fcosth", "[0]*(1.+[1]*x[0]*x[0])", -1., 1.);
+							fcosth->SetParameters(1.,model_lamth);
+							model_weight*=fcosth->Eval(model_costh);
+							model_weight*=2./fcosth->Integral(-1., 1.);
+
+							delete fcosth;
+						}
 
 						nTupleModel[iMother][iColorChannel]->Fill();
 
+						delete pT_distr;
+
 					}
+
+
 					if(NRQCDvars::debug) cout<<"Number of generated events: "<<nTupleModel[iMother][iColorChannel]->GetEntries()<<endl;
 					double globalweight=1.;
 					nTupleModel[iMother][iColorChannel]->SetWeight(globalweight);
@@ -182,9 +238,13 @@ int main(int argc, char** argv) {
 		}
 		if(useToyModel){
 			ModelIngredientsFile = new TFile(outname, "RECREATE");
-				for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+			for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+				int nColorChannels_state;
+				bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
 				/*if(NRQCDvars::debug) */cout<<"Save original TTree model for nState = "<<iMother<<endl;
-				for (int iColorChannel=0; iColorChannel<NRQCDvars::nColorChannels; iColorChannel++){
+				for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 					nTupleModel[iMother][iColorChannel]->Write();
 				}
 			}
@@ -205,6 +265,10 @@ int main(int argc, char** argv) {
 		char DecayChainIDName[1000];
 
 		for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+			int nColorChannels_state;
+			bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+			else nColorChannels_state=NRQCDvars::nColorChannels_P;
 			for (int iDaughter=0; iDaughter<iMother; iDaughter++){
 
 					cout<<"transformation Mother "<<StateName[iMother]<<" to Daughter "<<StateName[iDaughter]<<endl;
@@ -243,7 +307,7 @@ int main(int argc, char** argv) {
 					}
 				}
 
-				if(Buffer_DecayChains.size()<1) continue; // continue, if there is not a single deca chain linkin iMother -> iDaughter
+				if(Buffer_DecayChains.size()<1) {cout<<"No contributing decay chain"<<endl; continue;} // continue, if there is not a single deca chain linkin iMother -> iDaughter
 
 				double FullBR=0;
 				for(int iDecayChain=0;iDecayChain<Buffer_DecayChainBranchingRatios.size();iDecayChain++){
@@ -254,7 +318,7 @@ int main(int argc, char** argv) {
 				}
 
 
-				for (int iColorChannel=0; iColorChannel<NRQCDvars::nColorChannels; iColorChannel++){
+				for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 
 					// find all decay chains nDecayChains from iMother -> iDaughter
 					// Transfrom mother momenta to momenta of the daughters, for each decay chain
@@ -331,7 +395,7 @@ int main(int argc, char** argv) {
 
 						}
 
-						double globalweight_daughter=nTupleModel[iMother][iColorChannel]->GetWeight()*Buffer_DecayChainBranchingRatios[iCascade]; // Luminosity/event times product of Branching ratios of the full decay chain
+						double globalweight_daughter=nTupleModel[iMother][iColorChannel]->GetWeight()*Buffer_DecayChainBranchingRatioFractions[iCascade]; // Luminosity/event times product of Branching ratios of the full decay chain
 						nTupleModel_Transformed[iMother][iDaughter][iColorChannel][iCascade]->SetWeight(globalweight_daughter);
 						nTupleModel_Transformed[iMother][iDaughter][iColorChannel][iCascade]->Write();
 						DecayChainID[iMother][iDaughter][iColorChannel][iCascade]->Write();
@@ -342,6 +406,140 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
+
+
+		if(NRQCDvars::debug) cout<<"Calc and save dmatrix consts_star"<<endl;
+
+
+		cout<<"Calc and save dmatrix consts_star"<<endl;
+
+		double consts_star_vals[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+		double err_consts_star_vals[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+
+		for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+			cout<<"iMother "<<iMother<<endl;
+			int nColorChannels_state;
+			bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+			else nColorChannels_state=NRQCDvars::nColorChannels_P;
+			for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
+				cout<<"iColorChannel "<<iColorChannel<<endl;
+
+				sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iMother, iMother, iColorChannel);
+
+				TTree* nTupleModelDirectProd = (TTree*) ModelIngredientsFile->Get(nTupleModelName);
+
+				//TODO: calc here the const_star values consts_star_vals[iMother][iColorChannel]
+
+				//Loop over Tree, define asymmetric area around NRQCDvars::pT_star and NRQCDvars::rap_star
+				//Fill weighted histogram, check if mean is compatible with NRQCDvars::pT_star and NRQCDvars::rap_star
+				//Calc consts_star_vals[iMother][iColorChannel], check if uncertainty is below threshold
+				//set consts_star_vals[iMother][iColorChannel]
+
+				double model_pT_mother; nTupleModelDirectProd->SetBranchAddress( "model_pT",  &model_pT_mother );
+				double model_rap_mother; nTupleModelDirectProd->SetBranchAddress( "model_rap",  &model_rap_mother );
+				double model_costh_mother; nTupleModelDirectProd->SetBranchAddress( "model_costh",  &model_costh_mother );
+				double model_phi_mother; nTupleModelDirectProd->SetBranchAddress( "model_phi",  &model_phi_mother );
+				double weight_mother; nTupleModelDirectProd->SetBranchAddress( "weight",  &weight_mother );
+
+				int n_events = int( nTupleModelDirectProd->GetEntries() );
+
+
+
+				int nBinsh_pT=30;//TODO: fine-tune
+				int nBinsh_rap=30;//TODO: fine-tune
+				TH2D *h_pTrap_DirectProd = new TH2D ("h_pTrap_DirectProd", "h_pTrap_DirectProd", nBinsh_pT, model_pTMin, model_pTMax, nBinsh_rap, model_rapMin, model_rapMax);
+				h_pTrap_DirectProd->Sumw2();
+
+				// loop over  events in the model ntuple
+				for ( int i_event = 1; i_event <= n_events; i_event++ ) {
+
+					nTupleModelDirectProd->GetEvent( i_event-1 );
+					h_pTrap_DirectProd->Fill(model_pT_mother, model_rap_mother, weight_mother);
+
+				}
+
+				int gStarBin = h_pTrap_DirectProd->FindBin(NRQCDvars::pT_star, NRQCDvars::rap_star);
+				int StarBin_pT, StarBin_rap, StarBinz;
+				h_pTrap_DirectProd->GetBinXYZ(gStarBin, StarBin_pT, StarBin_rap, StarBinz);
+				double BinWidth_pT=(model_pTMax-model_pTMin)/double(nBinsh_pT);
+				double BinWidth_rap=(model_rapMax-model_rapMin)/double(nBinsh_rap);
+
+				TGraph2D *g_pTrap_DirectProd = new TGraph2D(nBinsh_pT*nBinsh_rap);
+				int k=0;
+				double g_pT, g_rap, z;
+				for (Int_t i=0; i<nBinsh_pT; i++) {
+					g_pT=model_pTMin+BinWidth_pT*(i+0.5);
+					for (Int_t j=0; j<nBinsh_rap; j++) {
+						g_rap=model_rapMin+BinWidth_rap*(j+0.5);
+						z = h_pTrap_DirectProd->GetBinContent(i,j);
+						g_pTrap_DirectProd->SetPoint(k,g_pT,g_rap,z);
+						k++;
+					}
+				}
+
+				double g_consts_star_vals=g_pTrap_DirectProd->Interpolate(NRQCDvars::pT_star, NRQCDvars::rap_star)/(BinWidth_pT*BinWidth_rap);
+				double h_consts_star_vals=h_pTrap_DirectProd->GetBinContent(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
+
+				cout<<"g_consts_star_vals "<<g_consts_star_vals<<endl;
+				cout<<"h_consts_star_vals "<<h_consts_star_vals<<endl;
+				cout<<"relative difference g/h in % "<<(g_consts_star_vals/h_consts_star_vals-1)*100<<endl;
+
+				//TODO: check uncertainties, propagate them
+
+				consts_star_vals[iMother][iColorChannel]=g_consts_star_vals;
+				err_consts_star_vals[iMother][iColorChannel]=h_pTrap_DirectProd->GetBinError(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
+
+				delete g_pTrap_DirectProd;
+				delete h_pTrap_DirectProd;
+
+			}
+		}
+
+		// define dmatrix consts_star:::
+
+
+		dmatrix consts_star(NRQCDvars::nStates);
+		vector<double> consts_star_S (NRQCDvars::nColorChannels_S,0);//0...sigma_star_CS, i going from 1 to n=nColorChannels, representing c_i star for a given state and pT_star
+		vector<double> consts_star_P (NRQCDvars::nColorChannels_P,0);
+
+		dmatrix err_consts_star(NRQCDvars::nStates);
+		vector<double> err_consts_star_S (NRQCDvars::nColorChannels_S,0);//0...sigma_star_CS, i going from 1 to n=nColorChannels, representing c_i star for a given state and pT_star
+		vector<double> err_consts_star_P (NRQCDvars::nColorChannels_P,0);
+
+		for (int i=0; i<NRQCDvars::nStates; i++){
+			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+			if(isSstate){
+				for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+					consts_star_S.at(j)=consts_star_vals[i][j];
+					err_consts_star_S.at(j)=err_consts_star_vals[i][j];
+				}
+				consts_star.at(i)=consts_star_S;
+				err_consts_star.at(i)=err_consts_star_S;
+			}
+			else{
+				for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+					consts_star_P.at(j)=consts_star_vals[i][j];
+					err_consts_star_P.at(j)=err_consts_star_vals[i][j];
+				}
+				consts_star.at(i)=consts_star_P;
+				err_consts_star.at(i)=err_consts_star_P;
+			}
+		}
+
+		sprintf(outname,"%s/ModelIngredients_consts_star.txt",dirname);
+
+	    ofstream out;
+	    out.open(outname);//, std::ofstream::app);
+
+    	out << consts_star;
+    	out << err_consts_star;
+
+	    out.close();
+
+	    cout << consts_star << endl;
+	    cout << err_consts_star << endl;
+
 
 		if(NRQCDvars::debug) cout<<"Save ModelIngredients.root"<<endl;
 		ModelIngredientsFile->Close();
@@ -355,20 +553,84 @@ return 0;
 
 double func_pT_gen(double* x, double* par) {
 
-	double beta;
-	double pTsq;
 
-	//if(par[0]==0) {beta = 3.69; pTsq = 12.0;}  // Psi(1S)
-	//if(par[0]==3) {beta = 3.71; pTsq = 19.5;}  // Psi(2S)
-	//if(par[0]==4) {beta = 3.46; pTsq = 47.3;}  // Upsi(1S)
-	//if(par[0]==7) {beta = 3.27; pTsq = 65.7;}  // Upsi(2S)
-	//if(par[0]==10) {beta = 3.05; pTsq = 80.5;}  // Upsi(3S)
+	double funcval=1.;
 
 	int nState=par[0];
-	beta=3;
-	pTsq=NRQCDvars::mass[nState]*NRQCDvars::mass[nState];
+	int nColorChannel=par[1];
 
-	return x[0] * pow( 1. + 1./(beta - 2.) * x[0]*x[0] / pTsq, -beta  );
+	//if(nColorChannel==0){
+	//	double beta=-1.52;
+	//	funcval=pow(x[0],beta);
+	//}
+    //
+	//if(nColorChannel==1){
+	//	double alpha=-1e-5;
+	//	double gamma=1e-2;
+	//	funcval=alpha*x[0]+gamma;
+	//}
+    //
+	//if(nColorChannel==2){
+	//	double gamma=0.0075;
+	//	funcval=gamma;
+	//}
+    //
+	//if(nColorChannel==3){
+	//	double alpha=1e-5;
+	//	double gamma=5e-3;
+	//	funcval=alpha*x[0]+gamma;
+	//}
+
+
+	if(nColorChannel==0){
+		double beta;
+		double pTsq;
+		double constfact = 9;
+		beta=3;
+		pTsq=10;//NRQCDvars::mass[nState]*NRQCDvars::mass[nState];
+		funcval = constfact * x[0] * pow( 1. + 1./(beta - 2.) * x[0]*x[0] / pTsq, -beta  );
+	}
+	if(nColorChannel==1){
+		double beta=-2;
+		double constfact = 1.01;
+		funcval= constfact * pow(x[0],beta);
+	}
+	if(nColorChannel==2){
+		double beta=-1;
+		double constfact = 0.05;
+		funcval= constfact * pow(x[0],beta);
+	}
+
+
+
+
+
+	return funcval;
+
+}
+
+dvector func_lam_gen(int iMother, int iColorChannel){
+
+	double model_lamth, model_lamph, model_lamtp;
+
+	bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
+
+	if(isSstate){
+		if(iColorChannel==0) {model_lamth=-0.5; model_lamph=0; model_lamtp=0;}
+		if(iColorChannel==1) {model_lamth=+0.5; model_lamph=0; model_lamtp=0;}
+		if(iColorChannel==2) {model_lamth=+1; model_lamph=0; model_lamtp=0;}
+	}
+	else{
+		if(iColorChannel==0) {model_lamth=-1./3.; model_lamph=0; model_lamtp=0;}
+		if(iColorChannel==1) {model_lamth=-1./3.; model_lamph=0; model_lamtp=0;}
+	}
+
+	dvector model_lam(3,0);
+	model_lam.at(0)=model_lamth;
+	model_lam.at(1)=model_lamph;
+	model_lam.at(2)=model_lamtp;
+
+	return model_lam;
 
 }
 

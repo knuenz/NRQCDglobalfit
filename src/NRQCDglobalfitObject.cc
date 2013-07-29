@@ -84,7 +84,7 @@
 //	  dmatrix_copy(other.Object_OctetCompLamtp, Object_OctetCompLamtp);
 //}
 
-dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US) {
+dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dmatrix &directProductionMatrix) {
 //	cout<<"NRQCDglobalfitObject::getDirectProduction of state "<<nState_<<endl;
 
 
@@ -121,6 +121,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 	for (int i=0 ; i<nOp ; i++){
 		DirectCrossSectCont.push_back(ShortDistanceCoef_corrected[i]*Op[nState][i]);
 		DirectCrossSect+=DirectCrossSectCont[i];
+		//cout<<"DirectCrossSect[i] "<<DirectCrossSect<<endl;
 	}
 
 	//calculate fractions of individual octet contributions
@@ -128,7 +129,6 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 	for (int i=0 ; i<nOp ; i++){
 		DirectOctetContFraction.push_back(DirectCrossSectCont[i]/DirectCrossSect);
 	}
-
 
 
 
@@ -220,13 +220,20 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 #endif
 
 
+	if(returnMPDetails){
+		directProductionMatrix.push_back(DirectCrossSectCont);
+		directProductionMatrix.push_back(OctetCompLamth_);
+		directProductionMatrix.push_back(OctetCompLamph_);
+		directProductionMatrix.push_back(OctetCompLamtp_);
+	}
+
 	return DirectProductionVec;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US)  {
+dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dcube &directProductionCube, dmatrix &promptProductionMatrix)  {
 //	cout<<"NRQCDglobalfitObject::getPromptProduction"<<endl;
 
 	dvector PromptProductionVec;//return this
@@ -312,17 +319,32 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 
 	// Calculate directProduction of necessary states
 	dmatrix  BufferProductionVec;
+	dmatrix  BufferPromptProductionMatrix;
 	dvector BufferNullVec (4,0);
 
 	for(int iFeedDownState=0; iFeedDownState<state; iFeedDownState++){
 		BufferProductionVec.push_back(BufferNullVec);
+		if(returnMPDetails) BufferPromptProductionMatrix.push_back(BufferNullVec);
 	}
 
 	for(int iFeedDownState=state; iFeedDownState < NRQCDvars::nStates; iFeedDownState++){
-		if(ListFeedDownStateBranchingFractions[iFeedDownState]>0)
-			BufferProductionVec.push_back(getDirectProduction(iFeedDownState, Op, Np_BR, Np_US));
-		else
+		if(ListFeedDownStateBranchingFractions[iFeedDownState]>0){
+			dmatrix directProductionMatrix;
+			dvector directProductionVector = getDirectProduction(iFeedDownState, Op, Np_BR, Np_US, returnMPDetails, directProductionMatrix);
+			if(returnMPDetails) directProductionCube.push_back(directProductionMatrix);
+			if(directProductionVector[0]>1e-100){
+				BufferProductionVec.push_back(directProductionVector);
+				if(returnMPDetails) BufferPromptProductionMatrix.push_back(directProductionVector);
+			}
+			else{
+				if(returnMPDetails) BufferPromptProductionMatrix.push_back(BufferNullVec);
+				return BufferNullVec;
+			}
+		}
+		else{
 			BufferProductionVec.push_back(BufferNullVec);
+			if(returnMPDetails) BufferPromptProductionMatrix.push_back(BufferNullVec);
+		}
 	}
 
 
@@ -334,6 +356,7 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 		if(ListFeedDownStateBranchingFractions[iFeedDownState]>0){
 			PromptCrossSectCont[iFeedDownState]=BufferProductionVec[iFeedDownState][0]*ListFeedDownStateBranchingFractions[iFeedDownState];
 			PromptCrossSect+=PromptCrossSectCont[iFeedDownState];
+			if(returnMPDetails) BufferPromptProductionMatrix[iFeedDownState][0]=PromptCrossSectCont[iFeedDownState];
 		}
 		//else PromptCrossSectCont[iFeedDownState]=0;
 	}
@@ -414,6 +437,8 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 	cout<<"PromptLamtp "<<PromptLamtp<<endl;
 #endif
 
+	if(returnMPDetails) promptProductionMatrix=BufferPromptProductionMatrix;
+
 	return PromptProductionVec;
 }
 
@@ -423,7 +448,7 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect, dmatrix &Np_BR, dmatrix &Np_US)  {
+double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, double &polCorrFactor)  {
 // Correction to the prompt cross section due to effects concerning the measurement (global Luminosity uncertainty, polarization dependence)
 //	cout<<"NRQCDglobalfitObject::getCorrPromptCrossSect"<<endl;
 
@@ -451,10 +476,14 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 
 	CorrPromptCrossSect/=PolarizationCorrectionFactor;
 
+
 #ifdef mydebug
 	cout<<"Polarization correction factor: "<<PolarizationCorrectionFactor<<endl;
 	cout<<"Polarization corrected PromptCrossSect: "<<CorrPromptCrossSect<<endl;
 #endif
+
+	if(returnMPDetails) polCorrFactor=PolarizationCorrectionFactor;
+
 	return CorrPromptCrossSect;
 
 }
@@ -463,11 +492,23 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US)  {
-	//Returns per-object likelihood
+vector<double> NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, dmatrix &Np_US, bool returnMPDetails, dcube &directProductionCube, dmatrix &promptProductionMatrix, double &polCorrFactor)  {
+	//Returns per-object likelihood [0] and ModelPrediction [1]
 //	cout<<"NRQCDglobalfitObject::getObjectLikelihood"<<endl;
 
-	dvector PromptProduction = getPromptProduction(getState(), Op, Np_BR, Np_US);
+    // dcube (nStates, nColorChannels, 4) directProductionCube
+    // dmatrix (nStates, 4) promptProductionMatrix
+    // double polCorrFactor
+
+	vector<double> ObjectLikelihoodVec(2);
+
+	dvector PromptProduction = getPromptProduction(getState(), Op, Np_BR, Np_US, returnMPDetails, directProductionCube, promptProductionMatrix);
+
+	if(PromptProduction[0]<1e-100) {//cout<<"Penalty on likelihood (DirectProduction[0] of a contribution < 0)"<<endl;
+		ObjectLikelihoodVec.at(0)=1e100;
+		ObjectLikelihoodVec.at(1)=1e100;
+		return ObjectLikelihoodVec;} // Penalty on likelihood if PromptProduction[0] = 0 -> true if any DirectProduction[0]<0
+
 
 	double ModelPrediction;
 	double Data_PointByPoint_Untertainty=getErrTot();
@@ -479,7 +520,7 @@ double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, d
 //	int MeasurementID=getMeasurementID();
 	switch(Object_MeasurementID){ //modified by Joao
 	case 0:
-		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US);
+		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US, returnMPDetails, polCorrFactor);
 		break;
 	case 1:
 		ModelPrediction=PromptProduction[Object_MeasurementID];
@@ -491,12 +532,12 @@ double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, d
 		ModelPrediction=PromptProduction[Object_MeasurementID];
 		break;
 	case 4:
-		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US);
-		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US);
+		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCube, promptProductionMatrix);
+		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US, returnMPDetails, polCorrFactor)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US, returnMPDetails, polCorrFactor);
 		break;
 	case 5:
-		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US);//Prompt Jpsi
-		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US);
+		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCube, promptProductionMatrix);//Prompt Jpsi
+		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US, returnMPDetails, polCorrFactor)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US, returnMPDetails, polCorrFactor);
 		break;
 	default:
 		cerr << "Error: Unknown MeasurementID. Execution stop!" << endl;
@@ -508,12 +549,17 @@ double NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &Np_BR, d
     double BufferLikelihood=(ModelPrediction-Object_CentralValue)/Combined_DataModel_PointByPoint_Untertainty;
     ObjectLikelihood=BufferLikelihood*BufferLikelihood;
 
-	//cout << "ModelPrediction: " << ModelPrediction << endl;
-	//cout << "Object_CentralValue: " << Object_CentralValue << endl;
-	//cout << "Combined_DataModel_PointByPoint_Untertainty: " << Combined_DataModel_PointByPoint_Untertainty << endl;
-	//cout << "ObjectLikelihood: " << ObjectLikelihood << endl;
+#ifdef mydebug
+	cout << "ModelPrediction: " << ModelPrediction << endl;
+	cout << "Object_CentralValue: " << Object_CentralValue << endl;
+	cout << "Combined_DataModel_PointByPoint_Untertainty: " << Combined_DataModel_PointByPoint_Untertainty << endl;
+	cout << "ObjectLikelihood: " << ObjectLikelihood << endl;
+#endif
 
-    return ObjectLikelihood;
+	ObjectLikelihoodVec.at(0)=ObjectLikelihood;
+	ObjectLikelihoodVec.at(1)=ModelPrediction;
+
+    return ObjectLikelihoodVec;
 
 }
 
@@ -558,6 +604,10 @@ void NRQCDglobalfitObject::Dump(const int nStates, bool DumpData, bool DumpModel
 	  cout<< "isDataValid()     : DATA is valid"           << endl;
 	  else
 	  cout<< "isDataValid()     : DATA is NOT valid"           << endl;
+	  if(getisAbsRap())
+	  cout<< "sAbsRap()     : rapidity region to be interpreted in absolute rapidity"           << endl;
+	  else
+	  cout<< "sAbsRap()     : rapidity region NOT to be interpreted in absolute rapidity"           << endl;
 
 
 	}
@@ -1259,7 +1309,8 @@ ostream& operator<< (ostream &out, NRQCDglobalfitObject& fit_object)
 	out << fit_object.Object_pTMin << " " << fit_object.Object_pTMax << " " << fit_object.Object_pTMean << endl;
 	out << fit_object.Object_ObjectID << endl; // Experiment=XXX Energy=XXXTeV Observable=XXX Unit=XXX State=XXX
 	out << fit_object.Object_isDataValid << endl;
-	out << fit_object.Object_isModelValid;
+	out << fit_object.Object_isModelValid << endl;
+	out << fit_object.Object_isAbsRap;
 
     return out;
 }
@@ -1303,6 +1354,8 @@ istream& operator>> (istream &in, NRQCDglobalfitObject& fit_object)
 	in >> fit_object.Object_ObjectID; // Experiment=XXX Energy=XXXTeV Observable=XXX Unit=XXX State=XXX
 	in >> fit_object.Object_isDataValid;
 	in >> fit_object.Object_isModelValid;
+	in >> fit_object.Object_isAbsRap;
+
     return in;
 }
 
@@ -1348,7 +1401,6 @@ void deleteCMatrix(T** matrix){
 	delete [] matrix;
 	matrix = NULL;
 }
-
 
 
 
