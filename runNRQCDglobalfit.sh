@@ -3,19 +3,19 @@
 storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 
 OriginalNTupleID=BaranovSmallFile #This is the location of the original model nTuple (provided by Sergey)
-DataID=August3_AddCMSPol #store here the NRQCDglobalfitObjects containing data measurements
+DataID=August4_Psi2Sonly #store here the NRQCDglobalfitObjects containing data measurements
 ModelID=July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
 DataModelCombID=July29_ToyDataToyModel_ToyAddPol_polCorr #store here the NRQCD objects combining data and model predictions
 for JobID in August4_psi2Sonly_SampleNp_MH;do #store here the output TTree of the likelihood sampling, and all Figures of the results
 
-run_ConvertDataInput=0
+run_ConvertDataInput=1
 run_ConvertNTupleToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
 run_GenerateToyData=0
 run_SamplePPD=0
-run_InterpretPPD=1
-run_PlotCompareDataModel=1
+run_InterpretPPD=0
+run_PlotCompareDataModel=0
 
 ##################################
 ########## SETTINGS ##############

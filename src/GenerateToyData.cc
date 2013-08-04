@@ -110,24 +110,7 @@ int main(int argc, char** argv) {
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
 
-				 bool isAbsRap=false;
-					switch( iExperiment ){
-					case NRQCDvars::CMS:
-						isAbsRap=true;
-						break;
-					case NRQCDvars::LHCb:
-						isAbsRap=false;
-						break;
-					case NRQCDvars::ATLAS:
-						isAbsRap=true;
-						break;
-					case NRQCDvars::ALICE:
-						isAbsRap=false;
-						break;
-					case NRQCDvars::CDF:
-						isAbsRap=true;
-						break;
-					}
+				 bool isAbsRap=NRQCDvars::isAbsRapExp[iExperiment];
 
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
@@ -736,23 +719,7 @@ int main(int argc, char** argv) {
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
 
-				switch( iExperiment ){
-				case NRQCDvars::CMS:
-					isAbsRap=true;
-					break;
-				case NRQCDvars::LHCb:
-					isAbsRap=false;
-					break;
-				case NRQCDvars::ATLAS:
-					isAbsRap=true;
-					break;
-				case NRQCDvars::ALICE:
-					isAbsRap=false;
-					break;
-				case NRQCDvars::CDF:
-					isAbsRap=true;
-					break;
-				}
+				isAbsRap=NRQCDvars::isAbsRapExp[iExperiment];
 
 				double Toy_Luminosity_var=gRandom->Gaus(0,1);
 

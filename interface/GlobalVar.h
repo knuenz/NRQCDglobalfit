@@ -29,6 +29,7 @@ enum {CrossSection, Lamth, Lamph, Lamtp, CrossSectionRatio, FeedDownFraction};
 const int nMeasurementIDs = (FeedDownFraction-CrossSection)+1; // modified by Joao: : always use last measur. - first measur. to set this number
 enum {CMS, LHCb, ATLAS, ALICE, CDF};
 const int nExperiments = (CDF-CMS)+1; // modified by Joao: always use last exp. - first exp. to set this number
+bool isAbsRapExp[nExperiments] = {true, false, true, false, true};
 Char_t *StateName[nStates] = {"PSI_1S", "CHIC1_1P", "CHIC2_1P", "PSI_2S", "UPS_1S", "CHIB1_1P", "CHIB2_1P", "UPS_2S", "CHIB1_2P", "CHIB2_2P", "UPS_3S", "CHIB1_3P", "CHIB2_3P"};
 Char_t *StateNameTex[nStates] = {"#psi(1S)", "#chi_{c1}(1P)", "#chi_{c2}(1P)", "#psi(2S)", "#Upsilon(1S)", "#chi_{b1}(1P)", "#chi_{b2}(1P)", "#Upsilon(2S)", "#chi_{b1}(2P)", "#chi_{b2}(2P)", "#Upsilon(3S)", "#chi_{b1}(3P)", "#chi_{b2}(3P)"};
 Char_t *MeasurementIDName[nMeasurementIDs] = {"CrossSection", "Lamth", "Lamph", "Lamtp", "CrossSectionRatio", "FeedDownFraction"};
