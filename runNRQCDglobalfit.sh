@@ -3,17 +3,17 @@
 storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 
 OriginalNTupleID=BaranovSmallFile #This is the location of the original model nTuple (provided by Sergey)
-DataID=July27 #store here the NRQCDglobalfitObjects containing data measurements
+DataID=August3_AddCMSPol #store here the NRQCDglobalfitObjects containing data measurements
 ModelID=July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
-DataModelCombID=July28_ToyDataToyModel_ToyAddPol #store here the NRQCD objects combining data and model predictions
-JobID=July28_ToyAddPol_MHtests2 #store here the output TTree of the likelihood sampling, and all Figures of the results
+DataModelCombID=July29_ToyDataToyModel_ToyAddPol_polCorr #store here the NRQCD objects combining data and model predictions
+for JobID in August4_psi2Sonly_SampleNp_MH;do #store here the output TTree of the likelihood sampling, and all Figures of the results
 
 run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
-run_ConvertModelInput=1
+run_ConvertModelInput=0
 run_CombineDataModel=0
-run_GenerateToyData=1
-run_SamplePPD=1
+run_GenerateToyData=0
+run_SamplePPD=0
 run_InterpretPPD=1
 run_PlotCompareDataModel=1
 
@@ -55,7 +55,7 @@ useSstatesOnly=false
 usePstatesOnly=false
 useCharmoniumOnly=true
 useBottomoniumOnly=false
-useOnlyState=999 #switch off by setting it to an int > N_STATES
+useOnlyState=3 #switch off by setting it to an int > N_STATES
 
 ##################################
 ############# CODE ###############
@@ -98,4 +98,4 @@ then
 ./PlotCompareDataModel ${JobID}=JobID ${ModelID}=ModelID ${nSigma}nSigma ${storagedir}=storagedir ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
 fi
 
-top
+done

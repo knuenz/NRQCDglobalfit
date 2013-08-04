@@ -770,13 +770,30 @@ int main(int argc, char** argv) {
 				    		if(iMeasurementID==0){
 								cout<<"Generating "<<MeasurementIDName[iMeasurementID]<<" toy-data results from model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap<<", iP="<<iP<<endl;
 
+								//get model prediction
 								ObjectLikelihoodVec=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
 								double ModelPrediction=ObjectLikelihoodVec[1];
-
+								//apply luminosity scaling on MP
+								ModelPrediction*=1+Toy_Luminosity_var*(toyData::Toy_globalUncertaintyPos+toyData::Toy_globalUncertaintyNeg)/2.;
+								//Calc PromptLamth
+								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setMeasurementID(1);
+								ObjectLikelihoodVec=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+								double PredPromptLamth=ObjectLikelihoodVec[1];
+								cout<<"Calculated Lamth: "<<PredPromptLamth<<endl;
+								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setMeasurementID(0);
+								//Calc polCorrFactor
+								double sigma_LongHX=ModelPrediction*(1+toyData::Toy_polarizationUncertaintyLongHX);
+								double sigma_TransHX=ModelPrediction*(1+toyData::Toy_polarizationUncertaintyTransHX);
+								double PolarizationCorrectionFactor=1+(sigma_TransHX-sigma_LongHX)/(2.*ModelPrediction)*PredPromptLamth+
+										                              ((sigma_TransHX+sigma_LongHX)/(2.*ModelPrediction)-1)*PredPromptLamth*PredPromptLamth;
+								vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=sigma_LongHX; setData_PolCorrParams[1]=sigma_TransHX;
+								//scale MP by polCorrFactor
+								ModelPrediction/=PolarizationCorrectionFactor;
+								//generate actual toy-data
 								double Toy_ModelPrediction_var=gRandom->Gaus(ModelPrediction, ModelPrediction*(toyData::Toy_totalUncertaintyPos+toyData::Toy_totalUncertaintyNeg)/2.);
-								Toy_ModelPrediction_var*=1+Toy_Luminosity_var*(toyData::Toy_globalUncertaintyPos+toyData::Toy_globalUncertaintyNeg)/2.;
 
-								vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Toy_ModelPrediction_var*(1+toyData::Toy_polarizationUncertaintyPos); setData_PolCorrParams[1]=Toy_ModelPrediction_var*(1-toyData::Toy_polarizationUncertaintyNeg);
+
+
 
 								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getState(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getStateDenom(),

@@ -139,6 +139,8 @@ int main(int argc, char** argv) {
 	sprintf(datamodeldirname,"%s/%s",datamodeldirname,DataModelCombID);
 	gSystem->mkdir(datamodeldirname);
 
+	gSystem->mkdir(Form("%s/Figures",jobdirname));
+
 	sprintf(inname,"%s/results.txt",jobdirname);
 	cout<<"read results from "<<inname<<endl;
 
@@ -286,7 +288,7 @@ int main(int argc, char** argv) {
 				int StatesCont;//Number of states contributing to result, including direct state
 
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
-			    	cout<<"plot model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap/*", iP="<<iP*/<<endl;
+			    	//cout<<"plot model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap/*", iP="<<iP*/<<endl;
 
 					definedRap=false;
 					int nPtBinsSel=0;
@@ -304,8 +306,8 @@ int main(int argc, char** argv) {
 
 						if( inData.is_open() ){//Measurement present -> calculate model components:: Modified by Joao: more correct from ios point of view
 							//if(NRQCDvars::debug){
-								cout << "Read in iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID];
-								cout << ", iExperiment=" << ExpName[iExperiment] << ", iRap=" << iRap << ", iP=" << iP << endl;
+								//cout << "Read in iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID];
+								//cout << ", iExperiment=" << ExpName[iExperiment] << ", iRap=" << iRap << ", iP=" << iP << endl;
 							//}
 							DataModelObject[iRap][iP] = new NRQCDglobalfitObject();
 							inData >> *DataModelObject[iRap][iP];
@@ -421,9 +423,9 @@ int main(int argc, char** argv) {
 							model_errhigh_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
 
 
-				    		data_centralval.push_back(DataModelObject[iRap][iP]->getCentralValue()/polCorrFactor);//correct data to match predicted polariztion
-				    		data_errlow_centralval.push_back(DataModelObject[iRap][iP]->getErrTotNeg()/polCorrFactor);
-				    		data_errhigh_centralval.push_back(DataModelObject[iRap][iP]->getErrTotPos()/polCorrFactor);
+				    		data_centralval.push_back(DataModelObject[iRap][iP]->getCentralValue());//correct data to match predicted polariztion
+				    		data_errlow_centralval.push_back(DataModelObject[iRap][iP]->getErrTotNeg());
+				    		data_errhigh_centralval.push_back(DataModelObject[iRap][iP]->getErrTotPos());
 				    		data_pTmean.push_back(DataModelObject[iRap][iP]->getpTMean());
 				    		data_errlow_pT.push_back(DataModelObject[iRap][iP]->getpTMean()-DataModelObject[iRap][iP]->getpTMin());
 				    		data_errhigh_pT.push_back(DataModelObject[iRap][iP]->getpTMax()-DataModelObject[iRap][iP]->getpTMean());
@@ -512,8 +514,8 @@ int main(int argc, char** argv) {
 
 
 				    if(nPtBinsSel>0){
-						cout << "Plot iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID] << " from "<< ExpName[iExperiment] << endl;
-				    	cout<<"rap "<<iRap+1<<endl;
+						//cout << "Plot iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID] << " from "<< ExpName[iExperiment] << endl;
+				    	//cout<<"rap "<<iRap+1<<endl;
 
 						const int nPtBinsSel_=nPtBinsSel;
 						double d_data_centralval[nPtBinsSel_];
@@ -539,9 +541,20 @@ int main(int argc, char** argv) {
 							d_model_centralval[iP] =        	model_centralval[iP];
 							d_model_errlow_centralval[iP] = 	model_errlow_centralval[iP];
 							d_model_errhigh_centralval[iP] =	model_errhigh_centralval[iP];
-							d_model_errlow_absolute_centralval[iP] = 	model_centralval[iP]-model_errlow_centralval[iP];
-							d_model_errhigh_absolute_centralval[iP] =	model_centralval[iP]+model_errhigh_centralval[iP];
+							d_model_errlow_absolute_centralval[iP] = 	(model_centralval[iP]-model_errlow_centralval[iP]);
+							d_model_errhigh_absolute_centralval[iP] =	(model_centralval[iP]+model_errhigh_centralval[iP]);
 
+							if(iMeasurementID==0){
+								d_data_centralval[iP] *=         	polCorrFactorVec[iP];//polCorrect the data (according to polarization prediction of model)
+								d_data_errlow_centralval[iP] *=  	polCorrFactorVec[iP];
+								d_data_errhigh_centralval[iP] *= 	polCorrFactorVec[iP];
+								d_model_centralval[iP] *=        	polCorrFactorVec[iP];//un-polCorrect the model, as it was corrected in the fit (getCorrPromptProduction...)
+								d_model_errlow_centralval[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_centralval[iP] *=	polCorrFactorVec[iP];
+								d_model_errlow_absolute_centralval[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_absolute_centralval[iP] *=	polCorrFactorVec[iP];
+
+							}
 
 						}
 
@@ -565,7 +578,7 @@ int main(int argc, char** argv) {
 						for(int i=0;i<StatesCont_c;i++){
 							for(int iP = 0; iP < nPtBinsSel; iP++){
 								d_model_centralval[iP] =  model_FeedDown[iP][i];
-								if(iMeasurementID==0) d_model_centralval[iP]/=polCorrFactorVec[iP];
+								if(iMeasurementID==0) d_model_centralval[iP];
 							}
 							model_Graph_FeedDowns[i] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval);
 							//model_Graph_FeedDowns[i]->Print();
@@ -577,7 +590,7 @@ int main(int argc, char** argv) {
 						for(int i=0;i<ColorChannels_c;i++){
 							for(int iP = 0; iP < nPtBinsSel; iP++){
 								d_model_centralval[iP] =  model_directProduction[iP][i];
-								if(iMeasurementID==0) d_model_centralval[iP]/=polCorrFactorVec[iP];
+								if(iMeasurementID==0) d_model_centralval[iP];
 							}
 							model_Graph_ColorChannels[i] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval);
 						}
@@ -594,7 +607,7 @@ int main(int argc, char** argv) {
 						char rapchar[200];
 						if(isAbsRap) sprintf(rapchar,"%1.1f < |y| < %1.1f",rapMinObject, rapMaxObject);
 						else sprintf(rapchar,"%1.1f < y < %1.1f",rapMinObject, rapMaxObject);
-						cout<<"plotComp"<<endl;
+						//cout<<"plotComp"<<endl;
 						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, StatesContributing_);
 
 				}

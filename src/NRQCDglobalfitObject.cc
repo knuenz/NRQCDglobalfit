@@ -475,6 +475,7 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 			                              ((sigma_TransHX+sigma_LongHX)/(2.*sigma_Unpolarized)-1)*PredPromptLamth*PredPromptLamth;
 
 	CorrPromptCrossSect/=PolarizationCorrectionFactor;
+	//PolarizationCorrectionFactor: sigma_unpolarized*PolarizationCorrectionFactor(lambda)=correct polarization
 
 
 #ifdef mydebug

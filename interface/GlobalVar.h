@@ -21,6 +21,7 @@ const double proposalWidthBurnIn_R=5e-3;//TODO: trial and error
 bool debug=false;
 enum {charm, bottom};
 enum {Metropolis, MetropolisHastings}; // modified by Joao: choice of kernel
+enum {MH, Minuit}; //choice of Minimizer
 enum {PSI_1S, CHIC1_1P, CHIC2_1P, PSI_2S, UPS_1S, CHIB1_1P, CHIB2_1P, UPS_2S,
 	  CHIB1_2P, CHIB2_2P, UPS_3S, CHIB1_3P, CHIB2_3P};
 const int nStates = (CHIB2_3P-PSI_1S)+1;// modified by Joao: always use last state - first state to set this number

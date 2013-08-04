@@ -1,10 +1,10 @@
 CXX=$(shell root-config --cxx --cflags)
 LIBS=$(shell root-config --libs)
 
-#CXX+=-I/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/include
-#LIBS+=-L/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/lib
-CXX+=-I/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
-LIBS+=-L/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
+CXX+=-I/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/include
+LIBS+=-L/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/lib
+#CXX+=-I/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
+#LIBS+=-L/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
 
 #CXX+=-I/Users/valentinknuenz/usr/local/root/lib
 #LIBS+=-L/Users/valentinknuenz/usr/local/root/lib
@@ -19,7 +19,7 @@ LIBS+=-L/Users/valentinknuenz/usr/local/root/roofit/roofit/inc
 all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel
 
 SamplePPD: src/SamplePPD.cc
-	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit  -lMinuit2
 
 ConvertDataInput: src/ConvertDataInput.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit

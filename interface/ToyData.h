@@ -47,8 +47,8 @@ namespace toyData{
 	double Toy_totalUncertaintyNeg=0.1;
 	double Toy_globalUncertaintyPos=0.05;
 	double Toy_globalUncertaintyNeg=0.05;
-	double Toy_polarizationUncertaintyPos=0.2;
-	double Toy_polarizationUncertaintyNeg=0.2;
+	double Toy_polarizationUncertaintyLongHX=+0.2;
+	double Toy_polarizationUncertaintyTransHX=-0.2;
 
 	//Polarization: absolute uncertainties
 	double Toy_totalUncertaintyPos_Lamth=0.1;

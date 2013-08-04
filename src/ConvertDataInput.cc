@@ -82,7 +82,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	Float_t **pTMean = newCMatrix< Float_t > (nMaxRapBins, 100);
 	Float_t **pTMin = newCMatrix< Float_t > (nMaxRapBins, 100);
 	Float_t **pTMax = newCMatrix< Float_t > (nMaxRapBins, 100);
-
+	double RelativeGlobalUncertainty=0.;//TODO: define all RelativeGlobalUncertainty's
 
 	TGraphAsymmErrors *gSigma[kNbPolScenario][nMaxRapBins];
 	TGraphAsymmErrors *gSigma_syst[kNbPolScenario][nMaxRapBins];
@@ -91,6 +91,24 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	TGraphAsymmErrors *gSigma_syst_Mult[kNbPolScenario][nMaxRapBins];
 	TGraphAsymmErrors *gSigma_tot_Mult[kNbPolScenario][nMaxRapBins];
 
+	 bool isAbsRap=false;
+		switch( nExp ){
+		case NRQCDvars::CMS:
+			isAbsRap=true;
+			break;
+		case NRQCDvars::LHCb:
+			isAbsRap=false;
+			break;
+		case NRQCDvars::ATLAS:
+			isAbsRap=true;
+			break;
+		case NRQCDvars::ALICE:
+			isAbsRap=false;
+			break;
+		case NRQCDvars::CDF:
+			isAbsRap=true;
+			break;
+		}
 
 	bool isMeasurementAvailable=false;
 
@@ -194,6 +212,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 				 maxPTPoints[0] = 9; maxPTPoints[1] = 7; maxPTPoints[2] = 7;
 				 npTBins[0] = 9; npTBins[1] = 7; npTBins[2] = 7;
 				 isMeasurementAvailable=true;
+				 RelativeGlobalUncertainty=0.04;
 				 break;
 			 default:
 				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
@@ -320,7 +339,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	  for(int iRap = 0; iRap < nRapBins; iRap++){
 
 	    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
-	      fgets(line, sizeof(line), fIn);
+	      fgets(line, sizeof(line), fIn);//TODO: many wrong colums! pol and lumi uncertainties mix-ups!
 	      sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f",
 		     &rapMin[iRap], &rapMax[iRap],
 		     &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
@@ -442,129 +461,327 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 
 	  }//loop over rapidity bins
 
-	  }
-	 }
 
 
-	 /// Add here the code for all other MeasurementIDs
-
+		 //Fill NRQCDglobalfitObjects
 
 
 
-	 if(isMeasurementAvailable){//Fill NRQCDglobalfitObjects
+		  for(int iRap = 0; iRap < nRapBins; iRap++){
+
+		    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
+
+		    	//setData() here
+
+		    	NRQCDglobalfitObject *DataObject = new NRQCDglobalfitObject();
+
+		    	double Bufferx;
+		    	double Buffer_CentralValue;
+		    	double Buffer_LongHX;
+		    	double Buffer_TransHX;
+		    	gSigma[0][iRap]->GetPoint(iP, Bufferx, Buffer_CentralValue);
+		    	gSigma[1][iRap]->GetPoint(iP, Bufferx, Buffer_LongHX);
+		    	gSigma[2][iRap]->GetPoint(iP, Bufferx, Buffer_TransHX);
+
+		    	if(NRQCDvars::debug) cout<<"setData variables"<<endl;
 
 
-		 bool isAbsRap=false;
-			switch( nExp ){
-			case NRQCDvars::CMS:
-				isAbsRap=true;
-				break;
-			case NRQCDvars::LHCb:
-				isAbsRap=false;
-				break;
-			case NRQCDvars::ATLAS:
-				isAbsRap=true;
-				break;
-			case NRQCDvars::ALICE:
-				isAbsRap=false;
-				break;
-			case NRQCDvars::CDF:
-				isAbsRap=true;
-				break;
-			}
+		    	int setData_nState=nState;
+		    	int setData_nStateRatioDenom=999;
+		    	int setData_nExp=nExp;
+		    	double setData_CentralValue=Buffer_CentralValue;
+		    	double setData_ErrStatPos=gSigma[0][iRap]->GetErrorYhigh(iP);
+		    	double setData_ErrStatNeg=gSigma[0][iRap]->GetErrorYlow(iP);
+		    	double setData_ErrSystPos=gSigma_syst[0][iRap]->GetErrorYhigh(iP);
+		    	double setData_ErrSystNeg=gSigma_syst[0][iRap]->GetErrorYlow(iP);
+		    	double setData_ErrTotPos=gSigma_tot[0][iRap]->GetErrorYhigh(iP);
+		    	double setData_ErrTotNeg=gSigma_tot[0][iRap]->GetErrorYlow(iP);
+		    	double setData_ErrGlobalPos=Buffer_CentralValue*RelativeGlobalUncertainty;
+		    	double setData_ErrGlobalNeg=Buffer_CentralValue*RelativeGlobalUncertainty;
+		    	double setData_yMin=rapMin[iRap];
+		    	double setData_yMax=rapMax[iRap];
+		    	double setData_yMean=(rapMin[iRap]+rapMax[iRap])/2.;
+		    	double setData_pTMin=pTMin[iRap][iP];
+		    	double setData_pTMax=pTMax[iRap][iP];
+		    	double setData_pTMean=pTMean[iRap][iP];
+		    	vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Buffer_LongHX; setData_PolCorrParams[1]=Buffer_TransHX;
+		    	int setData_MeasurementID=MeasurementID;
+		    	string setData_ObjectID="teststring";
+		    	bool setData_isDataValid=true;
+		    	bool setData_isAbsRap=isAbsRap;
 
-	  for(int iRap = 0; iRap < nRapBins; iRap++){
+		    	if(NRQCDvars::debug) cout<<"setData"<<endl;
+		    	DataObject->setData(setData_nState, setData_nStateRatioDenom, setData_CentralValue,  setData_ErrStatPos, setData_ErrStatNeg, setData_ErrSystPos,
+		    			  setData_ErrSystNeg, setData_ErrTotPos, setData_ErrTotNeg, setData_ErrGlobalPos, setData_ErrGlobalNeg,
+		    			  setData_yMin, setData_yMax, setData_yMean, setData_pTMin, setData_pTMax, setData_pTMean,
+		    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid, setData_isAbsRap);
 
-	    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
-
-	    	//setData() here
-
-	    	NRQCDglobalfitObject *DataObject = new NRQCDglobalfitObject();
-
-	    	double Bufferx;
-	    	double Buffer_CentralValue;
-	    	double Buffer_LongHX;
-	    	double Buffer_TransHX;
-	    	gSigma[0][iRap]->GetPoint(iP, Bufferx, Buffer_CentralValue);
-	    	gSigma[1][iRap]->GetPoint(iP, Bufferx, Buffer_LongHX);
-	    	gSigma[2][iRap]->GetPoint(iP, Bufferx, Buffer_TransHX);
-
-	    	if(NRQCDvars::debug) cout<<"setData variables"<<endl;
+		    	DataObject->setInvalidModel(nStates, NRQCDvars::nColorChannels, NRQCDvars::nModelSystematicScales);
 
 
-	    	int setData_nState=nState;
-	    	int setData_nStateRatioDenom=999;
-	    	int setData_nExp=nExp;
-	    	double setData_CentralValue=Buffer_CentralValue;
-	    	double setData_ErrStatPos=gSigma[0][iRap]->GetErrorYhigh(iP);
-	    	double setData_ErrStatNeg=gSigma[0][iRap]->GetErrorYlow(iP);
-	    	double setData_ErrSystPos=gSigma_syst[0][iRap]->GetErrorYhigh(iP);
-	    	double setData_ErrSystNeg=gSigma_syst[0][iRap]->GetErrorYlow(iP);
-	    	double setData_ErrTotPos=gSigma_tot[0][iRap]->GetErrorYhigh(iP);
-	    	double setData_ErrTotNeg=gSigma_tot[0][iRap]->GetErrorYlow(iP);
-	    	double setData_ErrGlobalPos=0;
-	    	double setData_ErrGlobalNeg=0;
-	    	double setData_yMin=rapMin[iRap];
-	    	double setData_yMax=rapMax[iRap];
-	    	double setData_yMean=(rapMin[iRap]+rapMax[iRap])/2.;
-	    	double setData_pTMin=pTMin[iRap][iP];
-	    	double setData_pTMax=pTMax[iRap][iP];
-	    	double setData_pTMean=pTMean[iRap][iP];
-	    	vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Buffer_LongHX; setData_PolCorrParams[1]=Buffer_TransHX;
-	    	int setData_MeasurementID=MeasurementID;
-	    	string setData_ObjectID="teststring";
-	    	bool setData_isDataValid=true;
-	    	bool setData_isAbsRap=isAbsRap;
-
-	    	if(NRQCDvars::debug) cout<<"setData"<<endl;
-	    	DataObject->setData(setData_nState, setData_nStateRatioDenom, setData_CentralValue,  setData_ErrStatPos, setData_ErrStatNeg, setData_ErrSystPos,
-	    			  setData_ErrSystNeg, setData_ErrTotPos, setData_ErrTotNeg, setData_ErrGlobalPos, setData_ErrGlobalNeg,
-	    			  setData_yMin, setData_yMax, setData_yMean, setData_pTMin, setData_pTMax, setData_pTMean,
-	    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid, setData_isAbsRap);
-
-	    	DataObject->setInvalidModel(nStates, NRQCDvars::nColorChannels, NRQCDvars::nModelSystematicScales);
-
-
-	    	if(NRQCDvars::debug)DataObject->Dump(nStates, true, false);
+		    	if(NRQCDvars::debug)DataObject->Dump(nStates, true, false);
 
 
 
-//	    	if(iRap==0&&iP==0){
+	//	    	if(iRap==0&&iP==0){
 
 
 
 
-	    char outname[2000];
-	    char inname[2000];
-	    char predirname[2000];
-	    char dirname[2000];
-	    sprintf(predirname,"%s/DataID", storagedir);
-	    gSystem->mkdir(predirname);
-	    sprintf(dirname,"%s/%s",predirname,DataID);
-	    gSystem->mkdir(dirname);
-	    sprintf(outname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",dirname, StateName[nState],  MeasurementIDName[MeasurementID],  ExpName[nExp], iRap, iP);
+		    char outname[2000];
+		    char inname[2000];
+		    char predirname[2000];
+		    char dirname[2000];
+		    sprintf(predirname,"%s/DataID", storagedir);
+		    gSystem->mkdir(predirname);
+		    sprintf(dirname,"%s/%s",predirname,DataID);
+		    gSystem->mkdir(dirname);
+		    sprintf(outname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",dirname, StateName[nState],  MeasurementIDName[MeasurementID],  ExpName[nExp], iRap, iP);
 
 
-	    ofstream out;
-	    out.open(outname);//, std::ofstream::app);
+		    ofstream out;
+		    out.open(outname);//, std::ofstream::app);
 
-    	out << *DataObject;
+	    	out << *DataObject;
 
-	    out.close();
+		    out.close();
 
 
-//	    	}
+	//	    	}
 
-	    }
+		    }
+
+		  }
+
+
+
+
+
+
 
 	  }
-
-
+		 else cout<<"--->  Measurement not (yet) available"<<endl;
 
 	 }
 
 
-	 else cout<<"--->  Measurement not (yet) available"<<endl;
+
+
+
+
+
+
+
+
+
+	 //Polarization measurements
+
+	 // Modified by Joao
+	 Int_t *npTBins_toIgnoreAtBeginOfFile = newCVector< Int_t > (nMaxRapBins);
+	 TFile *fINroot;
+
+	 if(MeasurementID>0 && MeasurementID<4){
+
+		 char inname[1000];
+		  	//sprintf(inname,"%s/ModelIngredients.root",modeldirname);
+
+			 switch( nExp ){
+			 case NRQCDvars::CMS:
+				 switch( nState ){
+				 case NRQCDvars::PSI_1S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_Psi1S_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 10; maxPTPoints[1] = 10;
+					 npTBins[0] = 10; npTBins[1] = 10;
+					 npTBins_toIgnoreAtBeginOfFile[0]=2; npTBins_toIgnoreAtBeginOfFile[1]=2;
+					 isMeasurementAvailable=true;
+					 break;
+				 case NRQCDvars::PSI_2S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_Psi2S_1sigma.root", "read");
+					 nRapBins=3;
+					 maxPTPoints[0] = 4; maxPTPoints[1] = 4;  maxPTPoints[2] = 4;
+					 npTBins[0] = 4; npTBins[1] = 4;  npTBins[2] = 4;
+					 npTBins_toIgnoreAtBeginOfFile[0]=1; npTBins_toIgnoreAtBeginOfFile[1]=1; npTBins_toIgnoreAtBeginOfFile[2] = 10;
+					 isMeasurementAvailable=true;
+					 break;
+				 case NRQCDvars::UPS_1S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_1SUps_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 5; maxPTPoints[1] = 5;
+					 npTBins[0] = 5; npTBins[1] = 5;
+					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
+					 isMeasurementAvailable=true;
+					 break;
+				 case NRQCDvars::UPS_2S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_2SUps_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 5; maxPTPoints[1] = 5;
+					 npTBins[0] = 5; npTBins[1] = 5;
+					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
+					 isMeasurementAvailable=true;
+					 break;
+				 case NRQCDvars::UPS_3S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_3SUps_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 5; maxPTPoints[1] = 5;
+					 npTBins[0] = 5; npTBins[1] = 5;
+					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
+					 isMeasurementAvailable=true;
+					 break;
+				 default:
+					 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
+					 break;
+				 }
+				 break;
+		  }
+
+
+
+
+
+	//		 isMeasurementAvailable=false;
+		  if (isMeasurementAvailable){
+
+		  fINroot = new TFile(inname, "READ");
+
+		  Char_t line[1000];
+		  //Char_t name[100];
+
+		  Float_t** lambda = newCMatrix< Float_t > (nRapBins, 100);
+		  Float_t** errTotPos = newCMatrix< Float_t > (nRapBins, 100);
+		  Float_t** errTotNeg = newCMatrix< Float_t > (nRapBins, 100);
+
+
+			  for(int iRap = 0; iRap < nRapBins; iRap++){
+
+
+			    	char graphname[200];
+			    	if(MeasurementID==1) sprintf(graphname,"lth_HX_rap%d",iRap+1);
+			    	if(MeasurementID==2) sprintf(graphname,"lph_HX_rap%d",iRap+1);
+			    	if(MeasurementID==3) sprintf(graphname,"ltp_HX_rap%d",iRap+1);
+
+			    	TGraphAsymmErrors *polIn=(TGraphAsymmErrors*)fINroot->Get(graphname);
+
+			    	if(iRap==0){
+			    		rapMin[iRap]=0;
+			    		rapMax[iRap]=0.6;
+			    	}
+			    	if(iRap==1){
+			    		rapMin[iRap]=0.6;
+			    		rapMax[iRap]=1.2;
+			    	}
+			    	if(iRap==2){
+			    		rapMin[iRap]=1.2;
+			    		rapMax[iRap]=1.5;
+			    	}
+
+
+				    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
+
+				    	int iPgraph=iP+npTBins_toIgnoreAtBeginOfFile[iRap];
+
+				    	double bufferpT;
+				    	double bufferlam;
+
+				    	polIn->GetPoint(iPgraph, bufferpT, bufferlam);
+
+				    	pTMean[iRap][iP] = bufferpT;
+				    	lambda[iRap][iP] = bufferlam;
+
+
+				    	errTotPos[iRap][iP]=polIn->GetErrorYhigh(iPgraph);
+				    	errTotNeg[iRap][iP]=fabs(polIn->GetErrorYlow(iPgraph));
+
+				    	pTMin[iRap][iP]=pTMean[iRap][iP]-fabs(polIn->GetErrorXlow(iPgraph));
+				    	pTMax[iRap][iP]=pTMean[iRap][iP]+fabs(polIn->GetErrorXhigh(iPgraph));
+
+
+
+				    	NRQCDglobalfitObject *DataObject = new NRQCDglobalfitObject();
+
+
+				    	if(NRQCDvars::debug) cout<<"setData variables"<<endl;
+
+
+				    	int setData_nState=nState;
+				    	int setData_nStateRatioDenom=999;
+				    	int setData_nExp=nExp;
+				    	double setData_CentralValue=lambda[iRap][iP];
+				    	double setData_ErrStatPos=999.;
+				    	double setData_ErrStatNeg=999.;
+				    	double setData_ErrSystPos=999.;
+				    	double setData_ErrSystNeg=999.;
+				    	double setData_ErrTotPos=errTotPos[iRap][iP];
+				    	double setData_ErrTotNeg=errTotNeg[iRap][iP];
+				    	double setData_ErrGlobalPos=0;
+				    	double setData_ErrGlobalNeg=0;
+				    	double setData_yMin=rapMin[iRap];
+				    	double setData_yMax=rapMax[iRap];
+				    	double setData_yMean=(rapMin[iRap]+rapMax[iRap])/2.;
+				    	double setData_pTMin=pTMin[iRap][iP];
+				    	double setData_pTMax=pTMax[iRap][iP];
+				    	double setData_pTMean=pTMean[iRap][iP];
+				    	vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=999.; setData_PolCorrParams[1]=999.;
+				    	int setData_MeasurementID=MeasurementID;
+				    	string setData_ObjectID="teststring";
+				    	bool setData_isDataValid=true;
+				    	bool setData_isAbsRap=isAbsRap;
+
+				    	if(NRQCDvars::debug) cout<<"setData"<<endl;
+				    	DataObject->setData(setData_nState, setData_nStateRatioDenom, setData_CentralValue,  setData_ErrStatPos, setData_ErrStatNeg, setData_ErrSystPos,
+				    			  setData_ErrSystNeg, setData_ErrTotPos, setData_ErrTotNeg, setData_ErrGlobalPos, setData_ErrGlobalNeg,
+				    			  setData_yMin, setData_yMax, setData_yMean, setData_pTMin, setData_pTMax, setData_pTMean,
+				    			  setData_PolCorrParams, setData_MeasurementID, setData_nExp, setData_ObjectID, setData_isDataValid, setData_isAbsRap);
+
+				    	DataObject->setInvalidModel(nStates, NRQCDvars::nColorChannels, NRQCDvars::nModelSystematicScales);
+
+
+				    	if(NRQCDvars::debug)DataObject->Dump(nStates, true, false);
+
+
+
+			//	    	if(iRap==0&&iP==0){
+
+
+
+
+				    char outname[2000];
+				    char inname[2000];
+				    char predirname[2000];
+				    char dirname[2000];
+				    sprintf(predirname,"%s/DataID", storagedir);
+				    gSystem->mkdir(predirname);
+				    sprintf(dirname,"%s/%s",predirname,DataID);
+				    gSystem->mkdir(dirname);
+				    sprintf(outname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",dirname, StateName[nState],  MeasurementIDName[MeasurementID],  ExpName[nExp], iRap, iP);
+
+
+				    ofstream out;
+				    out.open(outname);//, std::ofstream::app);
+
+			    	out << *DataObject;
+
+				    out.close();
+
+
+
+
+
+
+
+
+				    }
+			  }
+
+
+
+
+
+
+		  }
+
+	 }
+
 
 
 
