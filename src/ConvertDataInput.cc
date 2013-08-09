@@ -390,14 +390,16 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	      case NRQCDvars::PSI_2S://TODO: use more precise psi2S->ee?
 			if(nExp == NRQCDvars::CMS){
 			  scaleFac = 0.0077; //to compare with LHCb we need to correct for the BR
-			  err_scaleFac=0.0009;
+			  //err_scaleFac=0.0009;
+			  err_scaleFac=0;
 			}
 			else if(nExp == NRQCDvars::LHCb){
 			  scaleFac = (4.5 - 2.); //data not normalized to deltaY
 			}
 			else if(nExp == NRQCDvars::CDF){
 			  scaleFac = 0.0077 * 2*0.6 * 1000; //correct for mumu BR (for comparison to LHCb) and the rap-interval
-			  err_scaleFac=0.0009 * 2*0.6 * 1000;
+			  //err_scaleFac=0.0009 * 2*0.6 * 1000;
+			  err_scaleFac=0;
 			}
 			break;
 	      }

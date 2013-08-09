@@ -6,16 +6,16 @@ OriginalNTupleID=BaranovSmallFile #This is the location of the original model nT
 DataID=August4_Psi2Sonly #store here the NRQCDglobalfitObjects containing data measurements
 ModelID=July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
 DataModelCombID=July29_ToyDataToyModel_ToyAddPol_polCorr #store here the NRQCD objects combining data and model predictions
-for JobID in August4_psi2Sonly_SampleNp_MH;do #store here the output TTree of the likelihood sampling, and all Figures of the results
+for JobID in August9_psi2Sonly_SampleNp_not05_Minuit;do #store here the output TTree of the likelihood sampling, and all Figures of the results
 
-run_ConvertDataInput=1
+run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
 run_GenerateToyData=0
-run_SamplePPD=0
+run_SamplePPD=1
 run_InterpretPPD=0
-run_PlotCompareDataModel=0
+run_PlotCompareDataModel=1
 
 ##################################
 ########## SETTINGS ##############
@@ -33,8 +33,11 @@ useToyModel=true
 ### GenerateToyData
 
 ### SamplePPD
+Minimizer=1		#0...MH, 1...Minuit
 nBurnIn=1000
 nSample=10000
+SampleNp=true
+SampleNp_consts_star=true
 
 ### InterpretPPD
 nSigma=1
@@ -87,7 +90,7 @@ cp interface/ToyData.h ${storagedir}/DataModelCombID/${DataModelCombID}/ToyData.
 fi
 if [ ${run_SamplePPD} -eq 1 ]
 then
-./SamplePPD ${nBurnIn}nBurnIn ${nSample}nSample ${ModelID}=ModelID  ${JobID}=JobID ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly} ${storagedir}=storagedir
+./SamplePPD ${nBurnIn}nBurnIn ${nSample}nSample ${ModelID}=ModelID  ${JobID}=JobID ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState ${Minimizer}Minimizer useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly} ${storagedir}=storagedir SampleNp=${SampleNp} SampleNp_consts_star=${SampleNp_consts_star} ${MPValgo}MPValgo ${nSigma}nSigma
 fi
 if [ ${run_InterpretPPD} -eq 1 ]
 then
@@ -95,7 +98,7 @@ then
 fi
 if [ ${run_PlotCompareDataModel} -eq 1 ]
 then
-./PlotCompareDataModel ${JobID}=JobID ${ModelID}=ModelID ${nSigma}nSigma ${storagedir}=storagedir ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly}
+./PlotCompareDataModel ${JobID}=JobID ${ModelID}=ModelID ${nSigma}nSigma ${MPValgo}MPValgo ${storagedir}=storagedir ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly} SampleNp=${SampleNp} SampleNp_consts_star=${SampleNp_consts_star}
 fi
 
 done

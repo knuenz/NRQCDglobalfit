@@ -240,7 +240,7 @@ FcnPVLogL::operator() (const std::vector<double>& pars) const
 
 	//cout << "Sum_likelihood " << likelihood << endl;
 
-	loglikelihood*=0.5;
+	//loglikelihood*=0.5;
 
 	//add constraints of nuisance parameters to likelihood
 	for(int i=0;i<nPar_Nuis;i++){

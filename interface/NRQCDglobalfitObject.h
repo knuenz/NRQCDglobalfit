@@ -17,12 +17,15 @@ using namespace std;
 typedef vector<vector<vector<double> > > dcube;
 typedef vector<vector<vector<float> > > fcube;
 typedef vector<vector<vector<int> > > icube;
+typedef vector<vector<vector<bool> > > bcube;
 typedef vector<vector<double> > dmatrix;
 typedef vector<vector<float> > fmatrix;
 typedef vector<vector<int> > imatrix;
+typedef vector<vector<bool> > bmatrix;
 typedef vector<double> dvector;
 typedef vector<float> fvector;
 typedef vector<int> ivector;
+typedef vector<bool> bvector;
 //
 
 class NRQCDglobalfitObject {

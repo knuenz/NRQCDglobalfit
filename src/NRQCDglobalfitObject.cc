@@ -93,6 +93,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 	int nOp=Op[nState].size();
 	int nModelSystematicScales_ = Np_US[1].size();
 	//cout<<"nOp "<<nOp<<endl;
+	//cout<<"nModelSystematicScales_ "<<nModelSystematicScales_<<endl;
 
 	//calculate direct production cross section (sum of individual octet contributions)
 	dvector ShortDistanceCoef_ = getShortDistanceCoef(nState);
@@ -105,6 +106,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 
 	for(int i=0; i<nOp ; i++){
 		double sigma_Central=ShortDistanceCoef_[i];
+		//cout<<"sigma_Central "<<sigma_Central<<endl;
 		for(int j=0; j<nModelSystematicScales_ ; j++){
 			double sigma_Pos=ShortDistanceCoef_globalSystPos[i][j];
 			double sigma_Neg=ShortDistanceCoef_globalSystNeg[i][j];
@@ -456,7 +458,7 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 
 	// Luminosity scaling
 
-	double ErrGlobalScale = 1.+getErrGlobal()/getCentralValue()*Np_US[0][0];
+	double ErrGlobalScale = 1.+getErrGlobal()/getCentralValue()*Np_US[0][getExperiment()];
 	CorrPromptCrossSect/=ErrGlobalScale;
 
 #ifdef mydebug

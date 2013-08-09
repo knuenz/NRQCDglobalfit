@@ -22,6 +22,7 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TH1D.h"
 #include "TRandom3.h"
 #include "TSystem.h"
 //#include "TMatrixD.h"
@@ -52,6 +53,7 @@ double MetropolisHastingsKernel(const double& candidate, const double& proposalW
 void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star);
 void (*getFractionValues)(dvector &fraction, dvector &candidate, dvector &width );
 double (*kernelFunction)(const double& par0, const double& par1 );
+void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
 
 
 int main(int argc, char** argv) {
@@ -70,17 +72,27 @@ int main(int argc, char** argv) {
   	bool 	useCharmoniumOnly=false;
   	bool 	useBottomoniumOnly=false;
   	int 	useOnlyState=999;
+	int 	Minimizer;
   	std::string filename("data");
   	std::string properties;
 
   	int 	nBurnIn=-1;
   	int 	nSample=-1;
-  	bool 	SampleNp=true;
-  	bool 	SampleNp_consts_star=true;
+  	bool 	SampleNp=false;
+  	bool 	SampleNp_consts_star=false;
+  	int 	MPValgo=-1;
+  	int 	nSigma=-1;
 
+  	setKernel(NRQCDvars::MetropolisHastings ); // modified by Joao: Set environment for sampling of fractions
+  	//setKernel(NRQCDvars::Metropolis ); // modified by Joao: Set environment for sampling of fractions
+	//int Minimizer=NRQCDvars::Minuit;
 
   	for( int i=0;i < argc; ++i ) {
+	    if(std::string(argv[i]).find("SampleNp=true") != std::string::npos) {SampleNp=true; cout<<"SampleNp"<<endl;}
+	    if(std::string(argv[i]).find("SampleNp_consts_star=true") != std::string::npos) {SampleNp_consts_star=true; cout<<"SampleNp_consts_star"<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
+	    if(std::string(argv[i]).find("nSigma") != std::string::npos) { char* nSigmachar = argv[i]; char* nSigmachar2 = strtok (nSigmachar, "n"); nSigma = atoi(nSigmachar2); cout<<"nSigma = "<<nSigma<<endl; }
+	    if(std::string(argv[i]).find("MPValgo") != std::string::npos) { char* MPValgochar = argv[i]; char* MPValgochar2 = strtok (MPValgochar, "M"); MPValgo = atoi(MPValgochar2); cout<<"MPValgo = "<<MPValgo<<endl; }
 	    if(std::string(argv[i]).find("nBurnIn") != std::string::npos) {
 	    	char* nBurnInchar = argv[i];
 	    	char* nBurnInchar2 = strtok (nBurnInchar, "n");
@@ -161,6 +173,14 @@ int main(int argc, char** argv) {
 			properties.append("_useOnlyState");
 			properties.append(useOnlyStatechar2);
 	    }
+	    if(std::string(argv[i]).find("Minimizer") != std::string::npos) {
+	    	char* Minimizerchar = argv[i];
+	    	char* Minimizerchar2 = strtok (Minimizerchar, "M");
+	    	Minimizer = atoi(Minimizerchar2);
+	    	cout<<"Minimizer = "<<Minimizer<<endl;
+			properties.append("_Minimizer");
+			properties.append(Minimizerchar2);
+	    }
 	    if(std::string(argv[i]).find("useSstatesOnly=true") != std::string::npos) {
 	    	useSstatesOnly=true;
 	    	cout<<"useSstatesOnly=true"<<endl;
@@ -210,6 +230,11 @@ int main(int argc, char** argv) {
 
 
 
+	bool DataFromExperimentExists[NRQCDvars::nExperiments];
+
+	for(int iExperiment=0; iExperiment < NRQCDvars::nExperiments; iExperiment++){
+		DataFromExperimentExists[iExperiment]=false;
+	}
 
 	for(int iState=0; iState < nStates; iState++){
 		for(int iMeasurementID=0; iMeasurementID < NRQCDvars::nMeasurementIDs; iMeasurementID++){
@@ -254,7 +279,10 @@ int main(int argc, char** argv) {
 							if(useOnlyState < nStates &&  readDataModelObject.getState() != useOnlyState)
 								DataSelected=false;
 
-							if(DataSelected) DataModelObject.push_back(readDataModelObject);
+							if(DataSelected){
+								DataModelObject.push_back(readDataModelObject);
+								DataFromExperimentExists[iExperiment]=true;
+							}
 
 							DataSelected=false;
 						}
@@ -275,19 +303,110 @@ int main(int argc, char** argv) {
 	dmatrix promptProductionMatrix;
 	double polCorrFactor;
 
+
+
+
+
 	//Nuisance parameters Np
 
 	dmatrix Np_BR; //Branching ratios, [nDauthgers][nMothers]
 	dmatrix Np_US; //Uncertainty scales, [0=Data, 1=Model][nScales]
-	int acceptedSampling;
+	dmatrix Np_BR_PreviousCandidates;
+	dmatrix Np_US_PreviousCandidates;
+	dmatrix Np_BR_SampleWidths;
+	dmatrix Np_US_SampleWidths;
+	dmatrix Np_BR_Expectation;
+	dmatrix Np_US_Expectation;
+	dmatrix Np_BR_ExpectationUncertainty;
+	dmatrix Np_US_ExpectationUncertainty;
+
+	dmatrix errlow_Np_BR;
+	dmatrix errhigh_Np_BR;
+	dmatrix errlow_Np_US;
+	dmatrix errhigh_Np_US;
+
+	//const_star matrix varied by uncertainty (Nuisance parameter in the sampling)
+	dmatrix consts_star_var(NRQCDvars::nStates);
+	dmatrix consts_star_var_var(NRQCDvars::nStates);
+	dmatrix consts_star_var_PreviousCandidates(NRQCDvars::nStates);
+	dmatrix consts_star_var_SampleWidths(NRQCDvars::nStates);
+	dmatrix consts_star_var_Expectation(NRQCDvars::nStates);
+	dmatrix consts_star_var_ExpectationUncertainty(NRQCDvars::nStates);
+
+	dmatrix errlow_consts_star_var;
+	dmatrix errhigh_consts_star_var;
+
+	vector<double> consts_star_var_S (NRQCDvars::nColorChannels_S,0);
+	vector<double> consts_star_var_P (NRQCDvars::nColorChannels_P,0);
+
+	cout<<"Initialize Np's"<<endl;// (starting values of MH chain)
 
 	dvector Np_BR_0 (NRQCDvars::nStates,0.);
 	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR.push_back(Np_BR_0);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_SampleWidths.push_back(Np_BR_0);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_ExpectationUncertainty.push_back(Np_BR_0);
+
+	bool isBRzero[NRQCDvars::nStates][NRQCDvars::nStates];
+
+	for(int i=0; i < NRQCDvars::nStates; i++){
+		for(int j=0; j < NRQCDvars::nStates; j++){
+			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+				isBRzero[i][j]=false;
+				Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01;
+				Np_BR_SampleWidths[i][j]=NRQCDvars::errFeedDownBranchingRatio[i][j]*0.01*NRQCDvars::proposalWidthBurnIn_Np_relToUnc;
+				Np_BR_ExpectationUncertainty[i][j]=NRQCDvars::errFeedDownBranchingRatio[i][j]*0.01;
+			}
+			else{
+				isBRzero[i][j]=true;
+				Np_BR[i][j]=0;
+				Np_BR_SampleWidths[i][j]=0;
+				Np_BR_ExpectationUncertainty[i][j]=0;
+			}
+		}
+	}
+	Np_BR_PreviousCandidates=Np_BR;
+	Np_BR_Expectation=Np_BR_PreviousCandidates;
 
 	dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
 	dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
 	Np_US.push_back(Np_US_0);
 	Np_US.push_back(Np_US_1);
+	Np_US_PreviousCandidates.push_back(Np_US_0);
+	Np_US_PreviousCandidates.push_back(Np_US_1);
+	dvector Np_US_0_ (NRQCDvars::nDataSystematicScales, 1.*NRQCDvars::proposalWidthBurnIn_Np_relToUnc);
+	dvector Np_US_1_ (NRQCDvars::nModelSystematicScales, 1.*NRQCDvars::proposalWidthBurnIn_Np_relToUnc);
+	Np_US_SampleWidths.push_back(Np_US_0_);
+	Np_US_SampleWidths.push_back(Np_US_1_);
+	dvector Np_US_0__ (NRQCDvars::nDataSystematicScales, 1.);
+	dvector Np_US_1__ (NRQCDvars::nModelSystematicScales, 1.);
+	Np_US_ExpectationUncertainty.push_back(Np_US_0__);
+	Np_US_ExpectationUncertainty.push_back(Np_US_1__);
+	Np_US_Expectation=Np_US_PreviousCandidates;
+
+	errlow_Np_BR=Np_BR_ExpectationUncertainty;
+	errhigh_Np_BR=Np_BR_ExpectationUncertainty;
+	errlow_Np_US=Np_US_ExpectationUncertainty;
+	errhigh_Np_US=Np_US_ExpectationUncertainty;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	int acceptedSampling;
 	double loglikelihood=0;
 	dvector ObjectLikelihoodVec;
 
@@ -299,8 +418,6 @@ int main(int argc, char** argv) {
 
 	if(nSampledPoints<10) nStep=nSampledPoints/1;
 
-  	setKernel(NRQCDvars::MetropolisHastings ); // modified by Joao: Set environment for sampling of fractions
-  	//setKernel(NRQCDvars::Metropolis ); // modified by Joao: Set environment for sampling of fractions
 
   	//General S and P vectors, can be used at any time and place
 	vector<double> S_vector (NRQCDvars::nColorChannels_S,0);
@@ -311,6 +428,7 @@ int main(int argc, char** argv) {
 	vector<double> Op_S (NRQCDvars::nColorChannels_S,0);
 	vector<double> Op_P (NRQCDvars::nColorChannels_P,0);
 
+	dmatrix Op_var(NRQCDvars::nStates);
 	dmatrix Op_plus(NRQCDvars::nStates);
 	dmatrix Op_minus(NRQCDvars::nStates);
 	dmatrix err_Op(NRQCDvars::nStates);
@@ -321,6 +439,7 @@ int main(int argc, char** argv) {
 	vector<double> Fractions_S (NRQCDvars::nColorChannels_S,0);//f0...R, fi: i going from 1 to n=nColorChannels, fn=1-sum(fi_i-(n-1))
 	vector<double> Fractions_P (NRQCDvars::nColorChannels_P,0);
 
+	dmatrix Fractions_var(NRQCDvars::nStates);
 	dmatrix Fractions_plus(NRQCDvars::nStates);
 	dmatrix Fractions_minus(NRQCDvars::nStates);
 	dmatrix err_Fractions(NRQCDvars::nStates);
@@ -346,10 +465,6 @@ int main(int argc, char** argv) {
 	dmatrix consts_star;
 	dmatrix err_consts_star;
 
-	//const_star matrix varied by uncertainty (Nuisance parameter inthe sampling)
-	dmatrix consts_star_var(NRQCDvars::nStates);
-	vector<double> consts_star_var_S (NRQCDvars::nColorChannels_S,0);
-	vector<double> consts_star_var_P (NRQCDvars::nColorChannels_P,0);
 
 
 	sprintf(inname,"%s/ModelIngredients_consts_star.txt",modeldirname);
@@ -362,6 +477,47 @@ int main(int argc, char** argv) {
 
 	cout << consts_star << endl;
 	cout << err_consts_star << endl;
+
+	consts_star_var=consts_star;
+	consts_star_var_PreviousCandidates=consts_star_var;
+	consts_star_var_Expectation=consts_star_var_PreviousCandidates;
+
+	cout<<"Initialize consts_star_var's"<<endl;// (starting values of MH chain set further below)
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				consts_star_var_S.at(j)=err_consts_star[i][j]*NRQCDvars::proposalWidthBurnIn_Np_relToUnc;
+			}
+			consts_star_var_SampleWidths.at(i)=consts_star_var_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				consts_star_var_P.at(j)=err_consts_star[i][j]*NRQCDvars::proposalWidthBurnIn_Np_relToUnc;
+			}
+			consts_star_var_SampleWidths.at(i)=consts_star_var_P;
+		}
+	}
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+				consts_star_var_S.at(j)=err_consts_star[i][j];
+			}
+			consts_star_var_ExpectationUncertainty.at(i)=consts_star_var_S;
+		}
+		else{
+			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+				consts_star_var_P.at(j)=err_consts_star[i][j];
+			}
+			consts_star_var_ExpectationUncertainty.at(i)=consts_star_var_P;
+		}
+	}
+
+	errlow_consts_star_var=consts_star_var_ExpectationUncertainty;
+	errhigh_consts_star_var=consts_star_var_ExpectationUncertainty;
 
 	double loglikelihood_PreviousCandidate = -1.e30;  // intial (arbitrary) values
 	double loglikelihood_Candidate = -1.e30;  // intial (arbitrary) values
@@ -396,8 +552,8 @@ int main(int argc, char** argv) {
 			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
 				if(j==0) Candidates_S.at(j)=1.;
 				else Candidates_S.at(j)=1./double(NRQCDvars::nColorChannels_S-1);
-				if(i==0 && j==1) Candidates_S.at(j)=0.;
-				if(i==0 && j==2) Candidates_S.at(j)=1.;
+				//if(i==0 && j==1) Candidates_S.at(j)=0.;
+				//if(i==0 && j==2) Candidates_S.at(j)=1.;
 			}
 			Candidates.at(i)=Candidates_S;
 		}
@@ -410,44 +566,16 @@ int main(int argc, char** argv) {
 		}
 	}
 	PreviousCandidates=Candidates;
+	Fractions=Candidates;
 
 	cout<<Candidates<<endl;
 
-	cout<<"Initialize Op's"<<endl;
+	consts_star_var=consts_star;
 
-	for (int i=0; i<NRQCDvars::nStates; i++){
-		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
-		if(isSstate){
-			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
-				Op_S.at(j)=0.;
-			}
-			Op.at(i)=Op_S;
-		}
-		else{
-			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-				Op_P.at(j)=0.;
-			}
-			Op.at(i)=Op_P;
-		}
-	}
+	Op=NullMatrix;
+	transformFractionsToOps(Op, Fractions, consts_star);
 
-	cout<<"Initialize consts_star_var's"<<endl;
 
-	for (int i=0; i<NRQCDvars::nStates; i++){
-		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
-		if(isSstate){
-			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
-				consts_star_var_S.at(j)=0.;
-			}
-			consts_star_var.at(i)=consts_star_var_S;
-		}
-		else{
-			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-				consts_star_var_P.at(j)=0.;
-			}
-			consts_star_var.at(i)=consts_star_var_P;
-		}
-	}
 
 	cout<<"set widths"<<endl;
 
@@ -471,6 +599,221 @@ int main(int argc, char** argv) {
 
 
 
+
+//////////////////////////////////////////////////////////////////////////////
+/////// Check influence of Op and Nps on likelihood //////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+
+	cout<<"Check influence of Op and Nps on likelihood"<<endl;
+	cout<<"-->> Decide which Op's and Np's to fix in MH and Minuit"<<endl;
+
+	double FreeParam_LikelihoodBaseline, FreeParam_LikelihoodVariation;
+
+
+	imatrix FreeParam_Fractions(NRQCDvars::nStates);
+	ivector S_ivector (NRQCDvars::nColorChannels_S,0);
+	ivector P_ivector (NRQCDvars::nColorChannels_P,0);
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			FreeParam_Fractions.at(i)=S_ivector;
+		}
+		else{
+			FreeParam_Fractions.at(i)=P_ivector;
+		}
+	}
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		for (int j=0; j<nColorChannels_state; j++){
+
+			transformFractionsToOps(Op, Fractions, consts_star);
+			loglikelihood=0;
+			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+				ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+				loglikelihood+=ObjectLikelihoodVec[0];
+			}
+			FreeParam_LikelihoodBaseline=loglikelihood;
+
+			Fractions[i][j]=Fractions[i][j]+10;
+			transformFractionsToOps(Op, Fractions, consts_star);
+			loglikelihood=0;
+			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+				ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+				loglikelihood+=ObjectLikelihoodVec[0];
+			}
+			Fractions[i][j]=Fractions[i][j]-10;
+			FreeParam_LikelihoodVariation=loglikelihood;
+
+			if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Fractions[i][j]=1;
+		}
+	}
+
+
+	cout<<"FreeParam_Fractions"<<endl;
+	cout<<FreeParam_Fractions<<endl;
+
+	ivector FreeParam_Fractions_States(NRQCDvars::nStates);
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		bool FreeParam_Fractions_State=false;
+		for (int j=0; j<nColorChannels_state; j++){
+			if(FreeParam_Fractions[i][j]==1) FreeParam_Fractions_State=true;
+		}
+		if(FreeParam_Fractions_State) FreeParam_Fractions_States.at(i)=1;
+	}
+
+
+	imatrix FreeParam_Np_BR;
+	ivector FreeParam_Np_BR_0 (NRQCDvars::nStates,0);
+	for(int i=0; i < NRQCDvars::nStates; i++) FreeParam_Np_BR.push_back(FreeParam_Np_BR_0);
+	double FreeParam_nSigmaVar=5;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		for (int j=0; j<NRQCDvars::nStates; j++){
+			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+
+				loglikelihood=0;
+				for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+					ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+					loglikelihood+=ObjectLikelihoodVec[0];
+				}
+				FreeParam_LikelihoodBaseline=loglikelihood;
+
+				Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01+FreeParam_nSigmaVar*NRQCDvars::errFeedDownBranchingRatio[i][j]*0.01;
+				loglikelihood=0;
+				for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+					ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+					loglikelihood+=ObjectLikelihoodVec[0];
+				}
+				Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01-FreeParam_nSigmaVar*NRQCDvars::errFeedDownBranchingRatio[i][j]*0.01;
+				FreeParam_LikelihoodVariation=loglikelihood;
+
+				cout<<"FreeParam_Np_BR "<<i<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
+				cout<<"FreeParam_Np_BR "<<i<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
+
+				if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Np_BR[i][j]=1;
+
+			}
+		}
+	}
+
+
+	cout<<"FreeParam_Np_BR"<<endl;
+	cout<<FreeParam_Np_BR<<endl;
+
+
+	imatrix FreeParam_Np_US;
+	ivector FreeParam_Np_US_0_ (NRQCDvars::nDataSystematicScales, 0);
+	ivector FreeParam_Np_US_1_ (NRQCDvars::nModelSystematicScales, 0);
+	FreeParam_Np_US.push_back(FreeParam_Np_US_0_);
+	FreeParam_Np_US.push_back(FreeParam_Np_US_1_);
+	FreeParam_nSigmaVar=5;
+
+	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+		loglikelihood=0;
+		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+			ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+			loglikelihood+=ObjectLikelihoodVec[0];
+		}
+		FreeParam_LikelihoodBaseline=loglikelihood;
+
+		Np_US[0][j]=Np_US[0][j]+Np_US_ExpectationUncertainty[0][j]*FreeParam_nSigmaVar;
+		loglikelihood=0;
+		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+			ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+			loglikelihood+=ObjectLikelihoodVec[0];
+		}
+		Np_US[0][j]=Np_US[0][j]-Np_US_ExpectationUncertainty[0][j]*FreeParam_nSigmaVar;
+		FreeParam_LikelihoodVariation=loglikelihood;
+		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
+		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
+
+		if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Np_US[0][j]=1;
+	}
+	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+		loglikelihood=0;
+		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+			ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+			loglikelihood+=ObjectLikelihoodVec[0];
+		}
+		FreeParam_LikelihoodBaseline=loglikelihood;
+
+		Np_US[1][j]=Np_US[1][j]+Np_US_ExpectationUncertainty[1][j]*FreeParam_nSigmaVar;
+		loglikelihood=0;
+		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+			ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+			loglikelihood+=ObjectLikelihoodVec[0];
+		}
+		Np_US[1][j]=Np_US[1][j]-Np_US_ExpectationUncertainty[1][j]*FreeParam_nSigmaVar;
+		FreeParam_LikelihoodVariation=loglikelihood;
+		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
+		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
+
+		if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Np_US[1][j]=1;
+	}
+
+
+	cout<<"FreeParam_Np_US"<<endl;
+	cout<<FreeParam_Np_US<<endl;
+
+
+	imatrix FreeParam_consts_star(NRQCDvars::nStates);
+	FreeParam_nSigmaVar=5;
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate){
+			FreeParam_consts_star.at(i)=S_ivector;
+		}
+		else{
+			FreeParam_consts_star.at(i)=P_ivector;
+		}
+	}
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		for (int j=0; j<nColorChannels_state; j++){
+
+			transformFractionsToOps(Op, Fractions, consts_star);
+			loglikelihood=0;
+			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+				ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+				loglikelihood+=ObjectLikelihoodVec[0];
+			}
+			FreeParam_LikelihoodBaseline=loglikelihood;
+
+			consts_star[i][j]=consts_star[i][j]+FreeParam_nSigmaVar*err_consts_star[i][j];
+			transformFractionsToOps(Op, Fractions, consts_star);
+			loglikelihood=0;
+			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
+				ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
+				loglikelihood+=ObjectLikelihoodVec[0];
+			}
+			consts_star[i][j]=consts_star[i][j]-FreeParam_nSigmaVar*err_consts_star[i][j];
+			FreeParam_LikelihoodVariation=loglikelihood;
+			cout<<"FreeParam_consts_star "<<i<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
+			cout<<"FreeParam_consts_star "<<i<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
+
+			if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_consts_star[i][j]=1;
+		}
+	}
+
+
+	cout<<"FreeParam_consts_star"<<endl;
+	cout<<FreeParam_consts_star<<endl;
+
+
 ////////////////////////////////////////////////
 /////// DEFINE OUTPUT //////////////////////////
 ////////////////////////////////////////////////
@@ -486,8 +829,6 @@ int main(int argc, char** argv) {
 	TFile *ResultsFile = new TFile(outname, "RECREATE");
 
 
-	//int Minimizer=NRQCDvars::Minuit;
-	int Minimizer=NRQCDvars::MH;
 
 
 	if(Minimizer==NRQCDvars::Minuit){//Use Minuit to minimize the likelihood
@@ -503,9 +844,6 @@ int main(int argc, char** argv) {
 
 			double dNp_expected;
 			double dNp_uncertainty;
-
-			SampleNp=true;
-			SampleNp_consts_star=true;
 
 			if(SampleNp){
 
@@ -591,16 +929,10 @@ int main(int argc, char** argv) {
 					cout<<"set parameter "<<iParName<<endl;
 
 					bool fixStateFractions=false;
-					if(useCharmoniumOnly && i > 3)
-						fixStateFractions=true;
-					if(useBottomoniumOnly && i < 4)
-						fixStateFractions=true;
 					if(j==nColorChannels_state-1)
 						fixStateFractions=true;
-					if(useOnlyState==3 && i!=useOnlyState)
+					if(FreeParam_Fractions[i][j]!=1)
 						fixStateFractions=true;
-
-					//if(i!=3) fixStateFractions=true;
 
 					if(fixStateFractions) {
 						cout<<"...and fixed it"<<endl;
@@ -633,9 +965,14 @@ int main(int argc, char** argv) {
 					dNp_expected=0.;
 					dNp_uncertainty=1.;
 					start_value=dNp_expected; vlow=dNp_expected-nSigmaRegion_Nuis*dNp_uncertainty; vhigh=dNp_expected+nSigmaRegion_Nuis*dNp_uncertainty; verr=verr_Nuis;
-					sprintf(iParName_Nuis,"NuisPar_DataSystematicScale%d",j);
+					sprintf(iParName_Nuis,"NuisPar_LuminosityScale_Experiment%d",j);
 					minuitx->SetParameter(nPOI+iPar_Nuis,iParName_Nuis,start_value, verr, vlow, vhigh);
 					cout<<"set nuisance parameter "<<iParName_Nuis<<endl;
+					if(FreeParam_Np_US[0][j]!=1){
+						cout<<"...and fixed it"<<endl;
+						minuitx->FixParameter(nPOI+iPar_Nuis);
+						nFixedPars_Nuis++;
+					}
 					iPar_Nuis++;
 				}
 				for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
@@ -645,6 +982,11 @@ int main(int argc, char** argv) {
 					sprintf(iParName_Nuis,"NuisPar_ModelSystematicScale%d",j);
 					minuitx->SetParameter(nPOI+iPar_Nuis,iParName_Nuis,start_value, verr, vlow, vhigh);
 					cout<<"set nuisance parameter "<<iParName_Nuis<<endl;
+					if(FreeParam_Np_US[1][j]!=1){
+						cout<<"...and fixed it"<<endl;
+						minuitx->FixParameter(nPOI+iPar_Nuis);
+						nFixedPars_Nuis++;
+					}
 					iPar_Nuis++;
 				}
 				for(int i=0; i < nStates; i++){
@@ -656,6 +998,11 @@ int main(int argc, char** argv) {
 							sprintf(iParName_Nuis,"NuisPar_BR%dto%d",j,i);
 							minuitx->SetParameter(nPOI+iPar_Nuis,iParName_Nuis,start_value, verr, vlow, vhigh);
 							cout<<"set nuisance parameter "<<iParName_Nuis<<endl;
+							if(FreeParam_Np_BR[i][j]!=1){
+								cout<<"...and fixed it"<<endl;
+								minuitx->FixParameter(nPOI+iPar_Nuis);
+								nFixedPars_Nuis++;
+							}
 							iPar_Nuis++;
 						}
 					}
@@ -680,6 +1027,11 @@ int main(int argc, char** argv) {
 							sprintf(iParName_Nuis,"NuisPar_consts_star_state%d_CC%d",i,j);
 							minuitx->SetParameter(nPOI+iPar_Nuis,iParName_Nuis,start_value, verr, vlow, vhigh);
 							cout<<"set nuisance parameter "<<iParName_Nuis<<endl;
+							if(FreeParam_consts_star[i][j]!=1){
+								cout<<"...and fixed it"<<endl;
+								minuitx->FixParameter(nPOI+iPar_Nuis);
+								nFixedPars_Nuis++;
+							}
 							iPar_Nuis++;
 					}
 				}
@@ -854,6 +1206,7 @@ int main(int argc, char** argv) {
 				}
 			}
 
+
 			for (int i=0; i<NRQCDvars::nStates; i++){
 				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 				if(isSstate){
@@ -887,9 +1240,7 @@ int main(int argc, char** argv) {
 			}
 
 
-			transformFractionsToOps(Op, Fractions, consts_star);
-			transformFractionsToOps(Op_plus, Fractions_plus, consts_star);
-			transformFractionsToOps(Op_minus, Fractions_minus, consts_star);
+
 
 
 			for (int i=0; i<NRQCDvars::nStates; i++){
@@ -935,8 +1286,254 @@ int main(int argc, char** argv) {
 			cout<<"FitResult for Op:"<<endl;
 			cout<<Op<<endl;
 
-//		   minuitx->ReleaseParameter(0);
-//		   minuitx->FixParameter(0);
+
+
+
+
+
+
+
+
+			if(SampleNp){
+
+				iPar=nPOI;
+				cout<<"FitResults NP_US"<<endl;
+				for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+					if(FreeParam_Np_US[0][j]==1){
+						Np_US[0][j]=resultPar[iPar];
+						errlow_Np_US[0][j]=err_resultPar[iPar];
+						errhigh_Np_US[0][j]=err_resultPar[iPar];
+					}
+					else Np_US[0][j]=Np_US_Expectation[0][j];
+					cout<<"iPar "<<iPar<<endl;
+					iPar++;
+				}
+				for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+					if(FreeParam_Np_US[1][j]==1){
+						Np_US[1][j]=resultPar[iPar];
+						errlow_Np_US[1][j]=err_resultPar[iPar];
+						errhigh_Np_US[1][j]=err_resultPar[iPar];
+					}
+					else Np_US[1][j]=Np_US_Expectation[1][j];
+					cout<<"iPar "<<iPar<<endl;
+					iPar++;
+				}
+				cout<<"FitResults NP_BR"<<endl;
+				for(int i=0; i < nStates; i++){
+					for(int j=0; j < nStates; j++){
+						if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+							if(FreeParam_Np_BR[i][j]==1){
+								Np_BR[i][j]=resultPar[iPar];
+								errlow_Np_BR[i][j]=err_resultPar[iPar];
+								errhigh_Np_BR[i][j]=err_resultPar[iPar];
+							}
+							else Np_BR[i][j]=Np_BR_Expectation[i][j];
+							cout<<"iPar "<<iPar<<endl;
+							iPar++;
+						}
+					}
+				}
+			}
+			else{
+				Np_US=Np_US_Expectation;
+				Np_BR=Np_BR_Expectation;
+			}
+
+
+			if(SampleNp_consts_star){
+
+				cout<<"FitResults NP_consts_star"<<endl;
+				for (int i=0; i<NRQCDvars::nStates; i++){
+					bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+					if(isSstate){
+						for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+							if(FreeParam_consts_star[i][j]==1){
+								errlow_consts_star_var[i][j]=err_resultPar[iPar];
+								errhigh_consts_star_var[i][j]=err_resultPar[iPar];
+								consts_star_var[i][j]=resultPar[iPar];
+							}
+							else consts_star_var[i][j]=consts_star_var_Expectation[i][j];
+							S_vector.at(j)=consts_star_var[i][j];
+							cout<<"iPar "<<iPar<<endl;
+							iPar++;
+						}
+						consts_star_var.at(i)=S_vector;
+					}
+					else{
+						for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+							if(FreeParam_consts_star[i][j]==1){
+								consts_star_var[i][j]=resultPar[iPar];
+								errlow_consts_star_var[i][j]=err_resultPar[iPar];
+								errhigh_consts_star_var[i][j]=err_resultPar[iPar];
+							}
+							else consts_star_var[i][j]=consts_star_var_Expectation[i][j];
+							P_vector.at(j)=consts_star_var[i][j];
+							cout<<"iPar "<<iPar<<endl;
+							iPar++;
+						}
+						consts_star_var.at(i)=P_vector;
+					}
+				}
+
+			}
+			else{
+				consts_star_var=consts_star_var_Expectation;
+			}
+
+
+
+
+
+			//TODO: separately for each state, vary fi within uncertainties, ensure sum=1, calc Oi hist and define errlow_Oi and errhigh_Oi
+
+			transformFractionsToOps(Op, Fractions, consts_star);
+			transformFractionsToOps(Op_plus, Fractions_plus, consts_star);
+			transformFractionsToOps(Op_minus, Fractions_minus, consts_star);
+
+			TH1D *h_Oi[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+			int h_Oi_nBins=100;
+			char hist_name[200];
+			double nSigmaOp=1;
+
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				int nColorChannels_state;
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
+				for (int j=0; j<nColorChannels_state; j++){
+
+					sprintf(hist_name,"h_Oi_state%d_CC%d",i,j);
+					h_Oi[i][j]= new TH1D( hist_name, hist_name, h_Oi_nBins, Op[i][j]-nSigmaOp*errlow_Op[i][j], Op[i][j]+nSigmaOp*errhigh_Op[i][j]);
+					//if(i==3&&j==1) {
+					//	cout<<"Op[i][j] "<<Op[i][j]<<endl;
+					//	cout<<"Op_plus[i][j] "<<Op_plus[i][j]<<endl;
+					//	cout<<"Op_minus[i][j] "<<Op_minus[i][j]<<endl;
+					//}
+				}
+			}
+
+
+
+			int nRand=10000;
+			for(int iRand=0;iRand<nRand;iRand++){
+
+
+
+				Fractions_var=Fractions;
+				consts_star_var_var=consts_star_var;
+				Op_var=Op;
+
+				for (int i=0; i<NRQCDvars::nStates; i++){
+					int nColorChannels_state;
+					bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+					if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+					else nColorChannels_state=NRQCDvars::nColorChannels_P;
+					double buffSum=0;
+					for (int j=0; j<nColorChannels_state-1; j++){
+						if(FreeParam_Fractions[i][j]!=1) continue;
+						Fractions_var[i][j]=gRandom->Gaus(Fractions[i][j], err_Fractions[i][j]);
+						if(j>0) buffSum+=Fractions_var[i][j];
+					}
+					Fractions_var[i][nColorChannels_state-1]=1-buffSum;
+					for (int j=0; j<nColorChannels_state; j++){
+						if(FreeParam_Fractions[i][j]!=1) continue;
+						consts_star_var_var[i][j]=gRandom->Gaus(consts_star_var[i][j], (errlow_consts_star_var[i][j]+errhigh_consts_star_var[i][j])/2.);
+					}
+				}
+
+				transformFractionsToOps(Op_var, Fractions_var, consts_star_var_var);
+
+
+				for (int i=0; i<NRQCDvars::nStates; i++){
+					int nColorChannels_state;
+					bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+					if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+					else nColorChannels_state=NRQCDvars::nColorChannels_P;
+					for (int j=0; j<nColorChannels_state; j++){
+						if(FreeParam_Fractions[i][j]!=1) continue;
+						h_Oi[i][j]->Fill(Op_var[i][j]);
+						//if(i==3&&j==1) cout<<Op_var[i][j]<<endl;
+
+					}
+				}
+
+				//cout<<"Fractions_var"<<endl;
+				//cout<<Fractions_var<<endl;
+				//cout<<"consts_star_var_var"<<endl;
+				//cout<<consts_star_var_var<<endl;
+				//cout<<"Op_var"<<endl;
+				//cout<<Op_var<<endl;
+
+
+
+			}
+
+
+			double buff_MPV[NRQCDvars::nStates][NRQCDvars::nColorChannels], buff_errlow[NRQCDvars::nStates][NRQCDvars::nColorChannels], buff_errhigh[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				int nColorChannels_state;
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
+				for (int j=0; j<nColorChannels_state; j++){
+
+					if(FreeParam_Fractions[i][j]!=1){
+						buff_errlow[i][j]=0;
+						buff_errhigh[i][j]=0;
+						continue;
+					}
+
+					if(i==3&&j==2) h_Oi[i][j]->SaveAs("tmpHist.root");
+					cout<<i<<" "<<j<<endl;
+					cout<<h_Oi[i][j]->GetMean()<<endl;
+					cout<<h_Oi[i][j]->GetRMS()<<endl;
+					FindMPV(h_Oi[i][j], buff_MPV[i][j], buff_errlow[i][j], buff_errhigh[i][j], MPValgo, nSigma);
+					cout<<buff_MPV[i][j]<<endl;
+					cout<<buff_errlow[i][j]<<endl;
+					cout<<buff_errhigh[i][j]<<endl;
+					buff_errlow[i][j]+=Op[i][j]-buff_MPV[i][j];
+					buff_errhigh[i][j]-=Op[i][j]-buff_MPV[i][j];
+					buff_errlow[i][j]=fabs(buff_errlow[i][j]);
+					buff_errhigh[i][j]=fabs(buff_errhigh[i][j]);
+					cout<<buff_errlow[i][j]<<endl;
+					cout<<buff_errhigh[i][j]<<endl;
+
+				}
+			}
+
+
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				if(isSstate){
+					for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+						S_vector.at(j)=buff_errlow[i][j];
+					}
+					errlow_Op.at(i)=S_vector;
+				}
+				else{
+					for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+						P_vector.at(j)=buff_errlow[i][j];
+					}
+					errlow_Op.at(i)=P_vector;
+				}
+			}
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				if(isSstate){
+					for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+						S_vector.at(j)=buff_errhigh[i][j];
+					}
+					errhigh_Op.at(i)=S_vector;
+				}
+				else{
+					for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+						P_vector.at(j)=buff_errhigh[i][j];
+					}
+					errhigh_Op.at(i)=P_vector;
+				}
+			}
+
+
 
 
 			sprintf(outname,"%s/results.txt",jobdirname);
@@ -952,9 +1549,39 @@ int main(int argc, char** argv) {
 			out << errlow_Op;
 			out << errhigh_Op;
 
+		    out.close();
 
+
+		    dmatrix Np_US_Altered;
+		    dmatrix errlow_Np_US_Altered;
+		    dmatrix errhigh_Np_US_Altered;
+		    Np_US_Altered.push_back(Np_US[0]);
+		    errlow_Np_US_Altered.push_back(errlow_Np_US[0]);
+		    errhigh_Np_US_Altered.push_back(errhigh_Np_US[0]);
+		  	if(NRQCDvars::nModelSystematicScales!=0){
+			    Np_US_Altered.push_back(Np_US[1]);
+		  		errlow_Np_US_Altered.push_back(errlow_Np_US[1]);
+		  		errhigh_Np_US_Altered.push_back(errhigh_Np_US[1]);
+		  	}
+
+
+			sprintf(outname,"%s/results_Np.txt",jobdirname);
+			cout<<"save results to "<<outname<<endl;
+
+		    out.open(outname);//, std::ofstream::app);
+
+			out << Np_BR;
+			out << errlow_Np_BR;
+			out << errhigh_Np_BR;
+			out << consts_star_var;
+			out << errlow_consts_star_var;
+			out << errhigh_consts_star_var;
+			out << Np_US_Altered;
+			out << errlow_Np_US_Altered;
+			out << errhigh_Np_US_Altered;
 
 		    out.close();
+
 
 
 			bool DrawLikelihood=true;
@@ -1104,13 +1731,13 @@ int main(int argc, char** argv) {
 					centralLine->SetLineColor( kGreen+2 );
 					centralLine->Draw( "same" );
 
-					TLine* minus1Sig = new TLine( iScanStart-err_resultPar[7], chi2_par1_1D->GetMinimum(), iScanStart-err_resultPar[7] ,chi2_par1_1D->GetMaximum());
+					TLine* minus1Sig = new TLine( iScanStart-err_resultPar[8], chi2_par1_1D->GetMinimum(), iScanStart-err_resultPar[8] ,chi2_par1_1D->GetMaximum());
 					minus1Sig->SetLineWidth( 1 );
 					minus1Sig->SetLineStyle( 2 );
 					minus1Sig->SetLineColor( kRed );
 					minus1Sig->Draw( "same" );
 
-					TLine* plus1Sig = new TLine( iScanStart+err_resultPar[7], chi2_par1_1D->GetMinimum(), iScanStart+err_resultPar[7] ,chi2_par1_1D->GetMaximum());
+					TLine* plus1Sig = new TLine( iScanStart+err_resultPar[8], chi2_par1_1D->GetMinimum(), iScanStart+err_resultPar[8] ,chi2_par1_1D->GetMaximum());
 					plus1Sig->SetLineWidth( 1 );
 					plus1Sig->SetLineStyle( 2 );
 					plus1Sig->SetLineColor( kRed );
@@ -1188,7 +1815,7 @@ int main(int argc, char** argv) {
 	if(Minimizer==NRQCDvars::MH){//Use Metropolis-Hastings to minimize the likelihood
 
 		TTree*  outputTreeAllSamplings = new TTree("AllSamplings","AllSamplings"); // tree filled in all samplings after burnin
-		TTree*  outputTreeAccSamplings = new TTree("AccSamplings","AccSamplings"); // tree filled only in accepted samplings after burnin
+		//TTree*  outputTreeAccSamplings = new TTree("AccSamplings","AccSamplings"); // tree filled only in accepted samplings after burnin
 
 
 		char branch_name[200];
@@ -1204,7 +1831,7 @@ int main(int argc, char** argv) {
 			for (int j=0; j<nColorChannels_state; j++){
 					sprintf(branch_name,"state%d_f%d",i,j);
 					sprintf(branch_address,"%s/D",branch_name);
-					outputTreeAccSamplings->Branch(branch_name,     &Candidates[i][j],     branch_address);
+					outputTreeAllSamplings->Branch(branch_name,     &Candidates[i][j],     branch_address);
 				}
 			}
 
@@ -1217,7 +1844,7 @@ int main(int argc, char** argv) {
 			for (int j=0; j<nColorChannels_state; j++){
 					sprintf(branch_name,"state%d_Op%d",i,j);
 					sprintf(branch_address,"%s/D",branch_name);
-					outputTreeAccSamplings->Branch(branch_name,     &Op[i][j],     branch_address);
+					outputTreeAllSamplings->Branch(branch_name,     &Op[i][j],     branch_address);
 				}
 			}
 
@@ -1225,7 +1852,6 @@ int main(int argc, char** argv) {
 		int iAccSampling;
 		sprintf(branch_name,"iAccSampling");
 		sprintf(branch_address,"%s/I",branch_name);
-		outputTreeAccSamplings->Branch(branch_name,     &iAccSampling,     branch_address);
 		outputTreeAllSamplings->Branch(branch_name,     &iAccSampling,     branch_address);
 
 		int nSampledPointsTotal;
@@ -1278,38 +1904,9 @@ int main(int argc, char** argv) {
 			for (int j=0; j<nColorChannels_state; j++){
 					sprintf(branch_name,"state%d_const_star%d",i,j);
 					sprintf(branch_address,"%s/D",branch_name);
-					outputTreeAccSamplings->Branch(branch_name,     &consts_star_var[i][j],     branch_address);
+					outputTreeAllSamplings->Branch(branch_name,     &consts_star_var[i][j],     branch_address);
 				}
 			}
-
-		//Make TTree to be filled with BurnIn samplings
-
-		char BurnInSamplingsName[200];
-		sprintf(BurnInSamplingsName,"BurnInSamplingsName");
-		TTree *BurnInSamplings = new TTree(BurnInSamplingsName, BurnInSamplingsName);
-
-
-		for (int i=0; i<NRQCDvars::nStates; i++){
-			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
-			if(isSstate){
-				for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
-					sprintf(branch_name,"state%d_f%d_burnin",i,j);
-					sprintf(branch_address,"%s/D",branch_name);
-					BurnInSamplings->Branch(branch_name,     &Candidates[i][j],     branch_address);
-				}
-			}
-			else{
-				for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-					sprintf(branch_name,"state%d_f%d_burnin",i,j);
-					sprintf(branch_address,"%s/D",branch_name);
-					BurnInSamplings->Branch(branch_name,     &Candidates[i][j],     branch_address);
-				}
-			}
-		}
-
-		sprintf(branch_name,"iAccSampling");
-		sprintf(branch_address,"%s/I",branch_name);
-		BurnInSamplings->Branch(branch_name,     &iAccSampling,     branch_address);
 
 
 ////////////////////////////////////////////////
@@ -1328,15 +1925,11 @@ int main(int argc, char** argv) {
 		nSampledPointsTotal=1;
 		for(int iSampledPoint = 1; iSampledPoint <= nSampledPoints; nSampledPointsTotal++){ // Sampling loop
 
-			//if(nSampledPointsTotal>2) break;
-
-			//cout << "iSampledPoint " << iSampledPoint <<endl;
-
 			iAccSampling=iSampledPoint;
 			iTotalSinceLastStep++;
 
 			if(iSampledPoint==nBurnIn+1 && BurnIn){
-				BurnInInt=0;
+
 				BurnIn=false;
 				cout<<"BurnIn period finished"<<endl;
 				double fi_burnin_in[NRQCDvars::nStates][NRQCDvars::nColorChannels];
@@ -1344,26 +1937,28 @@ int main(int argc, char** argv) {
 				TH1D *h_BurnIn[NRQCDvars::nStates][NRQCDvars::nColorChannels];
 				int nBins_fi_burnin=100;
 
+				TTree *copy_outputTreeAllSamplings=(TTree*)outputTreeAllSamplings->CopyTree("acceptedSampling<1000");
+
 				for (int i=0; i<NRQCDvars::nStates; i++){
 					int nColorChannels_state;
 					bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 					if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
 					else nColorChannels_state=NRQCDvars::nColorChannels_P;
 					for (int j=0; j<nColorChannels_state; j++){
-						sprintf(fi_name_in,"state%d_f%d_burnin",i,j);
-						BurnInSamplings->SetBranchAddress( fi_name_in,  &fi_burnin_in[i][j] );
-						h_BurnIn[i][j] = new TH1D (fi_name_in, fi_name_in, nBins_fi_burnin, BurnInSamplings->GetMinimum(fi_name_in), BurnInSamplings->GetMaximum(fi_name_in));
+						sprintf(fi_name_in,"state%d_f%d",i,j);
+						copy_outputTreeAllSamplings->SetBranchAddress( fi_name_in,  &fi_burnin_in[i][j] );
+						h_BurnIn[i][j] = new TH1D (fi_name_in, fi_name_in, nBins_fi_burnin, outputTreeAllSamplings->GetMinimum(fi_name_in), outputTreeAllSamplings->GetMaximum(fi_name_in));
 					}
 				}
 
-				int n_events = int( BurnInSamplings->GetEntries() );
+				int n_events = int( copy_outputTreeAllSamplings->GetEntries() );
 				int nBinsh_pT=50;
 				int nBinsh_rap=50;
 
 				// loop over  events in the burnin ntuple
 				for ( int i_event = 1; i_event <= n_events; i_event++ ) {
 
-					BurnInSamplings->GetEvent( i_event-1 );
+					copy_outputTreeAllSamplings->GetEvent( i_event-1 );
 
 					//fill histos
 					for (int i=0; i<NRQCDvars::nStates; i++){
@@ -1418,30 +2013,65 @@ int main(int argc, char** argv) {
 						SampleWidths.at(i)=SampleWidths_P;
 					}
 				}
-				BurnInSamplings->Write();
+				//BurnInSamplings->Write();
+				delete copy_outputTreeAllSamplings;
+
+				BurnInInt=0;
+
 			}
+
+
+
+
 
 			// Fill Nuisance parameter matrices Np_BR and Np_US. Np_US[0]: Data-related, Np_US[1]: Model-related uncertainty scales
 			//cout << "Fill Nuisance parameter matrices" <<endl;
 
+			 //DataFromExperimentExists
+			//candidate[i]=kernelFunction(candidate[i], width[i]);
+
+			if(NRQCDvars::debug) cout<<"Sampling Nps"<<endl;
+
 			for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
-				if(SampleNp) Np_US[0][j]=gRandom->Gaus(0,1); // Luminosity scaling
+				if(SampleNp && FreeParam_Np_US[0][j]==1) Np_US[0][j]=kernelFunction(Np_US_PreviousCandidates[0][j], Np_US_SampleWidths[0][j]);
 				else Np_US[0][j]=0.;
 			}
 			for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
-				if(SampleNp) Np_US[1][j]=gRandom->Gaus(0,1);
+				if(SampleNp && FreeParam_Np_US[1][j]==1) Np_US[1][j]=kernelFunction(Np_US_PreviousCandidates[1][j], Np_US_SampleWidths[1][j]);
 				else Np_US[1][j]=0.;
 			}
 
 			for(int i=0; i < nStates; i++){
 				for(int j=0; j < nStates; j++){
-					if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
-						if(SampleNp) Np_BR[i][j]=gRandom->Gaus( NRQCDvars::FeedDownBranchingRatio[i][j]  , NRQCDvars::errFeedDownBranchingRatio[i][j])*0.01;
+					if(NRQCDvars::FeedDownBranchingRatio[i][j]>0  && FreeParam_Np_BR[i][j]==1){
+						if(SampleNp) Np_BR[i][j]=kernelFunction(Np_BR_PreviousCandidates[i][j], Np_BR_SampleWidths[i][j]);
 						else Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01;
 					}
 					else Np_BR[i][j]=0;
 				}
 			}
+
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				if(isSstate){
+					for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+						if(SampleNp_consts_star && FreeParam_consts_star[i][j]==1) consts_star_var_S.at(j)=kernelFunction(consts_star_var_PreviousCandidates[i][j], consts_star_var_SampleWidths[i][j]);
+						else consts_star_var_S.at(j)=consts_star[i][j];
+					}
+					consts_star_var.at(i)=consts_star_var_S;
+				}
+				else{
+					for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+						if(SampleNp_consts_star && FreeParam_consts_star[i][j]==1) consts_star_var_P.at(j)=kernelFunction(consts_star_var_PreviousCandidates[i][j], consts_star_var_SampleWidths[i][j]);
+						else consts_star_var_P.at(j)=consts_star[i][j];
+					}
+					consts_star_var.at(i)=consts_star_var_P;
+				}
+			}
+
+
+
+			if(NRQCDvars::debug) cout<<"Sampling Fractions"<<endl;
 
 			///// Set Fractions -> calculate Matrix Elements Op
 
@@ -1459,7 +2089,9 @@ int main(int argc, char** argv) {
 					//cout << "setFractionDimension:getFractionValues" <<NRQCDvars::nColorChannels_S-1<<"D"<<endl;
 					setFractionDimension(NRQCDvars::nColorChannels_S-1);
 					PreviousCandidates_S=PreviousCandidates.at(i);
-					getFractionValues(Fractions_S, PreviousCandidates_S, SampleWidths_S);
+					SampleWidths_S=SampleWidths.at(i);
+					if(FreeParam_Fractions_States[i]==1) getFractionValues(Fractions_S, PreviousCandidates_S, SampleWidths_S);
+					else Fractions_S=NullMatrix_S;
 					//cout << "sampled fractions:" <<endl;
 					//double SumFractions=0;
 					//for (int j=0; j<Fractions_S.size(); j++){
@@ -1474,7 +2106,9 @@ int main(int argc, char** argv) {
 					//cout << "setFractionDimension:getFractionValues" <<NRQCDvars::nColorChannels_P-1<<"D"<<endl;
 					setFractionDimension(NRQCDvars::nColorChannels_P-1);
 					PreviousCandidates_P=PreviousCandidates.at(i);
-					getFractionValues(Fractions_P, PreviousCandidates_P, SampleWidths_P);
+					SampleWidths_P=SampleWidths.at(i);
+					if(FreeParam_Fractions_States[i]==1) getFractionValues(Fractions_P, PreviousCandidates_P, SampleWidths_P);
+					else Fractions_P=NullMatrix_P;
 					//cout << "sampled fractions:" <<endl;
 					//double SumFractions=0;
 					//for (int j=0; j<Fractions_P.size(); j++){
@@ -1491,25 +2125,6 @@ int main(int argc, char** argv) {
 			// Relate Op to R, fi -> getObjectLikelihood
 			//cout << "transformFractionsToOps" <<endl;
 
-			//cout<<"varying consts_star by uncertainty"<<endl;
-
-			for (int i=0; i<NRQCDvars::nStates; i++){
-				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
-				if(isSstate){
-					for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
-						if(SampleNp_consts_star) consts_star_var_S.at(j)=gRandom->Gaus(consts_star[i][j],err_consts_star[i][j]);
-						else consts_star_var_S.at(j)=consts_star[i][j];
-					}
-					consts_star_var.at(i)=consts_star_var_S;
-				}
-				else{
-					for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-						if(SampleNp_consts_star) consts_star_var_P.at(j)=gRandom->Gaus(consts_star[i][j], err_consts_star[i][j]);
-						else consts_star_var_P.at(j)=consts_star[i][j];
-					}
-					consts_star_var.at(i)=consts_star_var_P;
-				}
-			}
 
 			transformFractionsToOps(Op, Candidates, consts_star_var);
 
@@ -1520,6 +2135,8 @@ int main(int argc, char** argv) {
 			//cout<<"Op[1].size() "<<Op[1].size()<<endl;
 
 			if(NRQCDvars::debug) cout << "getObjectLikelihood" << endl;
+
+			if(NRQCDvars::debug) cout<<"getObjectLikelihood"<<endl;
 
 			loglikelihood=0;
 			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
@@ -1540,9 +2157,47 @@ int main(int argc, char** argv) {
 
 			//cout << "Sum_likelihood " << likelihood << endl;
 
+
+
+
+			if(NRQCDvars::debug) cout<<"add chi-square terms to constrain Nps"<<endl;
+
+			if(NRQCDvars::debug) cout<<"for Np_US"<<endl;
+
+
+			for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+				if(SampleNp && FreeParam_Np_US[0][j]) loglikelihood+=((Np_US[0][j]-Np_US_Expectation[0][j])/Np_US_ExpectationUncertainty[0][j])*((Np_US[0][j]-Np_US_Expectation[0][j])/Np_US_ExpectationUncertainty[0][j]);
+			}
+			for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+				if(SampleNp && FreeParam_Np_US[1][j]) loglikelihood+=((Np_US[1][j]-Np_US_Expectation[1][j])/Np_US_ExpectationUncertainty[1][j])*((Np_US[1][j]-Np_US_Expectation[1][j])/Np_US_ExpectationUncertainty[1][j]);
+				else Np_US[1][j]=0.;
+			}
+
+			if(NRQCDvars::debug) cout<<"for Np_BR"<<endl;
+			for(int i=0; i < nStates; i++){
+				for(int j=0; j < nStates; j++){
+					if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+						if(SampleNp && FreeParam_Np_BR[i][j]) loglikelihood+=((Np_BR[i][j]-Np_BR_Expectation[i][j])/Np_BR_ExpectationUncertainty[i][j])*((Np_BR[i][j]-Np_BR_Expectation[i][j])/Np_BR_ExpectationUncertainty[i][j]);
+					}
+				}
+			}
+
+			if(NRQCDvars::debug) cout<<"for consts_star"<<endl;
+			for (int i=0; i<NRQCDvars::nStates; i++){
+				bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+				int nColorChannels_state;
+				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+				else nColorChannels_state=NRQCDvars::nColorChannels_P;
+				for (int j=0; j<nColorChannels_state; j++){
+					if(SampleNp_consts_star && FreeParam_consts_star[i][j]) loglikelihood+=((consts_star_var[i][j]-consts_star_var_Expectation[i][j])/consts_star_var_ExpectationUncertainty[i][j])*((consts_star_var[i][j]-consts_star_var_Expectation[i][j])/consts_star_var_ExpectationUncertainty[i][j]);
+				}
+			}
+
 			loglikelihood*=-0.5;
 
 				//cout << "Sum_likelihood*0.5 " << likelihood << endl;
+
+			if(NRQCDvars::debug) cout<<"likeliohood ratio criterion"<<endl;
 
 			 loglikelihood_Candidate=loglikelihood;
 				//cout << "loglikelihood_Candidate: " << loglikelihood_Candidate << endl;
@@ -1551,6 +2206,9 @@ int main(int argc, char** argv) {
 			 double loglikelihood_difference = loglikelihood_Candidate - loglikelihood_PreviousCandidate;
 			 if(  loglikelihood_difference > 0.  ||  loglikelihood_difference > log( gRandom->Uniform(1.) )   ) {
 				 PreviousCandidates=Candidates;
+				 Np_BR_PreviousCandidates=Np_BR;
+				 Np_US_PreviousCandidates=Np_US;
+				 consts_star_var_PreviousCandidates=consts_star_var;
 				 loglikelihood_PreviousCandidate=loglikelihood_Candidate;
 	//	    	 if(!BurnIn) data->Fill();
 				 iSampledPoint++;
@@ -1579,15 +2237,13 @@ int main(int argc, char** argv) {
 					//	}
 					//}
 
-				 MH_av_eff=double(iSampledPoint)/double(nSampledPointsTotal);
+				 MH_av_eff=double(iSampledPoint-1)/double(nSampledPointsTotal);
 
-					if(BurnIn) BurnInSamplings->Fill();
-					else outputTreeAccSamplings->Fill();
 
 
 
 				if (iSampledPoint%nStep == 0) {
-					double MH_step_eff=double(iAcceptedSinceLastStep+1)/double(iTotalSinceLastStep)*100;
+					double MH_step_eff=double(iAcceptedSinceLastStep)/double(iTotalSinceLastStep)*100;
 					iTotalSinceLastStep=0;
 					iAcceptedSinceLastStep=0;
 					cout << nStep_ << " %, MH efficiency so far: "<<MH_av_eff*100.<<"%, since last step: "<<MH_step_eff<<"%"<<endl;
@@ -1610,6 +2266,7 @@ int main(int argc, char** argv) {
 			//}
 
 
+
 				if(iSampledPoint<10){
 					cout << "Some output for the beginning of the sampling -> accepted candidate below? " <<acceptedSampling<<endl;
 					cout << Candidates;
@@ -1625,19 +2282,52 @@ int main(int argc, char** argv) {
 			 if(nMH_rejectedInARow==1000) {cout<<"I'd be even more worried, 1000 points rejected in a row.. iSampledPoints: "<<iSampledPoint<<", MH_av_eff = "<<MH_av_eff*100<<"%"<<endl;}
 			 if(nMH_rejectedInARow==10000) {cout<<"Sorry - 10000 points rejected in a row is enough -> EXIT"<<endl; exit(0);}
 
-				/*if(!BurnIn) */outputTreeAllSamplings->Fill();
+			outputTreeAllSamplings->Fill();
 
 			if(NRQCDvars::debug) cout << "Sum loglikelihood: " << loglikelihood << endl;
 		}
 
 		outputTreeAllSamplings->Write();
-		outputTreeAccSamplings->Write();
 
 	}
 
 
 
     ResultsFile->Close();
+
+
+    ivector int_Sample_Np(1,0);
+    ivector int_Sample_Np_consts_star(1,0);
+    if(SampleNp) int_Sample_Np.at(0)=1;
+    if(SampleNp_consts_star) int_Sample_Np_consts_star.at(0)=1;
+    ivector int_Minimizer(1,0);
+    int_Minimizer.at(0)=Minimizer;
+
+	sprintf(outname,"%s/FreeParam.txt",jobdirname);
+	cout<<"save FreeParam to "<<outname<<endl;
+
+	ofstream out;
+    out.open(outname);
+
+    cout << "FreeParam_Fractions"<<endl;
+    out << FreeParam_Fractions;
+    cout << "FreeParam_Np_BR"<<endl;
+	out << FreeParam_Np_BR;
+    cout << "FreeParam_consts_star"<<endl;
+	out << FreeParam_consts_star;
+    cout << "FreeParam_Fractions_States"<<endl;
+    out << FreeParam_Fractions_States;
+    cout << "int_Sample_Np"<<endl;
+	out << int_Sample_Np;
+    cout << "int_Sample_Np_consts_star"<<endl;
+	out << int_Sample_Np_consts_star;
+    cout << "int_Minimizer"<<endl;
+	out << int_Minimizer;
+    cout << "FreeParam_Np_US"<<endl;
+	out << FreeParam_Np_US;
+
+    out.close();
+
 
 	delete gRandom;
 	//delete TestObject;
@@ -1882,3 +2572,76 @@ void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_sta
 		Op.at(i)=Op_state;
 	}
 }
+
+void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma){
+
+	//PosteriorDist->Print();
+
+	bool illPPD=false;
+	int iFilledBinsPDD=0;
+	for(int i=0;i<PosteriorDist->GetNbinsX();i++){
+		if(PosteriorDist->GetBinContent(i)>0) iFilledBinsPDD++;
+	}
+	if(iFilledBinsPDD<2) illPPD=true;
+
+	if(MPValgo==1){
+		MPV=PosteriorDist->GetMean();
+		MPVerrorLow=PosteriorDist->GetRMS();
+		MPVerrorHigh=PosteriorDist->GetRMS();
+	}
+
+	if(MPValgo==2||MPValgo==3){
+
+		int nBins = PosteriorDist->GetNbinsX();
+		int maxbin_PosteriorDist = PosteriorDist->GetMaximumBin();
+		double PosteriorDist_initial = PosteriorDist->GetBinCenter(maxbin_PosteriorDist);
+		double err_PosteriorDist_initial=PosteriorDist->GetRMS();
+		double PosteriorDist_par [3];
+
+		TF1 *gauss;
+
+		int nMaxFits=1;
+		if(MPValgo==3) nMaxFits=20;
+		for(int iFits=0;iFits<nMaxFits;iFits++){
+			gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
+			gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
+			PosteriorDist->Fit(gauss, "R");
+			gauss->GetParameters(PosteriorDist_par);
+			double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
+			cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
+			PosteriorDist_initial=PosteriorDist_par[1];
+			err_PosteriorDist_initial=err_PosteriorDist_initial/2;
+			if(gauss->GetChisquare()/ndof<5 && gauss->GetChisquare()/ndof<5 >0) break;
+			if(iFits==nMaxFits-1) illPPD=true;
+		}
+		MPV=PosteriorDist_par[1];
+
+		double OneSigmaCL;
+		if(nSigma==1) OneSigmaCL=0.682689492137;
+		if(nSigma==2) OneSigmaCL=0.954499736104;
+		if(nSigma==3) OneSigmaCL=0.997300203937;
+		double fullInt=PosteriorDist->Integral(1,nBins);
+		//cout<<(1-OneSigmaCL)/2.<<endl;
+
+		for(int i = 1; i < nBins+1; i++){
+			//	cout<<i<<" "<<PosteriorDist->Integral(1,i)/fullInt<<endl;
+			if(PosteriorDist->Integral(1,i)/fullInt > (1-OneSigmaCL)/2.) {MPVerrorLow=MPV-PosteriorDist->GetBinCenter(i-1); break;}
+		}
+		for(int i = 1; i < nBins+1; i++){
+			//	cout<<i<<" "<<PosteriorDist->Integral(nBins+1-i,nBins)/fullInt<<endl;
+			if(PosteriorDist->Integral(nBins+1-i,nBins)/fullInt > (1-OneSigmaCL)/2.) {MPVerrorHigh=PosteriorDist->GetBinCenter(nBins-i)-MPV; break;}
+		}
+
+	}
+
+	if(illPPD){
+		MPV=PosteriorDist->GetMean();
+		MPVerrorLow=1e-10;
+		MPVerrorHigh=1e-10;
+	}
+
+
+	return;
+
+}
+

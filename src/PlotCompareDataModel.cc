@@ -42,6 +42,7 @@ using namespace NRQCDvars;
 
 void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], vector<int> StatesContributing);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
+void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
 
 int main(int argc, char** argv) {
 
@@ -61,12 +62,12 @@ int main(int argc, char** argv) {
   	int 	useOnlyState=999;
 
   	int 	MPValgo=-1;
-  	double 	nSigma=-1;
+  	int 	nSigma=-1;
 
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
-	    if(std::string(argv[i]).find("nSigma") != std::string::npos) { char* nSigmachar = argv[i]; char* nSigmachar2 = strtok (nSigmachar, "n"); nSigma = atof(nSigmachar2); cout<<"nSigma = "<<nSigma<<endl; }
+	    if(std::string(argv[i]).find("nSigma") != std::string::npos) { char* nSigmachar = argv[i]; char* nSigmachar2 = strtok (nSigmachar, "n"); nSigma = atoi(nSigmachar2); cout<<"nSigma = "<<nSigma<<endl; }
 	    if(std::string(argv[i]).find("MPValgo") != std::string::npos) { char* MPValgochar = argv[i]; char* MPValgochar2 = strtok (MPValgochar, "M"); MPValgo = atoi(MPValgochar2); cout<<"MPValgo = "<<MPValgo<<endl; }
 		if(std::string(argv[i]).find("JobID") != std::string::npos) { char* JobIDchar = argv[i]; char* JobIDchar2 = strtok (JobIDchar, "="); JobID = JobIDchar2; cout<< "JobID = " << JobID << endl; }
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
@@ -163,17 +164,6 @@ int main(int argc, char** argv) {
 
     in.close();
 
-
-    //dmatrix consts_star;
-	//ifstream instar;
-	//instar.open(inname);
-	//instar >> consts_star;
-	//instar.close();
-    //
-	//cout << consts_star << endl;
-
-
-
     cout<<"fi_MPV:"<<endl;
 	cout<<fi_MPV<<endl;
     cout<<"fi_errlow:"<<endl;
@@ -186,6 +176,134 @@ int main(int argc, char** argv) {
 	cout<<Oi_errlow<<endl;
     cout<<"Oi_errhigh:"<<endl;
 	cout<<Oi_errhigh<<endl;
+
+	imatrix FreeParam_Fractions;
+	ivector FreeParam_Fractions_States;
+	imatrix FreeParam_Np_BR;
+	imatrix FreeParam_Np_US;
+	imatrix FreeParam_consts_star;
+	ivector int_Sample_Np;
+	ivector int_Sample_Np_consts_star;
+	ivector int_Minimizer;
+
+
+	sprintf(inname,"%s/FreeParam.txt",jobdirname);
+	cout<<"read in FreeParam from "<<inname<<endl;
+
+	in.open(inname);
+
+    in >> FreeParam_Fractions;
+    cout<<"FreeParam_Fractions"<<endl;
+    cout<<FreeParam_Fractions<<endl;
+	in >> FreeParam_Np_BR;
+    cout<<"FreeParam_Np_BR"<<endl;
+    cout<<FreeParam_Np_BR<<endl;
+	in >> FreeParam_consts_star;
+    cout<<"FreeParam_consts_star"<<endl;
+    cout<<FreeParam_consts_star<<endl;
+    in >> FreeParam_Fractions_States;
+    cout<<"FreeParam_Fractions_States"<<endl;
+    cout<<FreeParam_Fractions_States<<endl;
+	in >> int_Sample_Np;
+    cout<<"int_Sample_Np"<<endl;
+    cout<<int_Sample_Np<<endl;
+	in >> int_Sample_Np_consts_star;
+    cout<<"int_Sample_Np_consts_star"<<endl;
+    cout<<int_Sample_Np_consts_star<<endl;
+	in >> int_Minimizer;
+    cout<<"int_Minimizer"<<endl;
+    cout<<int_Minimizer<<endl;
+	in >> FreeParam_Np_US;
+    cout<<"FreeParam_Np_US"<<endl;
+    cout<<FreeParam_Np_US<<endl;
+
+    in.close();
+
+    bool SampleNp=false;
+    bool SampleNp_consts_star=false;
+    if(int_Sample_Np[0]==1) SampleNp=true;
+    if(int_Sample_Np_consts_star[0]==1) SampleNp_consts_star=true;
+    bool MinimizerMH=true;
+    bool MinimizerMinuit=false;
+    if(int_Minimizer[0]==1) {MinimizerMH=false; MinimizerMinuit=true;}
+
+
+
+  	dmatrix Np_BR_MPV;
+  	dmatrix Np_BR_errlow;
+ 	dmatrix Np_BR_errhigh;
+  	dmatrix Np_US_MPV_ill;
+  	dmatrix Np_US_errlow_ill;
+ 	dmatrix Np_US_errhigh_ill;
+  	dmatrix consts_star_var_MPV;
+  	dmatrix consts_star_var_errlow;
+ 	dmatrix consts_star_var_errhigh;
+
+	sprintf(inname,"%s/results_Np.txt",jobdirname);
+	cout<<"get results_Np from "<<inname<<endl;
+
+    in.open(inname);//, std::ofstream::app);
+
+    cout<<"Np_BR:"<<endl;
+	in >> Np_BR_MPV;
+    cout<<Np_BR_MPV<<endl;
+    cout<<"errlow_Np_BR:"<<endl;
+	in >> Np_BR_errlow;
+    cout<<Np_BR_errlow<<endl;
+    cout<<"errlow_Np_BR:"<<endl;
+	in >> Np_BR_errhigh;
+    cout<<Np_BR_errhigh<<endl;
+    cout<<"consts_star_var:"<<endl;
+	in >> consts_star_var_MPV;
+    cout<<consts_star_var_MPV<<endl;
+    cout<<"errlow_consts_star_var:"<<endl;
+	in >> consts_star_var_errlow;
+    cout<<consts_star_var_errlow<<endl;
+    cout<<"errhigh_consts_star_var:"<<endl;
+	in >> consts_star_var_errhigh;
+    cout<<consts_star_var_errhigh<<endl;
+    cout<<"Np_US:"<<endl;
+	in >> Np_US_MPV_ill;
+    cout<<Np_US_MPV_ill<<endl;
+    cout<<"errlow_Np_US:"<<endl;
+	in >> Np_US_errlow_ill;
+    cout<<Np_US_errlow_ill<<endl;
+    cout<<"errhigh_Np_US:"<<endl;
+	in >> Np_US_errhigh_ill;
+    cout<<Np_US_errhigh_ill<<endl;
+
+    in.close();
+
+
+	dmatrix Np_US_MPV; //Uncertainty scales, [0=Data, 1=Model][nScales]
+	dmatrix Np_US_errlow; //Uncertainty scales, [0=Data, 1=Model][nScales]
+	dmatrix Np_US_errhigh; //Uncertainty scales, [0=Data, 1=Model][nScales]
+
+	dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
+	dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
+	Np_US_MPV.push_back(Np_US_0);
+	Np_US_MPV.push_back(Np_US_1);
+	Np_US_errlow.push_back(Np_US_0);
+	Np_US_errlow.push_back(Np_US_1);
+	Np_US_errhigh.push_back(Np_US_0);
+	Np_US_errhigh.push_back(Np_US_1);
+
+	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+		Np_US_MPV[0][j]=Np_US_MPV_ill[0][j];
+		Np_US_errlow[0][j]=Np_US_errlow_ill[0][j];
+		Np_US_errhigh[0][j]=Np_US_errhigh_ill[0][j];
+	}
+	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+		Np_US_MPV[1][j]=Np_US_MPV_ill[1][j];
+		Np_US_errlow[1][j]=Np_US_errlow_ill[1][j];
+		Np_US_errhigh[1][j]=Np_US_errhigh_ill[1][j];
+	}
+
+
+    cout<<"Np_US_MPV[0].size() "<<Np_US_MPV[0].size() <<endl;
+    cout<<"Np_US_MPV[1].size() "<<Np_US_MPV[1].size() <<endl;
+
+
 
 
 
@@ -238,34 +356,34 @@ int main(int argc, char** argv) {
     cout<<"Op_minus:"<<endl;
 	cout<<Op_minus<<endl;
 
-    cout<<"Inizialize Np's:"<<endl;
-
-    dmatrix Np_BR; //Branching ratios, [nDauthgers][nMothers]
-	dmatrix Np_US; //Uncertainty scales, [0=Data, 1=Model][nScales]
-
-	dvector Np_BR_0 (NRQCDvars::nStates,0.);
-	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR.push_back(Np_BR_0);
-
-	dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
-	dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
-	Np_US.push_back(Np_US_0);
-	Np_US.push_back(Np_US_1);
-
-	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
-		Np_US[0][j]=0.;
-	}
-	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
-		Np_US[1][j]=0.;
-	}
-
-	for(int i=0; i < nStates; i++){
-		for(int j=0; j < nStates; j++){
-			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
-				Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01;
-			}
-			else Np_BR[i][j]=0;
-		}
-	}
+    //cout<<"Inizialize Np's:"<<endl;
+    //
+    //dmatrix Np_BR; //Branching ratios, [nDauthgers][nMothers]
+	//dmatrix Np_US; //Uncertainty scales, [0=Data, 1=Model][nScales]
+    //
+	//dvector Np_BR_0 (NRQCDvars::nStates,0.);
+	//for(int i=0; i < NRQCDvars::nStates; i++) Np_BR.push_back(Np_BR_0);
+    //
+	//dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
+	//dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
+	//Np_US.push_back(Np_US_0);
+	//Np_US.push_back(Np_US_1);
+    //
+	//for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+	//	Np_US[0][j]=0.;
+	//}
+	//for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+	//	Np_US[1][j]=0.;
+	//}
+    //
+	//for(int i=0; i < nStates; i++){
+	//	for(int j=0; j < nStates; j++){
+	//		if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+	//			Np_BR[i][j]=NRQCDvars::FeedDownBranchingRatio[i][j]*0.01;
+	//		}
+	//		else Np_BR[i][j]=0;
+	//	}
+	//}
 
 
 
@@ -391,37 +509,297 @@ int main(int argc, char** argv) {
 							dvector ObjectLikelihoodVec;
 							double ModelPrediction;
 							double errModelPrediction;
+							double polCorrFactor;
 							//TODO: Improve model uncertainty (draw from PPD or so)
 
 							dcube directProductionCube;
 							dmatrix promptProductionMatrix;
-							double polCorrFactor;
 
-							dcube Dummy_directProductionCube;
-							dmatrix Dummy_promptProductionMatrix;
-							double Dummy_polCorrFactor;
 
-							ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR, Np_US, true, directProductionCube, promptProductionMatrix, polCorrFactor);
-							ModelPrediction=ObjectLikelihoodVec[1];
-							model_centralval.push_back(ModelPrediction);
+							bool LoopThroughPPD=false;
+							if(MinimizerMH) LoopThroughPPD=true;
 
-							//cout<<"directProductionCube:"<<endl;
-							//cout<<directProductionCube<<endl;
-							//cout<<"promptProductionMatrix:"<<endl;
-							//cout<<promptProductionMatrix<<endl;
-							//cout<<"polCorrFactor:"<<endl;
-							//cout<<polCorrFactor<<endl;
+						    if(!LoopThroughPPD){
 
-							polCorrFactorVec.push_back(polCorrFactor);
 
-							ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op_minus, Np_BR, Np_US, false, Dummy_directProductionCube, Dummy_promptProductionMatrix, Dummy_polCorrFactor);
-							errModelPrediction=ObjectLikelihoodVec[1];
-							model_errlow_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
+								//cout<<"Oi_MPV"<<endl;
+								//cout<<Oi_MPV<<endl;
+								//cout<<"Np_BR_MPV"<<endl;
+								//cout<<Np_BR_MPV<<endl;
+								//cout<<"Np_US_MPV"<<endl;
+								//cout<<Np_US_MPV<<endl;
 
-							ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op_plus, Np_BR, Np_US, false, Dummy_directProductionCube, Dummy_promptProductionMatrix, Dummy_polCorrFactor);
-							errModelPrediction=ObjectLikelihoodVec[1];
-							model_errhigh_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
+								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
+								ModelPrediction=ObjectLikelihoodVec[1];
+								model_centralval.push_back(ModelPrediction);
 
+								//cout<<"directProductionCube"<<endl;
+								//cout<<directProductionCube<<endl;
+								//cout<<"promptProductionMatrix"<<endl;
+								//cout<<promptProductionMatrix<<endl;
+								//cout<<"polCorrFactor"<<endl;
+								//cout<<polCorrFactor<<endl;
+
+								polCorrFactorVec.push_back(polCorrFactor);
+
+								dcube Dummy_directProductionCube;
+								dmatrix Dummy_promptProductionMatrix;
+								double Dummy_polCorrFactor;
+
+								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op_minus, Np_BR_MPV, Np_US_MPV, false, Dummy_directProductionCube, Dummy_promptProductionMatrix, Dummy_polCorrFactor);
+								errModelPrediction=ObjectLikelihoodVec[1];
+								model_errlow_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
+
+								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op_plus, Np_BR_MPV, Np_US_MPV, false, Dummy_directProductionCube, Dummy_promptProductionMatrix, Dummy_polCorrFactor);
+								errModelPrediction=ObjectLikelihoodVec[1];
+								model_errhigh_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
+
+						    }
+
+						    else {
+
+								dcube MH_directProductionCube;
+								dmatrix MH_promptProductionMatrix;
+
+						    	sprintf(inname,"%s/results.root",jobdirname);
+						    	TFile *ResultsFile = new TFile(inname, "READ");
+
+						      	TTree*  outputTreeAllSamplings = (TTree*) ResultsFile->Get("AllSamplings");
+
+
+						      	double PPD_Op[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+						      	double PPD_Np_US[2][max(NRQCDvars::nDataSystematicScales,NRQCDvars::nModelSystematicScales)];
+						      	double PPD_Np_BR[NRQCDvars::nStates][NRQCDvars::nStates];
+						      	double PPD_consts_star[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+
+
+						      	char branch_name[200];
+
+						      	int BurnInInt;
+								sprintf (branch_name,"BurnInInt");
+								outputTreeAllSamplings->SetBranchAddress( branch_name,  &BurnInInt );
+						      	int acceptedSampling;
+								sprintf (branch_name,"acceptedSampling");
+								outputTreeAllSamplings->SetBranchAddress( branch_name,  &acceptedSampling );
+
+
+								for (int i=0; i<NRQCDvars::nStates; i++){
+									int nColorChannels_state;
+									bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+									if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+									else nColorChannels_state=NRQCDvars::nColorChannels_P;
+									for (int j=0; j<nColorChannels_state; j++){
+
+										sprintf (branch_name,"state%d_Op%d",i,j);
+										outputTreeAllSamplings->SetBranchAddress( branch_name,  &PPD_Op[i][j] );
+										sprintf (branch_name,"state%d_const_star%d",i,j);
+										outputTreeAllSamplings->SetBranchAddress( branch_name,  &PPD_consts_star[i][j] );
+
+									}
+								}
+
+								for(int i=0; i < NRQCDvars::nStates; i++){
+									for(int j=0; j < NRQCDvars::nStates; j++){
+										if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+
+											sprintf (branch_name,"Np_BR_Daughter%d_Mother%d",i,j);
+											outputTreeAllSamplings->SetBranchAddress( branch_name,  &PPD_Np_BR[i][j] );
+
+										}
+									}
+								}
+
+								for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+									sprintf (branch_name,"Np_US_DataSystematicScale%d",j);
+									outputTreeAllSamplings->SetBranchAddress( branch_name,  &PPD_Np_US[0][j] );
+								}
+								for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+									sprintf (branch_name,"Np_US_ModelSystematicScale%d",j);
+									outputTreeAllSamplings->SetBranchAddress( branch_name,  &PPD_Np_US[1][j] );
+								}
+
+
+								sprintf(outname,"%s/tmp.root",jobdirname);
+						    	TFile *DummyFile = new TFile(outname, "RECREATE");
+
+						      	TTree*  ModelPredictionTree;
+						      	ModelPredictionTree = new TTree("ModelPredictionTree", "ModelPredictionTree");
+								ModelPredictionTree->Branch("ModelPrediction",     &ModelPrediction,     "ModelPrediction/D");
+								ModelPredictionTree->Branch("polCorrFactor",     &polCorrFactor,     "polCorrFactor/D");
+
+
+								dmatrix Op;
+								vector<double> S_vector (NRQCDvars::nColorChannels_S,0);
+								vector<double> P_vector (NRQCDvars::nColorChannels_P,0);
+								Op=Oi_MPV;
+
+								dmatrix Np_BR; //Branching ratios, [nDauthgers][nMothers]
+								dvector Np_BR_0 (NRQCDvars::nStates,0.);
+								for(int i=0; i < NRQCDvars::nStates; i++) Np_BR.push_back(Np_BR_0);
+
+								dmatrix Np_US; //Uncertainty scales, [0=Data, 1=Model][nScales]
+								dvector Np_US_0 (NRQCDvars::nDataSystematicScales, 0.);
+								dvector Np_US_1 (NRQCDvars::nModelSystematicScales, 0.);
+								Np_US.push_back(Np_US_0);
+								Np_US.push_back(Np_US_1);
+
+								dmatrix consts_star_var;
+								consts_star_var=Oi_MPV;
+
+
+								int n_events = int( outputTreeAllSamplings->GetEntries() );
+								cout<<n_events<<" events: Looping through nTuple of PPD"<<endl;
+
+								// loop over  events in the model ntuple
+								for ( int i_event = 1; i_event <= n_events; i_event++ ) {
+
+									//cout<<i_event<<endl;
+
+									outputTreeAllSamplings->GetEvent( i_event-1 );
+
+									if(acceptedSampling!=1 || BurnInInt==1) continue;
+
+									//cout<<"set Op"<<endl;
+
+									for (int i=0; i<NRQCDvars::nStates; i++){
+										bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+										if(isSstate){
+											for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+												S_vector.at(j)=PPD_Op[i][j];
+											}
+											Op.at(i)=S_vector;
+										}
+										else{
+											for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+												P_vector.at(j)=PPD_Op[i][j];
+											}
+											Op.at(i)=P_vector;
+										}
+									}
+
+									//cout<<"set consts_star_var"<<endl;
+									for (int i=0; i<NRQCDvars::nStates; i++){
+										bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+										if(isSstate){
+											for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
+												S_vector.at(j)=PPD_consts_star[i][j];
+											}
+											consts_star_var.at(i)=S_vector;
+										}
+										else{
+											for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
+												P_vector.at(j)=PPD_consts_star[i][j];
+											}
+											consts_star_var.at(i)=P_vector;
+										}
+									}
+
+									//cout<<"set Np_BR"<<endl;
+									for(int i=0; i < NRQCDvars::nStates; i++){
+										for(int j=0; j < NRQCDvars::nStates; j++){
+											if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+												Np_BR[i][j]=PPD_Np_BR[i][j];
+											}
+											else Np_BR[i][j]=0;
+										}
+									}
+
+									//cout<<"set Np_US"<<endl;
+									for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+										Np_US[0][j]=PPD_Np_US[0][j];
+									}
+									for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+										Np_US[1][j]=PPD_Np_US[1][j];
+									}
+
+									//dcube directProductionCube;
+									//dmatrix promptProductionMatrix;
+									ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, true, MH_directProductionCube, MH_promptProductionMatrix, polCorrFactor);
+									ModelPrediction=ObjectLikelihoodVec[1];
+									//cout<<"ModelPrediction "<<ModelPrediction<<endl;
+									ModelPredictionTree->Fill();
+
+
+								}
+
+								//ModelPredictionTree->Print();
+
+								int nBins_h=100;
+								const int nHists=2;
+								char hist_name[200];
+								char projectchar[200];
+								char selectchar[200];
+								TH1D* h_ModelPrediction[nHists];
+								double h_ModelPrediction_min[nHists];
+								double h_ModelPrediction_max[nHists];
+
+							  	double expandMinMaxBy=0.01;
+							  	double buff_MPV;
+							  	double buff_errlow;
+							  	double buff_errhigh;
+
+							  	h_ModelPrediction_min[0]=ModelPredictionTree->GetMinimum("ModelPrediction")-expandMinMaxBy*ModelPredictionTree->GetMinimum("ModelPrediction");
+							  	h_ModelPrediction_max[0]=ModelPredictionTree->GetMaximum("ModelPrediction")+expandMinMaxBy*ModelPredictionTree->GetMaximum("ModelPrediction");
+							  	//cout<<"h_ModelPrediction_min[0] "<<h_ModelPrediction_min[0]<<" h_ModelPrediction_max[0] "<<h_ModelPrediction_max[0]<<endl;
+							  	sprintf(hist_name,"h_ModelPrediction");
+								h_ModelPrediction[0] = new TH1D( hist_name, hist_name, nBins_h, h_ModelPrediction_min[0], h_ModelPrediction_max[0] );
+								sprintf(projectchar,"ModelPrediction>>h_ModelPrediction");
+								ModelPredictionTree->Draw(projectchar);
+
+							  	h_ModelPrediction_min[1]=ModelPredictionTree->GetMinimum("polCorrFactor")-expandMinMaxBy*ModelPredictionTree->GetMinimum("polCorrFactor");
+							  	h_ModelPrediction_max[1]=ModelPredictionTree->GetMaximum("polCorrFactor")+expandMinMaxBy*ModelPredictionTree->GetMaximum("polCorrFactor");
+								sprintf(hist_name,"h_polCorrFactor");
+								h_ModelPrediction[1] = new TH1D( hist_name, hist_name, nBins_h, h_ModelPrediction_min[1], h_ModelPrediction_max[1] );
+								sprintf(projectchar,"polCorrFactor>>h_polCorrFactor");
+								ModelPredictionTree->Draw(projectchar);
+
+								//h_ModelPrediction[0]->Print();
+								//cout<<h_ModelPrediction[0]->GetMean()<<endl;
+								//cout<<h_ModelPrediction[0]->GetRMS()<<endl;
+
+								FindMPV(h_ModelPrediction[0], buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+
+								//cout<<buff_MPV<<endl;
+								//cout<<buff_errlow<<endl;
+								//cout<<buff_errhigh<<endl;
+
+								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
+								ModelPrediction=ObjectLikelihoodVec[1];
+
+								//cout<<"directProductionCube"<<endl;
+								//cout<<directProductionCube<<endl;
+								//cout<<"promptProductionMatrix"<<endl;
+								//cout<<promptProductionMatrix<<endl;
+								//cout<<"polCorrFactor"<<endl;
+								//cout<<polCorrFactor<<endl;
+
+								bool useHistModeAsCentralModel=false;
+
+								if(useHistModeAsCentralModel){
+									model_centralval.push_back(buff_MPV);
+									model_errlow_centralval.push_back(fabs(buff_errlow));
+									model_errhigh_centralval.push_back(fabs(buff_errhigh));
+									FindMPV(h_ModelPrediction[1], buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+									polCorrFactorVec.push_back(buff_MPV);
+								}
+								else{
+									model_centralval.push_back(ModelPrediction);
+									model_errlow_centralval.push_back(fabs(buff_errlow)+ModelPrediction-buff_MPV);
+									model_errhigh_centralval.push_back(fabs(buff_errhigh)-ModelPrediction+buff_MPV);
+									polCorrFactorVec.push_back(polCorrFactor);
+								}
+
+
+								//ModelPredictionTree->Write();
+								DummyFile->Close();
+
+								delete DummyFile;
+								delete ResultsFile;
+
+								gSystem->Unlink(outname);
+								//cout<<"end loop"<<endl;
+
+						    }
 
 				    		data_centralval.push_back(DataModelObject[iRap][iP]->getCentralValue());//correct data to match predicted polariztion
 				    		data_errlow_centralval.push_back(DataModelObject[iRap][iP]->getErrTotNeg());
@@ -507,15 +885,19 @@ int main(int argc, char** argv) {
 						    model_directProductionVec=Buff_model_directProductionMatrix.at(iMeasurementID);
 						    model_directProduction.push_back(model_directProductionVec);
 
+							//TODO: after ifs: calc ObjetLikelihood with 'central' inputs, to be used for component calculations
+							ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
 
-				    	}
+
+						    }
+
 
 				    }
 
 
 				    if(nPtBinsSel>0){
-						//cout << "Plot iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID] << " from "<< ExpName[iExperiment] << endl;
-				    	//cout<<"rap "<<iRap+1<<endl;
+						cout << "Plot iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID] << " from "<< ExpName[iExperiment] << endl;
+				    	cout<<"rap "<<iRap+1<<endl;
 
 						const int nPtBinsSel_=nPtBinsSel;
 						double d_data_centralval[nPtBinsSel_];
@@ -563,6 +945,7 @@ int main(int argc, char** argv) {
 						TGraph *model_Graph_low = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_errlow_absolute_centralval);
 						TGraph *model_Graph_high = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_errhigh_absolute_centralval);
 
+
 						//Make TGraphs for model contributions
 						const int StatesCont_c=StatesCont;
 						int nColorChannels_state;
@@ -607,7 +990,6 @@ int main(int argc, char** argv) {
 						char rapchar[200];
 						if(isAbsRap) sprintf(rapchar,"%1.1f < |y| < %1.1f",rapMinObject, rapMaxObject);
 						else sprintf(rapchar,"%1.1f < y < %1.1f",rapMinObject, rapMaxObject);
-						//cout<<"plotComp"<<endl;
 						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, StatesContributing_);
 
 				}
@@ -879,3 +1261,77 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 
 	return lamSumVec;
 }
+
+
+void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma){
+
+	//PosteriorDist->Print();
+
+	bool illPPD=false;
+	int iFilledBinsPDD=0;
+	for(int i=0;i<PosteriorDist->GetNbinsX();i++){
+		if(PosteriorDist->GetBinContent(i)>0) iFilledBinsPDD++;
+	}
+	if(iFilledBinsPDD<2) illPPD=true;
+
+	if(MPValgo==1){
+		MPV=PosteriorDist->GetMean();
+		MPVerrorLow=PosteriorDist->GetRMS();
+		MPVerrorHigh=PosteriorDist->GetRMS();
+	}
+
+	if(MPValgo==2||MPValgo==3){
+
+		int nBins = PosteriorDist->GetNbinsX();
+		int maxbin_PosteriorDist = PosteriorDist->GetMaximumBin();
+		double PosteriorDist_initial = PosteriorDist->GetBinCenter(maxbin_PosteriorDist);
+		double err_PosteriorDist_initial=PosteriorDist->GetRMS();
+		double PosteriorDist_par [3];
+
+		TF1 *gauss;
+
+		int nMaxFits=1;
+		if(MPValgo==3) nMaxFits=20;
+		for(int iFits=0;iFits<nMaxFits;iFits++){
+			gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
+			gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
+			PosteriorDist->Fit(gauss, "R");
+			gauss->GetParameters(PosteriorDist_par);
+			double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
+			cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
+			PosteriorDist_initial=PosteriorDist_par[1];
+			err_PosteriorDist_initial=err_PosteriorDist_initial/2;
+			if(gauss->GetChisquare()/ndof<5) break;
+			if(iFits==nMaxFits-1) illPPD=true;
+		}
+		MPV=PosteriorDist_par[1];
+
+		double OneSigmaCL;
+		if(nSigma==1) OneSigmaCL=0.682689492137;
+		if(nSigma==2) OneSigmaCL=0.954499736104;
+		if(nSigma==3) OneSigmaCL=0.997300203937;
+		double fullInt=PosteriorDist->Integral(1,nBins);
+		//cout<<(1-OneSigmaCL)/2.<<endl;
+
+		for(int i = 1; i < nBins+1; i++){
+			//	cout<<i<<" "<<PosteriorDist->Integral(1,i)/fullInt<<endl;
+			if(PosteriorDist->Integral(1,i)/fullInt > (1-OneSigmaCL)/2.) {MPVerrorLow=MPV-PosteriorDist->GetBinCenter(i-1); break;}
+		}
+		for(int i = 1; i < nBins+1; i++){
+			//	cout<<i<<" "<<PosteriorDist->Integral(nBins+1-i,nBins)/fullInt<<endl;
+			if(PosteriorDist->Integral(nBins+1-i,nBins)/fullInt > (1-OneSigmaCL)/2.) {MPVerrorHigh=PosteriorDist->GetBinCenter(nBins-i)-MPV; break;}
+		}
+
+	}
+
+	if(illPPD){
+		MPV=PosteriorDist->GetMean();
+		MPVerrorLow=1e-10;
+		MPVerrorHigh=1e-10;
+	}
+
+
+	return;
+
+}
+

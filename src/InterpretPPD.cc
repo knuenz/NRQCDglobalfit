@@ -68,18 +68,68 @@ int main(int argc, char** argv) {
 	gSystem->mkdir(jobdirname);
 	sprintf(jobdirname,"%s/%s",jobdirname,JobID);
 	gSystem->mkdir(jobdirname);
-	sprintf(inname,"%s/results.root",jobdirname);
 
+	imatrix FreeParam_Fractions;
+	ivector FreeParam_Fractions_States;
+	imatrix FreeParam_Np_BR;
+	imatrix FreeParam_Np_US;
+	imatrix FreeParam_consts_star;
+	ivector int_Sample_Np;
+	ivector int_Sample_Np_consts_star;
+	ivector int_Minimizer;
+
+
+	sprintf(inname,"%s/FreeParam.txt",jobdirname);
+	cout<<"read in FreeParam from "<<inname<<endl;
+
+	ifstream in;
+	in.open(inname);
+
+    in >> FreeParam_Fractions;
+    cout<<"FreeParam_Fractions"<<endl;
+    cout<<FreeParam_Fractions<<endl;
+	in >> FreeParam_Np_BR;
+    cout<<"FreeParam_Np_BR"<<endl;
+    cout<<FreeParam_Np_BR<<endl;
+	in >> FreeParam_consts_star;
+    cout<<"FreeParam_consts_star"<<endl;
+    cout<<FreeParam_consts_star<<endl;
+    in >> FreeParam_Fractions_States;
+    cout<<"FreeParam_Fractions_States"<<endl;
+    cout<<FreeParam_Fractions_States<<endl;
+	in >> int_Sample_Np;
+    cout<<"int_Sample_Np"<<endl;
+    cout<<int_Sample_Np<<endl;
+	in >> int_Sample_Np_consts_star;
+    cout<<"int_Sample_Np_consts_star"<<endl;
+    cout<<int_Sample_Np_consts_star<<endl;
+	in >> int_Minimizer;
+    cout<<"int_Minimizer"<<endl;
+    cout<<int_Minimizer<<endl;
+	in >> FreeParam_Np_US;
+    cout<<"FreeParam_Np_US"<<endl;
+    cout<<FreeParam_Np_US<<endl;
+
+    in.close();
+
+    bool SampleNp=false;
+    bool SampleNp_consts_star=false;
+    if(int_Sample_Np[0]==1) SampleNp=true;
+    if(int_Sample_Np_consts_star[0]==1) SampleNp_consts_star=true;
+
+	sprintf(inname,"%s/results.root",jobdirname);
 	TFile *ResultsFile = new TFile(inname, "READ");
 
   	TTree*  outputTreeAllSamplings = (TTree*) ResultsFile->Get("AllSamplings"); // tree filled in all samplings after burnin
-  	TTree*  outputTreeAccSamplings = (TTree*) ResultsFile->Get("AccSamplings"); // tree filled only in accepted samplings after burnin
 
+
+  	double DummyVal=0.;
 
   	char branch_name[200];
   	char hist_name[200];
   	char hist_var_name[200];
   	char projectchar[200];
+  	char selectchar[200];
 
   	double expandMinMaxBy=0.01;
 
@@ -108,8 +158,8 @@ int main(int argc, char** argv) {
 		for (int j=0; j<nColorChannels_state; j++){
 				sprintf(branch_name,"state%d_f%d",i,j);
 				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &fi_sampling[i][j] );
-				h_fi_min[i][j]=outputTreeAccSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAccSamplings->GetMinimum(branch_name);
-				h_fi_max[i][j]=outputTreeAccSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAccSamplings->GetMaximum(branch_name);
+				h_fi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+				h_fi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
 				sprintf(hist_name,"h_state%d_f%d",i,j);
 				h_fi[i][j] = new TH1D( hist_name, hist_name, nBins_h_fi, h_fi_min[i][j], h_fi_max[i][j] );
 				if(isSstate) sprintf(hist_var_name,"f_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
@@ -117,9 +167,12 @@ int main(int argc, char** argv) {
 				if(j==0) sprintf(hist_var_name,"R^{%s}", StateNameTex[i]);
 				h_fi[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"state%d_f%d>>%s",i,j,hist_name);
-				outputTreeAccSamplings->Draw(projectchar);
+				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				cout<<projectchar<<" , "<<selectchar<<endl;
+				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_fi[i][j]->SetTitle(0);
-				FindMPV(h_fi[i][j], buff_fi_MPV, buff_fi_errlow, buff_fi_errhign, MPValgo, nSigma);
+				if(FreeParam_Fractions[i][j]==1) FindMPV(h_fi[i][j], buff_fi_MPV, buff_fi_errlow, buff_fi_errhign, MPValgo, nSigma);
+				else{buff_fi_MPV=DummyVal; buff_fi_errlow=DummyVal; buff_fi_errhign=DummyVal; }
 				fi_MPV_state.at(j)=buff_fi_MPV;
 				fi_errlow_state.at(j)=buff_fi_errlow;
 				fi_errhigh_state.at(j)=buff_fi_errhign;
@@ -127,7 +180,7 @@ int main(int argc, char** argv) {
 				sprintf(filename,"%s/Figures",jobdirname);
 				gSystem->mkdir(filename);
 				sprintf(filename,"%s/PPD_%s.pdf",filename, branch_name);
-				PlotPosterior(hist_var_name, filename, h_fi[i][j], buff_fi_MPV, buff_fi_errlow, buff_fi_errhign);
+				if(FreeParam_Fractions[i][j]==1) PlotPosterior(hist_var_name, filename, h_fi[i][j], buff_fi_MPV, buff_fi_errlow, buff_fi_errhign);
 			}
 		fi_MPV.at(i)=fi_MPV_state;
 		fi_errlow.at(i)=fi_errlow_state;
@@ -166,17 +219,19 @@ int main(int argc, char** argv) {
 		for (int j=0; j<nColorChannels_state; j++){
 				sprintf(branch_name,"state%d_Op%d",i,j);
 				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-				h_Opi_min[i][j]=outputTreeAccSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAccSamplings->GetMinimum(branch_name);
-				h_Opi_max[i][j]=outputTreeAccSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAccSamplings->GetMaximum(branch_name);
+				h_Opi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+				h_Opi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
 				sprintf(hist_name,"h_state%d_Op%d",i,j);
 				h_Opi[i][j] = new TH1D( hist_name, hist_name, nBins_h_Opi, h_Opi_min[i][j], h_Opi_max[i][j] );
 				if(isSstate) sprintf(hist_var_name,"O_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
 				else sprintf(hist_var_name,"O_{%s}^{%s}", ColorChannelNameTexP[j], StateNameTex[i]);
 				h_Opi[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"state%d_Op%d>>%s",i,j,hist_name);
-				outputTreeAccSamplings->Draw(projectchar);
+				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_Opi[i][j]->SetTitle(0);
-				FindMPV(h_Opi[i][j], buff_Opi_MPV, buff_Opi_errlow, buff_Opi_errhign, MPValgo, nSigma);
+				if(FreeParam_Fractions[i][j]==1) FindMPV(h_Opi[i][j], buff_Opi_MPV, buff_Opi_errlow, buff_Opi_errhign, MPValgo, nSigma);
+				else{buff_Opi_MPV=DummyVal; buff_Opi_errlow=DummyVal; buff_Opi_errhign=DummyVal; }
 				Opi_MPV_state.at(j)=buff_Opi_MPV;
 				Opi_errlow_state.at(j)=buff_Opi_errlow;
 				Opi_errhigh_state.at(j)=buff_Opi_errhign;
@@ -184,7 +239,7 @@ int main(int argc, char** argv) {
 				sprintf(filename,"%s/Figures",jobdirname);
 				gSystem->mkdir(filename);
 				sprintf(filename,"%s/PPD_%s.pdf",filename, branch_name);
-				PlotPosterior(hist_var_name, filename, h_Opi[i][j], buff_Opi_MPV, buff_Opi_errlow, buff_Opi_errhign);
+				if(FreeParam_Fractions[i][j]==1) PlotPosterior(hist_var_name, filename, h_Opi[i][j], buff_Opi_MPV, buff_Opi_errlow, buff_Opi_errhign);
 			}
 		Opi_MPV.at(i)=Opi_MPV_state;
 		Opi_errlow.at(i)=Opi_errlow_state;
@@ -231,6 +286,235 @@ int main(int argc, char** argv) {
 	cout<<Opi_errhigh_dmatrix<<endl;
 
 
+
+
+
+
+
+
+  	double buff_consts_star_var_MPV;
+  	double buff_consts_star_var_errlow;
+  	double buff_consts_star_var_errhign;
+
+  	int nBins_h_consts_star_var=100;
+  	dmatrix consts_star_var_MPV(NRQCDvars::nStates);
+  	dvector consts_star_var_MPV_state(NRQCDvars::nColorChannels);
+  	dmatrix consts_star_var_errlow(NRQCDvars::nStates);
+  	dvector consts_star_var_errlow_state(NRQCDvars::nColorChannels);
+ 	dmatrix consts_star_var_errhigh(NRQCDvars::nStates);
+  	dvector consts_star_var_errhigh_state(NRQCDvars::nColorChannels);
+  	double h_consts_star_var_min[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+  	double h_consts_star_var_max[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+	TH1D* h_consts_star_var[NRQCDvars::nStates][NRQCDvars::nColorChannels];
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		for (int j=0; j<nColorChannels_state; j++){
+				sprintf(branch_name,"state%d_const_star%d",i,j);
+				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &consts_star_var_sampling[i][j] );
+				h_consts_star_var_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+				h_consts_star_var_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				sprintf(hist_name,"h_state%d_consts_star%d",i,j);
+				h_consts_star_var[i][j] = new TH1D( hist_name, hist_name, nBins_h_consts_star_var, h_consts_star_var_min[i][j], h_consts_star_var_max[i][j] );
+				if(isSstate) sprintf(hist_var_name,"c*_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
+				else sprintf(hist_var_name,"c*_{%s}^{%s}", ColorChannelNameTexP[j], StateNameTex[i]);
+				if(j==0) sprintf(hist_var_name,"#sigma_{s}*^{%s}", StateNameTex[i]);
+				h_consts_star_var[i][j] -> SetXTitle(hist_var_name);
+				sprintf(projectchar,"%s>>%s",branch_name,hist_name);
+				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				outputTreeAllSamplings->Draw(projectchar, selectchar);
+				h_consts_star_var[i][j]->SetTitle(0);
+				if(FreeParam_consts_star[i][j]==1 && SampleNp_consts_star) FindMPV(h_consts_star_var[i][j], buff_consts_star_var_MPV, buff_consts_star_var_errlow, buff_consts_star_var_errhign, MPValgo, nSigma);
+				else{buff_consts_star_var_MPV=DummyVal; buff_consts_star_var_errlow=DummyVal; buff_consts_star_var_errhign=DummyVal; }
+				consts_star_var_MPV_state.at(j)=buff_consts_star_var_MPV;
+				consts_star_var_errlow_state.at(j)=buff_consts_star_var_errlow;
+				consts_star_var_errhigh_state.at(j)=buff_consts_star_var_errhign;
+				char filename[200];
+				sprintf(filename,"%s/Figures",jobdirname);
+				gSystem->mkdir(filename);
+				sprintf(filename,"%s/Np_%s.pdf",filename, branch_name);
+				if(FreeParam_consts_star[i][j]==1 && SampleNp_consts_star) PlotPosterior(hist_var_name, filename, h_consts_star_var[i][j], buff_consts_star_var_MPV, buff_consts_star_var_errlow, buff_consts_star_var_errhign);
+			}
+		consts_star_var_MPV.at(i)=consts_star_var_MPV_state;
+		consts_star_var_errlow.at(i)=consts_star_var_errlow_state;
+		consts_star_var_errhigh.at(i)=consts_star_var_errhigh_state;
+		}
+
+
+
+  	double buff_Np_BR_MPV;
+  	double buff_Np_BR_errlow;
+  	double buff_Np_BR_errhign;
+
+  	int nBins_h_Np_BR=100;
+  	dmatrix Np_BR_MPV;
+  	dvector Np_BR_MPV_0 (NRQCDvars::nStates,0.);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_MPV.push_back(Np_BR_MPV_0);
+  	dmatrix Np_BR_errlow;
+  	dvector Np_BR_errlow_0 (NRQCDvars::nStates,0.);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_errlow.push_back(Np_BR_errlow_0);
+ 	dmatrix Np_BR_errhigh;
+  	dvector Np_BR_errhigh_0 (NRQCDvars::nStates,0.);
+	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_errhigh.push_back(Np_BR_errhigh_0);
+  	double h_Np_BR_min[NRQCDvars::nStates][NRQCDvars::nStates];
+  	double h_Np_BR_max[NRQCDvars::nStates][NRQCDvars::nStates];
+	TH1D* h_Np_BR[NRQCDvars::nStates][NRQCDvars::nStates];
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		for (int j=0; j<NRQCDvars::nStates; j++){
+			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
+				sprintf(branch_name,"Np_BR_Daughter%d_Mother%d",i,j);
+				h_Np_BR_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+				h_Np_BR_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				sprintf(hist_name,"h_Np_BR_Daughter%d_Mother%d",i,j);
+				h_Np_BR[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_BR, h_Np_BR_min[i][j], h_Np_BR_max[i][j] );
+				sprintf(hist_var_name,"BR( %s -> %s )", StateNameTex[j], StateNameTex[i]);
+				h_Np_BR[i][j] -> SetXTitle(hist_var_name);
+				sprintf(projectchar,"%s>>%s",branch_name,hist_name);
+				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				outputTreeAllSamplings->Draw(projectchar, selectchar);
+				h_Np_BR[i][j]->SetTitle(0);
+				if(FreeParam_Np_BR[i][j]==1 && SampleNp) FindMPV(h_Np_BR[i][j], buff_Np_BR_MPV, buff_Np_BR_errlow, buff_Np_BR_errhign, MPValgo, nSigma);
+				else{buff_Np_BR_MPV=DummyVal; buff_Np_BR_errlow=DummyVal; buff_Np_BR_errhign=DummyVal; }
+				Np_BR_MPV[i][j]=buff_Np_BR_MPV;
+				Np_BR_errlow[i][j]=buff_Np_BR_errlow;
+				Np_BR_errhigh[i][j]=buff_Np_BR_errhign;
+				char filename[200];
+				sprintf(filename,"%s/Figures",jobdirname);
+				gSystem->mkdir(filename);
+				sprintf(filename,"%s/%s.pdf",filename, branch_name);
+				if(FreeParam_Np_BR[i][j]==1 && SampleNp) PlotPosterior(hist_var_name, filename, h_Np_BR[i][j], buff_Np_BR_MPV, buff_Np_BR_errlow, buff_Np_BR_errhign);
+				cout<<branch_name<<endl;
+				cout<<buff_Np_BR_MPV<<endl;
+			}
+			else{
+				buff_Np_BR_MPV=DummyVal; buff_Np_BR_errlow=DummyVal; buff_Np_BR_errhign=DummyVal;
+				Np_BR_MPV[i][j]=buff_Np_BR_MPV;
+				Np_BR_errlow[i][j]=buff_Np_BR_errlow;
+				Np_BR_errhigh[i][j]=buff_Np_BR_errhign;
+				sprintf(branch_name,"Np_BR_Daughter%d_Mother%d",i,j);
+				cout<<branch_name<<endl;
+				cout<<buff_Np_BR_MPV<<endl;
+			}
+		}
+	}
+
+
+
+  	double buff_Np_US_MPV;
+  	double buff_Np_US_errlow;
+  	double buff_Np_US_errhign;
+
+  	int nBins_h_Np_US=100;
+
+  	int nScales=2;
+  	if(NRQCDvars::nModelSystematicScales==0) nScales=1;
+  	dmatrix Np_US_MPV(nScales);
+  	dmatrix Np_US_errlow(nScales);
+ 	dmatrix Np_US_errhigh(nScales);
+  	double h_Np_US_min[2][max(NRQCDvars::nDataSystematicScales,NRQCDvars::nModelSystematicScales)];
+  	double h_Np_US_max[2][max(NRQCDvars::nDataSystematicScales,NRQCDvars::nModelSystematicScales)];
+	TH1D* h_Np_US[2][max(NRQCDvars::nDataSystematicScales,NRQCDvars::nModelSystematicScales)];
+
+
+  	dvector Np_US_MPV_Data_vec(NRQCDvars::nDataSystematicScales);
+  	dvector Np_US_errlow_Data_state(NRQCDvars::nDataSystematicScales);
+  	dvector Np_US_errhigh_Data_state(NRQCDvars::nDataSystematicScales);
+
+	int i;
+	i=0;
+	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+		sprintf(branch_name,"Np_US_DataSystematicScale%d",j);
+		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+		sprintf(hist_name,"h_Np_US_DataSystematicScale%d",j);
+		h_Np_US[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_US, h_Np_US_min[i][j], h_Np_US_max[i][j] );
+		sprintf(hist_var_name,"LumiCorrFactor(%s)", ExpName[j]);
+		h_Np_US[i][j] -> SetXTitle(hist_var_name);
+		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
+		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+		outputTreeAllSamplings->Draw(projectchar, selectchar);
+		h_Np_US[i][j]->SetTitle(0);
+		if(FreeParam_Np_US[i][j]==1 && SampleNp) FindMPV(h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign, MPValgo, nSigma);
+		else{buff_Np_US_MPV=DummyVal; buff_Np_US_errlow=DummyVal; buff_Np_US_errhign=DummyVal; }
+		Np_US_MPV_Data_vec.at(j)=buff_Np_US_MPV;
+		Np_US_errlow_Data_state.at(j)=buff_Np_US_errlow;
+		Np_US_errhigh_Data_state.at(j)=buff_Np_US_errhign;
+		char filename[200];
+		sprintf(filename,"%s/Figures",jobdirname);
+		gSystem->mkdir(filename);
+		sprintf(filename,"%s/%s.pdf",filename, branch_name);
+		if(FreeParam_Np_US[i][j]==1 && SampleNp) PlotPosterior(hist_var_name, filename, h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign);
+	}
+	Np_US_MPV.at(i)=Np_US_MPV_Data_vec;
+	Np_US_errlow.at(i)=Np_US_errlow_Data_state;
+	Np_US_errhigh.at(i)=Np_US_errhigh_Data_state;
+
+  	dvector Np_US_MPV_Model_vec(NRQCDvars::nModelSystematicScales);
+  	dvector Np_US_errlow_Model_state(NRQCDvars::nModelSystematicScales);
+  	dvector Np_US_errhigh_Model_state(NRQCDvars::nModelSystematicScales);
+
+	i=1;
+	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+		sprintf(branch_name,"Np_US_ModelSystematicScale%d",j);
+		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
+		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+		sprintf(hist_name,"h_Np_US_ModelSystematicScale%d",j);
+		h_Np_US[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_US, h_Np_US_min[i][j], h_Np_US_max[i][j] );
+		sprintf(hist_var_name,"ModelSystScale%d", j);
+		h_Np_US[i][j] -> SetXTitle(hist_var_name);
+		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
+		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+		outputTreeAllSamplings->Draw(projectchar, selectchar);
+		h_Np_US[i][j]->SetTitle(0);
+		if(FreeParam_Np_US[i][j]==1 && SampleNp) FindMPV(h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign, MPValgo, nSigma);
+		else{buff_Np_US_MPV=DummyVal; buff_Np_US_errlow=DummyVal; buff_Np_US_errhign=DummyVal; }
+		Np_US_MPV_Model_vec.at(j)=buff_Np_US_MPV;
+		Np_US_errlow_Model_state.at(j)=buff_Np_US_errlow;
+		Np_US_errhigh_Model_state.at(j)=buff_Np_US_errhign;
+		char filename[200];
+		sprintf(filename,"%s/Figures",jobdirname);
+		gSystem->mkdir(filename);
+		sprintf(filename,"%s/%s.pdf",filename, branch_name);
+		if(FreeParam_Np_US[i][j]==1 && SampleNp) PlotPosterior(hist_var_name, filename, h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign);
+	}
+
+	if(NRQCDvars::nModelSystematicScales!=0) {
+		Np_US_MPV.at(i)=Np_US_MPV_Model_vec;
+		Np_US_errlow.at(i)=Np_US_errlow_Model_state;
+		Np_US_errhigh.at(i)=Np_US_errhigh_Model_state;
+	}
+
+
+
+	sprintf(outname,"%s/results_Np.txt",jobdirname);
+	cout<<"save results to "<<outname<<endl;
+
+    out.open(outname);//, std::ofstream::app);
+
+    cout<<"Np_BR:"<<endl;
+	out << Np_BR_MPV;
+    cout<<"errlow_Np_BR:"<<endl;
+	out << Np_BR_errlow;
+    cout<<"errlow_Np_BR:"<<endl;
+	out << Np_BR_errhigh;
+    cout<<"consts_star_var:"<<endl;
+	out << consts_star_var_MPV;
+    cout<<"errlow_consts_star_var:"<<endl;
+	out << consts_star_var_errlow;
+    cout<<"errhigh_consts_star_var:"<<endl;
+	out << consts_star_var_errhigh;
+    cout<<"Np_US:"<<endl;
+	out << Np_US_MPV;
+    cout<<"errlow_Np_US:"<<endl;
+	out << Np_US_errlow;
+    cout<<"errhigh_Np_US:"<<endl;
+	out << Np_US_errhigh;
+
+    out.close();
 
 	//sprintf(outname,"%s/results3.txt",jobdirname);
 	//cout<<"save test results to "<<outname<<endl;

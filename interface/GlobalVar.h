@@ -11,12 +11,9 @@ namespace NRQCDvars{
 //const int nStates=13;
 //const int nExperiments = 5;
 //const int nMeasurementIDs = 6;
-const int nModelSystematicScales = 0;
-const int nDataSystematicScales = 1;
-const int nFractionDim = 3;     // modified by Joao: number of elements in the fraction (and width) vector
-
-const double proposalWidthBurnIn_f=5e-3;
-const double proposalWidthBurnIn_R=5e-3;//TODO: trial and error
+const double proposalWidthBurnIn_f=1e-2;
+const double proposalWidthBurnIn_R=1e-2;
+const double proposalWidthBurnIn_Np_relToUnc=2e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
 
 bool debug=false;
 enum {charm, bottom};
@@ -41,6 +38,8 @@ Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
+const int nModelSystematicScales = 0;
+const int nDataSystematicScales = nExperiments;
 
 const int nColorChannels_S=3;//includes CS
 const int nColorChannels_P=2;//includes CS
