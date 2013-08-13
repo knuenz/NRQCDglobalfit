@@ -721,6 +721,7 @@ int main(int argc, char** argv) {
 
 				isAbsRap=NRQCDvars::isAbsRapExp[iExperiment];
 
+				//TODO: generate Toy_Luminosity_var for each experiment only...
 				double Toy_Luminosity_var=gRandom->Gaus(0,1);
 
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
@@ -888,31 +889,26 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 	vector<double> LamtpVec (nContributions);
 
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0){
-			LamthVec[i]=lamMatrix[i][0];
-			LamphVec[i]=lamMatrix[i][1];
-			LamtpVec[i]=lamMatrix[i][2];
-
-		}
+		LamthVec[i]=lamMatrix[i][0];
+		LamphVec[i]=lamMatrix[i][1];
+		LamtpVec[i]=lamMatrix[i][2];
 	}
 
 	double Lamth_numerator=0;
 	double Lamth_denominator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0){
-			Lamth_numerator+=lamVecContributionFraction[i]*LamthVec[i]/(3+LamthVec[i]);
-			Lamth_denominator+=lamVecContributionFraction[i]/(3+LamthVec[i]);
-		}
+		Lamth_numerator+=lamVecContributionFraction[i]*LamthVec[i]/(3+LamthVec[i]);
+		Lamth_denominator+=lamVecContributionFraction[i]/(3+LamthVec[i]);
 	}
 
 	double Lamph_numerator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0) Lamph_numerator+=lamVecContributionFraction[i]*LamphVec[i]/(3+LamthVec[i]);
+		Lamph_numerator+=lamVecContributionFraction[i]*LamphVec[i]/(3+LamthVec[i]);
 	}
 
 	double Lamtp_numerator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0) Lamtp_numerator+=lamVecContributionFraction[i]*LamtpVec[i]/(3+LamthVec[i]);
+		Lamtp_numerator+=lamVecContributionFraction[i]*LamtpVec[i]/(3+LamthVec[i]);
 	}
 
 	lamSumVec[0]=Lamth_numerator/Lamth_denominator;

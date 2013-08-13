@@ -104,8 +104,6 @@ FcnPVLogL::operator() (const std::vector<double>& pars) const
 	vector<double> consts_star_var_S (NRQCDvars::nColorChannels_S,0);
 	vector<double> consts_star_var_P (NRQCDvars::nColorChannels_P,0);
 
-
-
 //////////////////////////
 // CONNECT pars with Fractions
 
@@ -151,7 +149,6 @@ FcnPVLogL::operator() (const std::vector<double>& pars) const
 		}
 	}
 
-	//cout<<Fractions<<endl;
 
 
 //////////////////////////
@@ -197,7 +194,14 @@ FcnPVLogL::operator() (const std::vector<double>& pars) const
 	const int nPar_Nuis=iPar_Nuis;
 
 
-
+	bool PrintParameterPath=false;
+	if(PrintParameterPath){
+		for (int i=0; i<pars.size(); i++){
+			cout<<pars[i]<<endl;
+		}
+		cout<<Fractions<<endl;
+		cout<<consts_star_var<<endl;
+	}
 	// Transform Fractions to Op's
 
 		int iMax = Fractions.size();

@@ -371,12 +371,16 @@ int main(int argc, char** argv) {
 									    	//cout<<"here?"<<endl;
 
 									if(ContributionExists){
-										//cout<<"inhere?"<<endl;
-										//cout<<"writing actual polarization and SDC for decay chains "<<iMother<<" -> "<<iState<<endl;
-										//cout<<"setModel_ShortDistanceCoef "<<setModel_ShortDistanceCoef[iRap][iP]<<endl;
-										//cout<<"setModel_OctetCompLamth "<<setModel_OctetCompLamth[iRap][iP]<<endl;
-										//cout<<"setModel_OctetCompLamph "<<setModel_OctetCompLamph[iRap][iP]<<endl;
-										vector<double> lamVecSumCascades = addPolarizations(lamVecTransformedCascades[iRap][iP], lamVecTransformedCascadesContributions[iRap][iP]);
+
+										vector<double> lamVecSumCascades;
+										vector<double> BuffVec=lamVecTransformedCascadesContributions[iRap][iP];
+										int nContributions=BuffVec.size();
+										double ContributionIntegral=0;
+										for(int i=0; i<nContributions; i++){
+											ContributionIntegral+=BuffVec[i];
+										}
+										if(ContributionIntegral==0) {doesDataExist[iRap][iP]=false; continue;}
+										else lamVecSumCascades = addPolarizations(lamVecTransformedCascades[iRap][iP], lamVecTransformedCascadesContributions[iRap][iP]);
 										//// These are the only values that need to be set to fully define the model:
 										setModel_ShortDistanceCoef[iRap][iP].push_back(Buffer_ShortDistanceCoef[iRap][iP]);
 										setModel_OctetCompLamth[iRap][iP].push_back(lamVecSumCascades[0]);
@@ -524,31 +528,26 @@ vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double
 	vector<double> LamtpVec (nContributions);
 
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0){
-			LamthVec[i]=lamMatrix[i][0];
-			LamphVec[i]=lamMatrix[i][1];
-			LamtpVec[i]=lamMatrix[i][2];
-
-		}
+		LamthVec[i]=lamMatrix[i][0];
+		LamphVec[i]=lamMatrix[i][1];
+		LamtpVec[i]=lamMatrix[i][2];
 	}
 
 	double Lamth_numerator=0;
 	double Lamth_denominator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0){
-			Lamth_numerator+=lamVecContributionFraction[i]*LamthVec[i]/(3+LamthVec[i]);
-			Lamth_denominator+=lamVecContributionFraction[i]/(3+LamthVec[i]);
-		}
+		Lamth_numerator+=lamVecContributionFraction[i]*LamthVec[i]/(3+LamthVec[i]);
+		Lamth_denominator+=lamVecContributionFraction[i]/(3+LamthVec[i]);
 	}
 
 	double Lamph_numerator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0) Lamph_numerator+=lamVecContributionFraction[i]*LamphVec[i]/(3+LamthVec[i]);
+		Lamph_numerator+=lamVecContributionFraction[i]*LamphVec[i]/(3+LamthVec[i]);
 	}
 
 	double Lamtp_numerator=0;
 	for(int i=0; i<nContributions; i++){
-		if(lamVecContributionFraction[i]>0) Lamtp_numerator+=lamVecContributionFraction[i]*LamtpVec[i]/(3+LamthVec[i]);
+		Lamtp_numerator+=lamVecContributionFraction[i]*LamtpVec[i]/(3+LamthVec[i]);
 	}
 
 	lamSumVec[0]=Lamth_numerator/Lamth_denominator;

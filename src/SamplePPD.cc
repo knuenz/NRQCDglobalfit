@@ -282,6 +282,9 @@ int main(int argc, char** argv) {
 							if(DataSelected){
 								DataModelObject.push_back(readDataModelObject);
 								DataFromExperimentExists[iExperiment]=true;
+
+								//readDataModelObject.Dump(NRQCDvars::nStates, true, true);
+
 							}
 
 							DataSelected=false;
@@ -546,20 +549,24 @@ int main(int argc, char** argv) {
 
 	cout<<"set starting point of Candidates:"<<endl;
 
+	double RstartingVal=26.;
+
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 		if(isSstate){
 			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
-				if(j==0) Candidates_S.at(j)=1.;
+				if(j==0) Candidates_S.at(j)=RstartingVal;
 				else Candidates_S.at(j)=1./double(NRQCDvars::nColorChannels_S-1);
-				//if(i==0 && j==1) Candidates_S.at(j)=0.;
-				//if(i==0 && j==2) Candidates_S.at(j)=1.;
+
+				//if(j==1) Candidates_S.at(j)=0.;
+				//if(j==2) Candidates_S.at(j)=1.;
+				//if(j==3) Candidates_S.at(j)=0.;
 			}
 			Candidates.at(i)=Candidates_S;
 		}
 		else{
 			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-				if(j==0) Candidates_P.at(j)=1.;
+				if(j==0) Candidates_P.at(j)=RstartingVal;
 				else Candidates_P.at(j)=1./double(NRQCDvars::nColorChannels_P-1);
 			}
 			Candidates.at(i)=Candidates_P;
@@ -911,16 +918,16 @@ int main(int argc, char** argv) {
 
 					//define starting values
 					if(j==0){
-						start_value=10.;
+						start_value=26.;
 						vlow=-1;
 						vhigh=100;
-						verr=1e-3;
+						verr=1e-1;
 					}
 					else{
 						start_value=1./double(nColorChannels_state-1);
 						vlow=-5;
 						vhigh=5;
-						verr=1e-3;
+						verr=1e-2;
 					}
 
 
@@ -956,7 +963,7 @@ int main(int argc, char** argv) {
 			char iParName_Nuis[200];
 		   	int iPar_Nuis=0;
 			bool fix_NuisPar=false;
-			double nSigmaRegion_Nuis=50;
+			double nSigmaRegion_Nuis=5;
 			double verr_Nuis=1e-3;
 
 			if(SampleNp){
@@ -1590,6 +1597,8 @@ int main(int argc, char** argv) {
 
 				gSystem->mkdir(Form("%s/Figures",jobdirname));
 
+				int nParToPlot;
+
 				double iScanStart=1.;
 				double iScanDelta=0.5;
 
@@ -1602,88 +1611,125 @@ int main(int argc, char** argv) {
 				double yTitleOffset=1.5;
 
 				if(Plot1D){
-					cout<<"Plotting 1D likelihood"<<endl;
-					dvector myPar(nPar,0);
 
-					int nSigma=3;
 
-					iScanStart=resultPar[7];
-					iScanDelta=nSigma*err_resultPar[7];
+					const int nPlots=3;
+					int nParToPlotArray[nPlots]={8,9,10};
 
-					int chi2CheckBins1D=50;
-					TH1D* chi2_par0_1D   = new TH1D( "chi2_par0_1D", "chi2_par0_1D", chi2CheckBins1D,  iScanStart-iScanDelta, iScanStart+iScanDelta);
-					int iLikeScan=0;
-					for(int iScan=1;iScan<chi2CheckBins1D+1;iScan++){
+					for(int k=0;k<nPlots;k++){
+
+						nParToPlot=nParToPlotArray[k];
+						cout<<"Plotting 1D likelihood of parameter "<<minuitx->GetParName(nParToPlot)<<endl;
+						dvector myPar(nPar,0);
+
+						char xTitle[200];
+						if(k==0) sprintf(xTitle,"R^{#psi(2S)}");
+						if(k==1) sprintf(xTitle,"f_{%s}^{#psi(2S)}",NRQCDvars::ColorChannelNameTexS[1]);
+						if(k==2) sprintf(xTitle,"f_{%s}^{#psi(2S)}",NRQCDvars::ColorChannelNameTexS[2]);
+
+						//HowToFind the parameter to vary
+						int iParChoice;
+						int jParChoice;
+						iParChoice=3;
+						if(k==0) jParChoice=0;
+						if(k==1) jParChoice=1;
+						if(k==2) jParChoice=2;
+
+						char drawchar[200];
+						sprintf(drawchar,"e");
+
+						int nSigma=3;
+
+						iScanStart=resultPar[nParToPlot];
+						iScanDelta=nSigma*err_resultPar[nParToPlot];
+
+						int chi2CheckBins1D=50;
+						TH1D* chi2_par0_1D   = new TH1D( "chi2_par0_1D", "chi2_par0_1D", chi2CheckBins1D,  iScanStart-iScanDelta, iScanStart+iScanDelta);
+						int iLikeScan=0;
+						for(int iScan=1;iScan<chi2CheckBins1D+1;iScan++){
 							iLikeScan++;
 							cout<<iLikeScan<<" scans out of "<<chi2CheckBins1D<<endl;
 
-						iPar=0;
-						for (int i=0; i<NRQCDvars::nStates; i++){
-							int nColorChannels_state;
-							bool isSstate=(NRQCDvars::StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
-							if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
-							else nColorChannels_state=NRQCDvars::nColorChannels_P;
-							for (int j=0; j<nColorChannels_state; j++){
-								myPar[iPar]=Fractions[i][j];
-								if(i==3 && j==0){
-									myPar[iPar]=iScanStart-iScanDelta+2.*iScanDelta*iScan/double(chi2CheckBins1D);
+
+							iPar=0;
+							for (int i=0; i<NRQCDvars::nStates; i++){
+								int nColorChannels_state;
+								bool isSstate=(NRQCDvars::StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+								if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+								else nColorChannels_state=NRQCDvars::nColorChannels_P;
+								for (int j=0; j<nColorChannels_state; j++){
+									myPar[iPar]=Fractions[i][j];
+									if(i==iParChoice && j==jParChoice){
+										myPar[iPar]=iScanStart-iScanDelta+2.*iScanDelta*iScan/double(chi2CheckBins1D);
+									}
+									iPar++;
 								}
-								iPar++;
+							}
+
+						for (int i=0; i<nNUIS; i++){
+							myPar[iPar+i]=resultPar[iPar+i];
+						}
+
+
+						double chi2 = (*fcnx)(myPar);
+						cout<<"chi2 "<<chi2<<endl;
+						if(chi2<10*amin){
+							chi2_par0_1D->SetBinContent(iScan,chi2);
+							chi2_par0_1D->SetBinError(iScan,1e-10);
+						}
+						else cout<<"chi2> "<<10*amin<<" -> entry not plotted"<<endl;
 
 						}
 
-					for (int i=0; i<nNUIS; i++){
-						myPar[iPar+i]=resultPar[iPar+i];
+						chi2_par0_1D->Print("all");
+
+						cout<<minuitx->GetParName(nParToPlot)<<" done..."<<endl;
+
+						chi2_par0_1D->SetStats(0);
+						chi2_par0_1D->SetTitle(0);
+
+						chi2_par0_1D->Print();
+
+						TCanvas *chi2CheckCanvas2D = new TCanvas("chi2CheckCanvas2D","chi2CheckCanvas2D",1000,800);
+						chi2CheckCanvas2D->SetFillColor(kWhite);
+						chi2CheckCanvas2D->GetFrame()->SetFillColor(kWhite);
+						chi2CheckCanvas2D->GetFrame()->SetBorderSize(0);
+						chi2CheckCanvas2D->cd(1); gPad->SetLeftMargin(0.2); gPad->SetFillColor(kWhite);chi2_par0_1D->GetYaxis()->SetTitle("#chi^{2}");	chi2_par0_1D->GetXaxis()->SetTitle(xTitle);	chi2_par0_1D->GetYaxis()->SetTitleOffset(yTitleOffset); chi2_par0_1D->SetMarkerStyle(20); chi2_par0_1D->Draw(drawchar);
+
+						TLine* centralLine = new TLine( iScanStart, chi2_par0_1D->GetMinimum(), iScanStart ,chi2_par0_1D->GetMaximum());
+						centralLine->SetLineWidth( 1 );
+						centralLine->SetLineStyle( 1 );
+						centralLine->SetLineColor( kGreen+2 );
+						centralLine->Draw( "same" );
+
+						TLine* minus1Sig = new TLine( iScanStart-err_resultPar[nParToPlot], chi2_par0_1D->GetMinimum(), iScanStart-err_resultPar[nParToPlot] ,chi2_par0_1D->GetMaximum());
+						minus1Sig->SetLineWidth( 1 );
+						minus1Sig->SetLineStyle( 2 );
+						minus1Sig->SetLineColor( kRed );
+						minus1Sig->Draw( "same" );
+
+						TLine* plus1Sig = new TLine( iScanStart+err_resultPar[nParToPlot], chi2_par0_1D->GetMinimum(), iScanStart+err_resultPar[nParToPlot] ,chi2_par0_1D->GetMaximum());
+						plus1Sig->SetLineWidth( 1 );
+						plus1Sig->SetLineStyle( 2 );
+						plus1Sig->SetLineColor( kRed );
+						plus1Sig->Draw( "same" );
+
+						sprintf(outname,"%s/Figures/chi2_1DforPar_%s.pdf",jobdirname,minuitx->GetParName(nParToPlot));
+						chi2CheckCanvas2D->SaveAs(outname);
+						delete chi2CheckCanvas2D;
+
 					}
 
-					double chi2 = (*fcnx)(myPar);
-					/*if(chi2<10*amin)*/chi2_par0_1D->SetBinContent(iScan,chi2);
-					}}
-					cout<<"chi2_par0_1D done..."<<endl;
-
-					chi2_par0_1D->SetStats(0);
-					chi2_par0_1D->SetTitle(0);
-
-					chi2_par0_1D->Print();
-
-					TCanvas *chi2CheckCanvas2D = new TCanvas("chi2CheckCanvas2D","chi2CheckCanvas2D",1000,800);
-					chi2CheckCanvas2D->SetFillColor(kWhite);
-					chi2CheckCanvas2D->GetFrame()->SetFillColor(kWhite);
-					chi2CheckCanvas2D->GetFrame()->SetBorderSize(0);
-					chi2CheckCanvas2D->cd(1); gPad->SetLeftMargin(0.2); gPad->SetFillColor(kWhite);chi2_par0_1D->GetYaxis()->SetTitle("likelihood");	chi2_par0_1D->GetXaxis()->SetTitle("R^{#psi(2S)}");	chi2_par0_1D->GetYaxis()->SetTitleOffset(yTitleOffset); chi2_par0_1D->Draw("c");
-
-					TLine* centralLine = new TLine( iScanStart, chi2_par0_1D->GetMinimum(), iScanStart ,chi2_par0_1D->GetMaximum());
-					centralLine->SetLineWidth( 1 );
-					centralLine->SetLineStyle( 1 );
-					centralLine->SetLineColor( kGreen+2 );
-					centralLine->Draw( "same" );
-
-					TLine* minus1Sig = new TLine( iScanStart-err_resultPar[7], chi2_par0_1D->GetMinimum(), iScanStart-err_resultPar[7] ,chi2_par0_1D->GetMaximum());
-					minus1Sig->SetLineWidth( 1 );
-					minus1Sig->SetLineStyle( 2 );
-					minus1Sig->SetLineColor( kRed );
-					minus1Sig->Draw( "same" );
-
-					TLine* plus1Sig = new TLine( iScanStart+err_resultPar[7], chi2_par0_1D->GetMinimum(), iScanStart+err_resultPar[7] ,chi2_par0_1D->GetMaximum());
-					plus1Sig->SetLineWidth( 1 );
-					plus1Sig->SetLineStyle( 2 );
-					plus1Sig->SetLineColor( kRed );
-					plus1Sig->Draw( "same" );
-
-					sprintf(outname,"%s/Figures/likelihood1D_par0.pdf",jobdirname);
-					chi2CheckCanvas2D->SaveAs(outname);
-					delete chi2CheckCanvas2D;
-
-				}
-
-				if(Plot1D){
-					cout<<"Plotting 1D likelihood"<<endl;
+					/*
+					nParToPlot=9;
+					cout<<"Plotting 1D likelihood of parameter "<<minuitx->GetParName(nParToPlot)<<endl;
 					dvector myPar(nPar,0);
+
 
 					int nSigma=3;
 
-					iScanStart=resultPar[8];
-					iScanDelta=nSigma*err_resultPar[8];
+					iScanStart=resultPar[nParToPlot];
+					iScanDelta=nSigma*err_resultPar[nParToPlot];
 
 					int chi2CheckBins1D=50;
 					TH1D* chi2_par1_1D   = new TH1D( "chi2_par1_1D", "chi2_par1_1D", chi2CheckBins1D,  iScanStart-iScanDelta, iScanStart+iScanDelta);
@@ -1712,7 +1758,7 @@ int main(int argc, char** argv) {
 
 
 					double chi2 = (*fcnx)(myPar);
-					/*if(chi2<10*amin)*/chi2_par1_1D->SetBinContent(iScan,chi2);
+					chi2_par1_1D->SetBinContent(iScan,chi2);
 					}}
 					cout<<"chi2_par0par1_2D done..."<<endl;
 
@@ -1731,13 +1777,13 @@ int main(int argc, char** argv) {
 					centralLine->SetLineColor( kGreen+2 );
 					centralLine->Draw( "same" );
 
-					TLine* minus1Sig = new TLine( iScanStart-err_resultPar[8], chi2_par1_1D->GetMinimum(), iScanStart-err_resultPar[8] ,chi2_par1_1D->GetMaximum());
+					TLine* minus1Sig = new TLine( iScanStart-err_resultPar[nParToPlot], chi2_par1_1D->GetMinimum(), iScanStart-err_resultPar[nParToPlot] ,chi2_par1_1D->GetMaximum());
 					minus1Sig->SetLineWidth( 1 );
 					minus1Sig->SetLineStyle( 2 );
 					minus1Sig->SetLineColor( kRed );
 					minus1Sig->Draw( "same" );
 
-					TLine* plus1Sig = new TLine( iScanStart+err_resultPar[8], chi2_par1_1D->GetMinimum(), iScanStart+err_resultPar[8] ,chi2_par1_1D->GetMaximum());
+					TLine* plus1Sig = new TLine( iScanStart+err_resultPar[nParToPlot], chi2_par1_1D->GetMinimum(), iScanStart+err_resultPar[nParToPlot] ,chi2_par1_1D->GetMaximum());
 					plus1Sig->SetLineWidth( 1 );
 					plus1Sig->SetLineStyle( 2 );
 					plus1Sig->SetLineColor( kRed );
@@ -1748,8 +1794,10 @@ int main(int argc, char** argv) {
 					chi2CheckCanvas2D->SaveAs(outname);
 					delete chi2CheckCanvas2D;
 
-
+*/
 				}
+
+
 
 				if(Plot2D){
 					cout<<"Plotting 2D likelihood"<<endl;
@@ -1928,6 +1976,8 @@ int main(int argc, char** argv) {
 			iAccSampling=iSampledPoint;
 			iTotalSinceLastStep++;
 
+			//if(nSampledPointsTotal>2) break;
+
 			if(iSampledPoint==nBurnIn+1 && BurnIn){
 
 				BurnIn=false;
@@ -1972,6 +2022,8 @@ int main(int argc, char** argv) {
 					}
 				}
 
+				bool changeProposalWidthsAfterBurnIn=true;
+
 				for (int i=0; i<NRQCDvars::nStates; i++){
 					bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 					if(isSstate){
@@ -1984,10 +2036,11 @@ int main(int argc, char** argv) {
 							q[1]=1-q[0];
 							h_BurnIn[i][j]->GetQuantiles(nQu,qu,q);
 							double newWidth=(qu[1]-qu[0])/2.;
-							if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_S[j]=newWidth;
-							if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_S[j]=newWidth;
-							SampleWidths_S[j]=newWidth/2.;
-
+							if(changeProposalWidthsAfterBurnIn){
+								if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_S[j]=newWidth;
+								if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_S[j]=newWidth;
+								SampleWidths_S[j]=newWidth/2.;
+							}
 							//SampleWidths_S[j]=h_BurnIn[i][j]->GetRMS();
 							cout<<"Proposal width for state "<<i<<", ColorChannel "<<j<<" = "<<SampleWidths_S[j]<<endl;
 						}
@@ -2003,9 +2056,11 @@ int main(int argc, char** argv) {
 							q[1]=1-q[0];
 							h_BurnIn[i][j]->GetQuantiles(nQu,qu,q);
 							double newWidth=(qu[1]-qu[0])/2.;
-							if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_P[j]=newWidth;
-							if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_P[j]=newWidth;
-							SampleWidths_P[j]=newWidth/2.;
+							if(changeProposalWidthsAfterBurnIn){
+								if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_P[j]=newWidth;
+								if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_P[j]=newWidth;
+								SampleWidths_P[j]=newWidth/2.;
+							}
 
 							//SampleWidths_P[j]=h_BurnIn[i][j]->GetRMS();
 							cout<<"Proposal width for state "<<i<<", ColorChannel "<<j<<" = "<<SampleWidths_P[j]<<endl;
@@ -2138,6 +2193,11 @@ int main(int argc, char** argv) {
 
 			if(NRQCDvars::debug) cout<<"getObjectLikelihood"<<endl;
 
+			//cout<<"Candidates"<<endl;
+			//cout<<Candidates<<endl;
+			//cout<<"Op"<<endl;
+			//cout<<Op<<endl;
+
 			loglikelihood=0;
 			for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
 				//cout << "getObjectLikelihood" <<endl;
@@ -2147,6 +2207,8 @@ int main(int argc, char** argv) {
 
 				ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
 				loglikelihood+=ObjectLikelihoodVec[0];
+				//cout << "likelihood: " << loglikelihood << endl;
+				//if(loglikelihood>1e99) state->Dump(NRQCDvars::nStates, true, true);
 				//cout << "likelihood: " << likelihood << endl;
 				if(NRQCDvars::debug) {
 					cout << "iDataPoint: " << distance(DataModelObject.begin(), state) << endl;
@@ -2453,9 +2515,18 @@ void genFractionValues3D(dvector &fraction, dvector &candidate, dvector &width )
 
 	fraction[0]=candidate[0];
 
-	fraction[1]=a0-(a1*candidate[1]+a2*candidate[2]);
-	fraction[2]=a0+(a1*candidate[1]-a2*candidate[2]);
-	fraction[3]=a0+2.*a2*candidate[2];
+	//TODO: Valentin changed definition from this:
+	//fraction[1]=a0-(a1*candidate[1]+a2*candidate[2]);
+	//fraction[2]=a0+(a1*candidate[1]-a2*candidate[2]);
+	//fraction[3]=a0+2.*a2*candidate[2];
+
+	//to this:
+	candidate[3]=kernelFunction(candidate[3], width[3]);
+	double sum=candidate[1]+candidate[2]+candidate[3];
+	fraction[1]=candidate[1]/sum;
+	fraction[2]=candidate[2]/sum;
+	fraction[3]=candidate[3]/sum;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

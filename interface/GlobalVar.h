@@ -12,7 +12,7 @@ namespace NRQCDvars{
 //const int nExperiments = 5;
 //const int nMeasurementIDs = 6;
 const double proposalWidthBurnIn_f=1e-2;
-const double proposalWidthBurnIn_R=1e-2;
+const double proposalWidthBurnIn_R=5e-1;
 const double proposalWidthBurnIn_Np_relToUnc=2e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
 
 bool debug=false;
@@ -41,10 +41,10 @@ int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, 
 const int nModelSystematicScales = 0;
 const int nDataSystematicScales = nExperiments;
 
-const int nColorChannels_S=3;//includes CS
+const int nColorChannels_S=4;//includes CS
 const int nColorChannels_P=2;//includes CS
 
-Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S_{1}^{(1)}", "^{3}S_{1}^{(8)}", "^{1}S_{0}^{(8)}"};//, "^{3}P_{1}^{(8)}"};
+Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S_{1}^{(1)}", "^{1}S_{0}^{(8)}", "^{3}S_{1}^{(8)}", "^{3}P_{J}^{(8)}"};
 Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}P_{J}^{(1)}", "^{3}S_{1}^{(8)}"};
 
 const int nColorChannels = std::max(nColorChannels_S, nColorChannels_P);
@@ -109,10 +109,10 @@ double errFeedDownBranchingRatio[nStates][nStates]={
 //};
 
 //TODO:
-double ColorSingletME[nStates]={1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
+double ColorSingletME[nStates]={1.32, 1., 1., 0.76, 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
 double errColorSingletME[nStates]={0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}; //uncertainty on ColorSinglet matrix elements taken from literature
-const double pT_star=20;
-const double rap_star=0.5;
+const double pT_star=15.;//20;
+const double rap_star=0.;//0.5;
 
 int randomSeed = 23101987;
 const int nMaxCascades = 20;//Used to define the size of an array containing all decay cascades of a certain mother->daughter link

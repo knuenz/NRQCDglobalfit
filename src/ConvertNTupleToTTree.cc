@@ -41,12 +41,12 @@ using namespace NRQCDvars;
 
 int main(int argc, char** argv) {
 
-  	Char_t *OriginalNTupleID = "Default";
+  	Char_t *OriginalModelID = "Default";
   	Char_t *ModelID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
 
   	for( int i=0;i < argc; ++i ) {
-		if(std::string(argv[i]).find("OriginalNTupleID") != std::string::npos) {char* OriginalNTupleIDchar = argv[i]; char* OriginalNTupleIDchar2 = strtok (OriginalNTupleIDchar, "="); OriginalNTupleID = OriginalNTupleIDchar2; cout<<"OriginalNTupleID = "<<OriginalNTupleID<<endl;}
+		if(std::string(argv[i]).find("OriginalModelID") != std::string::npos) {char* OriginalModelIDchar = argv[i]; char* OriginalModelIDchar2 = strtok (OriginalModelIDchar, "="); OriginalModelID = OriginalModelIDchar2; cout<<"OriginalModelID = "<<OriginalModelID<<endl;}
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
   	}
@@ -83,9 +83,9 @@ int main(int argc, char** argv) {
 		for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 			cout<<"		Color channel = "<<iColorChannel<<endl;
 
-			sprintf(predirname,"OriginalNTupleID");
+			sprintf(predirname,"%s/OriginalModelID",storagedir);
 			gSystem->mkdir(predirname);
-			sprintf(dirname,"%s/%s",predirname,OriginalNTupleID);
+			sprintf(dirname,"%s/%s",predirname,OriginalModelID);
 			gSystem->mkdir(dirname);
 			sprintf(inname,"%s/ups1s_hx.outpt",dirname);
 			FILE *fIn;
@@ -123,6 +123,24 @@ int main(int argc, char** argv) {
 				if(iEvents<10) cout<<model_pT<<" "<<model_rap<<" "<<model_costh<<" "<<model_phi<<" "<<weight<<" "<<endl;
 
 			}
+
+			double model_pTMin, model_pTMax;
+			double model_rapMin, model_rapMax;
+
+			//TODO: manually adapt phase space of generation
+
+			model_pTMin=0;
+			model_pTMax=50;
+			model_rapMin=0;
+			model_rapMax=4.5;
+
+			double deltapT=model_pTMax-model_pTMin;
+			double deltay=model_rapMax-model_rapMin;
+
+			double globalWeight=1./double(iEvents)*deltapT*deltay;
+			nTupleModel[iMother][iColorChannel]->SetWeight(globalWeight);
+
+			cout<<"globalWeight "<<globalWeight<<endl;
 
 			cout<<"Read in "<<iEvents<<" events"<<endl;
 			cout<<"nTupleModel[iMother][iColorChannel]->GetEntries() "<<nTupleModel[iMother][iColorChannel]->GetEntries()<<endl;

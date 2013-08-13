@@ -2,14 +2,17 @@
 
 storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 
-OriginalNTupleID=BaranovSmallFile #This is the location of the original model nTuple (provided by Sergey)
-DataID=August4_Psi2Sonly #store here the NRQCDglobalfitObjects containing data measurements
-ModelID=July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
-DataModelCombID=July29_ToyDataToyModel_ToyAddPol_polCorr #store here the NRQCD objects combining data and model predictions
-for JobID in August9_psi2Sonly_SampleNp_not05_Minuit;do #store here the output TTree of the likelihood sampling, and all Figures of the results
+OriginalModelID=BKmodel #This is the location of the original model (nTuple provided by Sergey or BK model txt file)
+DataID=August10_Psi2Sonly #store here the NRQCDglobalfitObjects containing data measurements
+ModelID=August11_BKmodel #July28_ToyAddPol #store here the ModelIngredients.root file and consts_star file
+DataModelCombID=August10_Psi2Sonly_BKmodel #July29_ToyDataToyModel_ToyAddPol_polCorr #store here the NRQCD objects combining data and model predictions
+#store here the output TTree of the likelihood sampling, and all Figures of the results:
+for JobID in August12_psi2Sonly_SampleNp_Minuit;do
+#for JobID in August10_psi2Sonly_Truth;do
 
 run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
+run_ConvertBKmodelToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
 run_GenerateToyData=0
@@ -26,7 +29,8 @@ run_PlotCompareDataModel=1
 ### ConvertDataInput
 
 ### ConvertModelInput
-useToyModel=true
+useToyModel=false
+calcOnlyConstsStat=true
 
 ### CombineDataModel
 
@@ -34,10 +38,10 @@ useToyModel=true
 
 ### SamplePPD
 Minimizer=1		#0...MH, 1...Minuit
-nBurnIn=1000
-nSample=10000
+nBurnIn=5000
+nSample=50000
 SampleNp=true
-SampleNp_consts_star=true
+SampleNp_consts_star=false
 
 ### InterpretPPD
 nSigma=1
@@ -73,11 +77,15 @@ then
 fi
 if [ ${run_ConvertNTupleToTTree} -eq 1 ]
 then
-./ConvertNTupleToTTree ${OriginalNTupleID}=OriginalNTupleID ${ModelID}=ModelID ${storagedir}=storagedir
+./ConvertNTupleToTTree ${OriginalModelID}=OriginalModelID ${ModelID}=ModelID ${storagedir}=storagedir
+fi
+if [ ${run_ConvertBKmodelToTTree} -eq 1 ]
+then
+./ConvertBKmodelToTTree ${OriginalModelID}=OriginalModelID ${ModelID}=ModelID ${storagedir}=storagedir
 fi
 if [ ${run_ConvertModelInput} -eq 1 ]
 then
-./ConvertModelInput ${ModelID}=ModelID useToyModel=${useToyModel} ${storagedir}=storagedir
+./ConvertModelInput ${ModelID}=ModelID useToyModel=${useToyModel} ${storagedir}=storagedir calcOnlyConstsStat=${calcOnlyConstsStat}
 fi
 if [ ${run_CombineDataModel} -eq 1 ]
 then

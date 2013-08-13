@@ -49,10 +49,12 @@ int main(int argc, char** argv) {
   	Char_t *ModelID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
   	bool useToyModel=false;
+  	bool calcOnlyConstsStat=false;
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("useToyModel=true") != std::string::npos) {  useToyModel=true, cout<<"useToyModel"<<endl;	}
+		if(std::string(argv[i]).find("calcOnlyConstsStat=true") != std::string::npos) {  calcOnlyConstsStat=true, cout<<"calcOnlyConstsStat"<<endl;	}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
 		}
 
@@ -104,11 +106,14 @@ int main(int argc, char** argv) {
 		TTree* nTupleModel[NRQCDvars::nStates][NRQCDvars::nColorChannels];
 		char nTupleModelName[1000];
 
+		bool nTupleModelGiven[NRQCDvars::nStates];
+
 		if(!useToyModel){
 
 
 			//Read in TTrees from ModelID/JobID folder
 			for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+				nTupleModelGiven[iMother]=true;
 				int nColorChannels_state;
 				bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
 				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
@@ -117,7 +122,12 @@ int main(int argc, char** argv) {
 				for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 					if(NRQCDvars::debug) cout<<"		Color channel = "<<iColorChannel<<endl;
 					sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iMother, iMother, iColorChannel);
-					nTupleModel[iMother][iColorChannel]=(TTree*)OriginalModelTTreeFile->Get(nTupleModelName);
+					if(OriginalModelTTreeFile->Get(nTupleModelName)!=NULL){
+						nTupleModel[iMother][iColorChannel]=(TTree*)OriginalModelTTreeFile->Get(nTupleModelName);
+					}
+					else{
+						nTupleModelGiven[iMother]=false;
+					}
 					//cout<<"nTupleModel[iMother][iColorChannel]->GetEntries() "<<nTupleModel[iMother][iColorChannel]->GetEntries();
 				}
 			}
@@ -137,6 +147,7 @@ int main(int argc, char** argv) {
 			//double LuminosityPerModelEvent[NRQCDvars::nStates][NRQCDvars::nColorChannels];
 			int n_nTuple=1000000;
 			for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
+				nTupleModelGiven[iMother]=true;
 				int nColorChannels_state;
 				bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
 				if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
@@ -270,6 +281,8 @@ int main(int argc, char** argv) {
 			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
 			else nColorChannels_state=NRQCDvars::nColorChannels_P;
 			for (int iDaughter=0; iDaughter<iMother; iDaughter++){
+
+				if(!nTupleModelGiven[iMother] || !nTupleModelGiven[iDaughter]) continue;
 
 					cout<<"transformation Mother "<<StateName[iMother]<<" to Daughter "<<StateName[iDaughter]<<endl;
 
@@ -425,74 +438,134 @@ int main(int argc, char** argv) {
 			for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 				cout<<"iColorChannel "<<iColorChannel<<endl;
 
-				sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iMother, iMother, iColorChannel);
+				if(nTupleModelGiven[iMother]){
 
-				TTree* nTupleModelDirectProd = (TTree*) ModelIngredientsFile->Get(nTupleModelName);
+					sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iMother, iMother, iColorChannel);
 
-				//TODO: calc here the const_star values consts_star_vals[iMother][iColorChannel]
+					TTree* nTupleModelDirectProd = (TTree*) ModelIngredientsFile->Get(nTupleModelName);
 
-				//Loop over Tree, define asymmetric area around NRQCDvars::pT_star and NRQCDvars::rap_star
-				//Fill weighted histogram, check if mean is compatible with NRQCDvars::pT_star and NRQCDvars::rap_star
-				//Calc consts_star_vals[iMother][iColorChannel], check if uncertainty is below threshold
-				//set consts_star_vals[iMother][iColorChannel]
+					//TODO: calc here the const_star values consts_star_vals[iMother][iColorChannel]
 
-				double model_pT_mother; nTupleModelDirectProd->SetBranchAddress( "model_pT",  &model_pT_mother );
-				double model_rap_mother; nTupleModelDirectProd->SetBranchAddress( "model_rap",  &model_rap_mother );
-				double model_costh_mother; nTupleModelDirectProd->SetBranchAddress( "model_costh",  &model_costh_mother );
-				double model_phi_mother; nTupleModelDirectProd->SetBranchAddress( "model_phi",  &model_phi_mother );
-				double weight_mother; nTupleModelDirectProd->SetBranchAddress( "weight",  &weight_mother );
+					//Loop over Tree, define asymmetric area around NRQCDvars::pT_star and NRQCDvars::rap_star
+					//Fill weighted histogram, check if mean is compatible with NRQCDvars::pT_star and NRQCDvars::rap_star
+					//Calc consts_star_vals[iMother][iColorChannel], check if uncertainty is below threshold
+					//set consts_star_vals[iMother][iColorChannel]
 
-				int n_events = int( nTupleModelDirectProd->GetEntries() );
+					double model_pT_mother; nTupleModelDirectProd->SetBranchAddress( "model_pT",  &model_pT_mother );
+					double model_rap_mother; nTupleModelDirectProd->SetBranchAddress( "model_rap",  &model_rap_mother );
+					double model_costh_mother; nTupleModelDirectProd->SetBranchAddress( "model_costh",  &model_costh_mother );
+					double model_phi_mother; nTupleModelDirectProd->SetBranchAddress( "model_phi",  &model_phi_mother );
+					double weight_mother; nTupleModelDirectProd->SetBranchAddress( "weight",  &weight_mother );
+
+					int n_events = int( nTupleModelDirectProd->GetEntries() );
 
 
 
-				int nBinsh_pT=30;//TODO: fine-tune
-				int nBinsh_rap=30;//TODO: fine-tune
-				TH2D *h_pTrap_DirectProd = new TH2D ("h_pTrap_DirectProd", "h_pTrap_DirectProd", nBinsh_pT, model_pTMin, model_pTMax, nBinsh_rap, model_rapMin, model_rapMax);
-				h_pTrap_DirectProd->Sumw2();
+					int nBinsh_pT=200;//TODO: fine-tune
+					int nBinsh_rap=15;//TODO: fine-tune
+					TH2D *h_pTrap_DirectProd = new TH2D ("h_pTrap_DirectProd", "h_pTrap_DirectProd", nBinsh_pT, model_pTMin, model_pTMax, nBinsh_rap, model_rapMin, model_rapMax);
+					h_pTrap_DirectProd->Sumw2();
+					int gStarBin = h_pTrap_DirectProd->FindBin(NRQCDvars::pT_star, NRQCDvars::rap_star);
+					int StarBin_pT, StarBin_rap, StarBinz;
+					h_pTrap_DirectProd->GetBinXYZ(gStarBin, StarBin_pT, StarBin_rap, StarBinz);
+					double BinWidth_pT=(model_pTMax-model_pTMin)/double(nBinsh_pT);
+					double BinWidth_rap=(model_rapMax-model_rapMin)/double(nBinsh_rap);
 
-				// loop over  events in the model ntuple
-				for ( int i_event = 1; i_event <= n_events; i_event++ ) {
+					double StarBin_rap_binCenter=model_rapMin+BinWidth_rap*(StarBin_rap-0.5);
+					double StarBin_rap_binLowerEdge=StarBin_rap_binCenter-BinWidth_rap*0.5;
+					double StarBin_rap_binUpperEdge=StarBin_rap_binCenter+BinWidth_rap*0.5;
 
-					nTupleModelDirectProd->GetEvent( i_event-1 );
-					h_pTrap_DirectProd->Fill(model_pT_mother, model_rap_mother, weight_mother);
+					TH1D *h_pT_DirectProd_MeanPt[nBinsh_pT];
+					char histName_MeanPt[200];
+					int nBinsh_pT_MeanPt=100;
+					double MeanPt_binCenter[nBinsh_pT];
+					double MeanPt_rap_binLowerEdge[nBinsh_pT];
+					double MeanPt_rap_binUpperEdge[nBinsh_pT];
+					for (Int_t i=0; i<nBinsh_pT; i++) {
+						MeanPt_binCenter[i]=model_pTMin+BinWidth_pT*(i+0.5);
+						MeanPt_rap_binLowerEdge[i]=MeanPt_binCenter[i]-BinWidth_pT*0.5;
+						MeanPt_rap_binUpperEdge[i]=MeanPt_binCenter[i]+BinWidth_pT*0.5;
+						sprintf(histName_MeanPt,"histName_MeanPt%d",i);
+						h_pT_DirectProd_MeanPt[i] = new TH1D (histName_MeanPt, histName_MeanPt, nBinsh_pT_MeanPt, MeanPt_rap_binLowerEdge[i], MeanPt_rap_binUpperEdge[i]);
 
-				}
-
-				int gStarBin = h_pTrap_DirectProd->FindBin(NRQCDvars::pT_star, NRQCDvars::rap_star);
-				int StarBin_pT, StarBin_rap, StarBinz;
-				h_pTrap_DirectProd->GetBinXYZ(gStarBin, StarBin_pT, StarBin_rap, StarBinz);
-				double BinWidth_pT=(model_pTMax-model_pTMin)/double(nBinsh_pT);
-				double BinWidth_rap=(model_rapMax-model_rapMin)/double(nBinsh_rap);
-
-				TGraph2D *g_pTrap_DirectProd = new TGraph2D(nBinsh_pT*nBinsh_rap);
-				int k=0;
-				double g_pT, g_rap, z;
-				for (Int_t i=0; i<nBinsh_pT; i++) {
-					g_pT=model_pTMin+BinWidth_pT*(i+0.5);
-					for (Int_t j=0; j<nBinsh_rap; j++) {
-						g_rap=model_rapMin+BinWidth_rap*(j+0.5);
-						z = h_pTrap_DirectProd->GetBinContent(i,j);
-						g_pTrap_DirectProd->SetPoint(k,g_pT,g_rap,z);
-						k++;
 					}
+
+					// loop over  events in the model ntuple
+					for ( int i_event = 1; i_event <= n_events; i_event++ ) {
+
+						nTupleModelDirectProd->GetEvent( i_event-1 );
+						h_pTrap_DirectProd->Fill(model_pT_mother, model_rap_mother, weight_mother);
+
+						if(model_rap_mother>StarBin_rap_binLowerEdge&&model_rap_mother<StarBin_rap_binUpperEdge){
+							for (Int_t i=0; i<nBinsh_pT; i++) {
+								if(model_pT_mother>MeanPt_rap_binLowerEdge[i]&&model_pT_mother<MeanPt_rap_binUpperEdge[i]){
+									h_pT_DirectProd_MeanPt[i]->Fill(model_pT_mother, weight_mother);
+								}
+							}
+						}
+
+					}
+
+					h_pTrap_DirectProd->Scale(nTupleModelDirectProd->GetWeight());
+
+
+					TGraph2D *g_pTrap_DirectProd = new TGraph2D(nBinsh_pT*nBinsh_rap);
+					int k=0;
+					double g_pT, g_rap, z;
+					for (Int_t i=1; i<nBinsh_pT+1; i++) {
+						g_pT=model_pTMin+BinWidth_pT*(i-0.5);
+						for (Int_t j=1; j<nBinsh_rap+1; j++) {
+							g_rap=model_rapMin+BinWidth_rap*(j-0.5);
+							z = h_pTrap_DirectProd->GetBinContent(i,j);
+							g_pTrap_DirectProd->SetPoint(k,g_pT,g_rap,z);
+							k++;
+						}
+					}
+
+
+					TGraph *g1D_pTrap_DirectProd;
+
+					double pTmean_graph[nBinsh_pT];
+					double model_graph[nBinsh_pT];
+					for(int m=1;m<nBinsh_pT+1;m++){
+						pTmean_graph[m-1]=h_pT_DirectProd_MeanPt[m-1]->GetMean();
+						model_graph[m-1] = h_pTrap_DirectProd->GetBinContent(m,StarBin_rap);
+					}
+
+					g1D_pTrap_DirectProd = new TGraph(nBinsh_pT,pTmean_graph,model_graph);
+
+					double DirectProd_previousBin=h_pTrap_DirectProd->GetBinContent(StarBin_pT-1, StarBin_rap);
+					double DirectProd_nextBin=h_pTrap_DirectProd->GetBinContent(StarBin_pT+1, StarBin_rap);
+
+
+					g1D_pTrap_DirectProd->Print();
+
+					double g_consts_star_vals=g_pTrap_DirectProd->Interpolate(NRQCDvars::pT_star, NRQCDvars::rap_star)/(BinWidth_pT*BinWidth_rap);
+					double h_consts_star_vals=h_pTrap_DirectProd->GetBinContent(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
+					double g1D_consts_star_vals=g1D_pTrap_DirectProd->Eval(NRQCDvars::pT_star)/(BinWidth_pT*BinWidth_rap);
+
+					cout<<"g_consts_star_vals "<<g_consts_star_vals<<endl;
+					cout<<"g1D_consts_star_vals "<<g1D_consts_star_vals<<endl;
+					cout<<"h_consts_star_vals "<<h_consts_star_vals<<endl;
+					cout<<"relative difference g/h in % "<<(g_consts_star_vals/h_consts_star_vals-1)*100<<endl;
+					cout<<"relative difference g1D/h in % "<<(g1D_consts_star_vals/h_consts_star_vals-1)*100<<endl;
+
+					h_pTrap_DirectProd->SaveAs(Form("tmp_%d.root",iColorChannel));
+
+					//TODO: check uncertainties, propagate them
+
+					consts_star_vals[iMother][iColorChannel]=(g1D_consts_star_vals+h_consts_star_vals)/2.;
+					err_consts_star_vals[iMother][iColorChannel]=h_pTrap_DirectProd->GetBinError(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
+
+					delete g_pTrap_DirectProd;
+					delete h_pTrap_DirectProd;
+
 				}
+				else{
+					consts_star_vals[iMother][iColorChannel]=0.;
+					err_consts_star_vals[iMother][iColorChannel]=0.;
 
-				double g_consts_star_vals=g_pTrap_DirectProd->Interpolate(NRQCDvars::pT_star, NRQCDvars::rap_star)/(BinWidth_pT*BinWidth_rap);
-				double h_consts_star_vals=h_pTrap_DirectProd->GetBinContent(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
-
-				cout<<"g_consts_star_vals "<<g_consts_star_vals<<endl;
-				cout<<"h_consts_star_vals "<<h_consts_star_vals<<endl;
-				cout<<"relative difference g/h in % "<<(g_consts_star_vals/h_consts_star_vals-1)*100<<endl;
-
-				//TODO: check uncertainties, propagate them
-
-				consts_star_vals[iMother][iColorChannel]=g_consts_star_vals;
-				err_consts_star_vals[iMother][iColorChannel]=h_pTrap_DirectProd->GetBinError(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
-
-				delete g_pTrap_DirectProd;
-				delete h_pTrap_DirectProd;
-
+				}
 			}
 		}
 
