@@ -497,7 +497,7 @@ int main(int argc, char** argv) {
 			}
 
 
-			bool interpretModelIntegratedInRapidityInterval=false;
+			bool interpretModelIntegratedInRapidityInterval=true;
 
 			double deltapT=model_pTMax-model_pTMin;
 			double deltay=model_rapMax-model_rapMin;
