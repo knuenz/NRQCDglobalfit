@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
 
 	const int nRapIntervals=3;
 	bool isAbsRap[nRapIntervals]={true, true, false};
-	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.5};
-	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.};
+	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.};
+	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.5};
 	const int npTBinsPerRap[nRapIntervals][nHelicityChannels]={
 			{9, 9, 9},
 			{7, 7, 7},
@@ -367,7 +367,7 @@ int main(int argc, char** argv) {
 	model_pTMin=3;
 	model_pTMax=40;
 	model_rapMin=-1.2;
-	model_rapMax=4.;
+	model_rapMax=4.5;
 	model_costhMin=-1;
 	model_costhMax=1;
 	model_phiMin=-180;
@@ -497,6 +497,8 @@ int main(int argc, char** argv) {
 			}
 
 
+			bool interpretModelIntegratedInRapidityInterval=false;
+
 			double deltapT=model_pTMax-model_pTMin;
 			double deltay=model_rapMax-model_rapMin;
 
@@ -505,7 +507,9 @@ int main(int argc, char** argv) {
 				double deltaPt=pTMax[j]-pTMin[j];
 				double deltaY=RapIntervalBordersMax[j]-RapIntervalBordersMin[j];
 				if(isAbsRap[j]) deltaY*=2;
-				phasespaceFactor+=deltaPt*deltaY;
+
+				if(interpretModelIntegratedInRapidityInterval) phasespaceFactor+=deltaPt;
+				else phasespaceFactor+=deltaPt*deltaY;
 			}
 
 			double globalWeight=1./double(n_nTuple)*phasespaceFactor;

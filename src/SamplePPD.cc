@@ -2039,7 +2039,7 @@ int main(int argc, char** argv) {
 							if(changeProposalWidthsAfterBurnIn){
 								if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_S[j]=newWidth;
 								if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_S[j]=newWidth;
-								SampleWidths_S[j]=newWidth/2.;
+								SampleWidths_S[j]=newWidth/4.;
 							}
 							//SampleWidths_S[j]=h_BurnIn[i][j]->GetRMS();
 							cout<<"Proposal width for state "<<i<<", ColorChannel "<<j<<" = "<<SampleWidths_S[j]<<endl;
@@ -2059,7 +2059,7 @@ int main(int argc, char** argv) {
 							if(changeProposalWidthsAfterBurnIn){
 								if(j==0 && newWidth<NRQCDvars::proposalWidthBurnIn_R) SampleWidths_P[j]=newWidth;
 								if(j>1 && newWidth<NRQCDvars::proposalWidthBurnIn_f) SampleWidths_P[j]=newWidth;
-								SampleWidths_P[j]=newWidth/2.;
+								SampleWidths_P[j]=newWidth/4.;
 							}
 
 							//SampleWidths_P[j]=h_BurnIn[i][j]->GetRMS();

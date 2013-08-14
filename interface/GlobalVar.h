@@ -11,9 +11,9 @@ namespace NRQCDvars{
 //const int nStates=13;
 //const int nExperiments = 5;
 //const int nMeasurementIDs = 6;
-const double proposalWidthBurnIn_f=1e-2;
-const double proposalWidthBurnIn_R=5e-1;
-const double proposalWidthBurnIn_Np_relToUnc=2e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
+const double proposalWidthBurnIn_f=5e-3;
+const double proposalWidthBurnIn_R=2.5e-1;
+const double proposalWidthBurnIn_Np_relToUnc=1e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
 
 bool debug=false;
 enum {charm, bottom};
