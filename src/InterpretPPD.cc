@@ -24,6 +24,7 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TF1.h"
 #include "TRandom3.h"
 #include "TSystem.h"
@@ -40,8 +41,10 @@ using namespace NRQCDvars;
 
 void PlotPosterior(char xAxisTitle[200], char filename[200], TH1* histo, double MPV, double MPVerrLow, double MPVerrHigh);
 void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
-
 dmatrix transformDmatrixToSPformat(dmatrix dmatrixFull);
+inline void setContourHistogram ( TH2D *h );
+inline double contourHeight2D ( TH2D *h, double confidenceLevel );
+
 
 int main(int argc, char** argv) {
 
@@ -530,6 +533,128 @@ int main(int argc, char** argv) {
 
 
 
+
+
+/////////////////////////////////////
+/// Plot 2D contourse in LDME space
+/////////////////////////////////////
+
+
+
+
+	for (int i=0; i<NRQCDvars::nStates; i++){
+		if(FreeParam_Fractions_States[i]!=1) continue;
+
+		bool plot2DLDMEComb[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
+		TH2D* h_2DLDME[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
+		int nBins2D=35;
+		double O1Min, O1Max, O2Min, O2Max;
+		char branch_name_O1[200];
+		char branch_name_O2[200];
+		char hist_var_name_O1[200];
+		char hist_var_name_O2[200];
+
+		int nColorChannels_state;
+		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+		if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+		else nColorChannels_state=NRQCDvars::nColorChannels_P;
+		for (int j=1; j<nColorChannels_state; j++){
+			for (int k=1; k<nColorChannels_state; k++){
+				plot2DLDMEComb[j][k]=false;
+			}
+		}
+		for (int j=1; j<nColorChannels_state; j++){
+			for (int k=1; k<nColorChannels_state; k++){
+				if(j==k) continue;
+				plot2DLDMEComb[j][k]=true;
+				if(plot2DLDMEComb[k][j]) plot2DLDMEComb[j][k]=false;
+				if(plot2DLDMEComb[j][k]){
+					cout<<"j"<<j<<"k"<<k<<endl;
+					char h_2DLDME_name[200];
+					sprintf(h_2DLDME_name,"h_2DLDME_state%d_O%d_vs_O%d",i,j,k);
+					sprintf(branch_name_O1,"state%d_Op%d",i,j);
+					sprintf(branch_name_O2,"state%d_Op%d",i,k);
+					//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
+					O1Min=outputTreeAllSamplings->GetMinimum(branch_name_O1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_O1);
+					O1Max=outputTreeAllSamplings->GetMaximum(branch_name_O1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_O1);
+					O2Min=outputTreeAllSamplings->GetMinimum(branch_name_O2)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_O2);
+					O2Max=outputTreeAllSamplings->GetMaximum(branch_name_O2)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_O2);
+					if(isSstate){
+						sprintf(hist_var_name_O1,"O_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
+						sprintf(hist_var_name_O2,"O_{%s}^{%s}", ColorChannelNameTexS[k], StateNameTex[i]);
+					}
+					else{
+						sprintf(hist_var_name_O1,"O_{%s}^{%s}", ColorChannelNameTexP[j], StateNameTex[i]);
+						sprintf(hist_var_name_O2,"O_{%s}^{%s}", ColorChannelNameTexP[k], StateNameTex[i]);
+					}
+					sprintf(projectchar,"%s:%s>>%s",branch_name_O2, branch_name_O1, h_2DLDME_name);
+					sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+					h_2DLDME[j][k] 	= new TH2D( h_2DLDME_name, h_2DLDME_name, nBins2D, O1Min, O1Max, nBins2D, O2Min, O2Max );
+					outputTreeAllSamplings->Draw(projectchar, selectchar);
+
+
+
+					  TCanvas *c1 = new TCanvas("c1", "c1", 10, 28, 650,571);
+					  c1->Range(-237.541,-66.47556,187.377,434.8609);
+					  c1->SetFillColor(0);
+					  c1->SetBorderMode(0);
+					  c1->SetBorderSize(0);
+					  c1->SetLeftMargin(0.215);
+					  c1->SetRightMargin(0.03);
+					  c1->SetTopMargin(0.01841621);
+					  c1->SetBottomMargin(0.16);
+					  c1->SetFrameBorderMode(0);
+
+
+					  TH2D* h_2DLDME_axis;
+					  h_2DLDME_axis 	= new TH2D( Form("%s_axis",h_2DLDME_name), Form("%s_axis",h_2DLDME_name), nBins2D, O1Min, O1Max, nBins2D, O2Min, O2Max );
+
+					  char DrawContourStyle[200];
+					  sprintf(DrawContourStyle,"cont2,same");
+					  int LineWidth=4;
+					  int LineStyle=2;
+
+					  h_2DLDME_axis->GetXaxis()->SetTitle(hist_var_name_O1);
+					  h_2DLDME_axis->GetXaxis()->SetLabelOffset(0.028);
+					  h_2DLDME_axis->GetXaxis()->SetTitleSize(0.05);
+					  h_2DLDME_axis->GetXaxis()->SetTickLength(-0.03);
+					  h_2DLDME_axis->GetXaxis()->SetTitleOffset(1.4);
+					  h_2DLDME_axis->GetYaxis()->SetTitle(hist_var_name_O2);
+					  h_2DLDME_axis->GetYaxis()->SetLabelOffset(0.032);
+					  h_2DLDME_axis->GetYaxis()->SetTitleSize(0.05);
+					  h_2DLDME_axis->GetYaxis()->SetTickLength(-0.03);
+					  h_2DLDME_axis->GetYaxis()->SetTitleOffset(1.95);
+					  h_2DLDME_axis->SetTitle(0);
+					  h_2DLDME_axis->SetStats(0);
+					  h_2DLDME_axis->Draw("");
+
+					  setContourHistogram ( h_2DLDME[j][k] );
+					  h_2DLDME[j][k]->SetLineColor( kGreen+2 );
+					  h_2DLDME[j][k]->SetLineWidth( LineWidth );
+					  h_2DLDME[j][k]->SetLineStyle( LineStyle  );
+					  h_2DLDME[j][k]->SetTitle(0);
+					  h_2DLDME[j][k]->SetStats(0);
+					  h_2DLDME[j][k]->Draw( DrawContourStyle );
+
+					  char filename[200];
+					  sprintf(filename,"%s/Figures",jobdirname);
+					  gSystem->mkdir(filename);
+					  sprintf(filename,"%s/2D_PPD_contours_state%d_O%d_vs_O%d.pdf",filename, i,j,k);
+					  c1->SaveAs(filename);
+					  c1->Close();
+
+					  delete c1;
+
+				}
+			}
+		}
+	}
+
+
+
+
+
+
 		return 0;
 
   	}
@@ -704,5 +829,40 @@ dmatrix transformDmatrixToSPformat(dmatrix dmatrixFull){
 	}
 
 	return transformed_dmatrix;
+
+}
+
+inline double contourHeight2D ( TH2D *h, double confidenceLevel ) {
+  int Nx = h->GetXaxis()->GetNbins();
+  int Ny = h->GetYaxis()->GetNbins();
+
+  double totSum = h->GetSum();
+  double targetSum = confidenceLevel * totSum;
+  double maxHeight = h->GetMaximum();
+  double step = 0.001*maxHeight;
+
+  double tempHeight = 0.;
+  double tempSum = totSum;
+
+  while ( tempSum > targetSum && tempHeight < maxHeight ) {
+    tempHeight += step;
+    tempSum = 0.;
+    for ( int ix = 0; ix < Nx; ix++ ) {
+      for ( int iy = 0; iy < Ny; iy++ ) {
+      	double binContent = h->GetBinContent(ix,iy);
+        if ( binContent > tempHeight ) tempSum += binContent;
+      }
+    }
+  }
+  return tempHeight;
+}
+
+// function to set the 99% and 68% C.L. contours of a 2D histogram
+inline void setContourHistogram ( TH2D *h ) {
+  double cont0 = contourHeight2D( h, 0.997 );
+  double cont2 = contourHeight2D( h, 0.683 );
+  h->SetContour(2);
+  h->SetContourLevel(0,cont0);
+  h->SetContourLevel(1,cont2);
 
 }

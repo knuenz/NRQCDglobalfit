@@ -283,6 +283,10 @@ int main(int argc, char** argv) {
 								DataModelObject.push_back(readDataModelObject);
 								DataFromExperimentExists[iExperiment]=true;
 
+								cout << "Selected: iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID];
+								cout << ", iExperiment=" << ExpName[iExperiment] << ", iRap=" << iRap << ", iP=" << iP << endl;
+								cout<<"readDataModelObject.getErrTot() "<<readDataModelObject.getErrTot() <<endl;
+
 								//readDataModelObject.Dump(NRQCDvars::nStates, true, true);
 
 							}
@@ -549,7 +553,7 @@ int main(int argc, char** argv) {
 
 	cout<<"set starting point of Candidates:"<<endl;
 
-	double RstartingVal=26.;
+	double RstartingVal=36.;
 
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;

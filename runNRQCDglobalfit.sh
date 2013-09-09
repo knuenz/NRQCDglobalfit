@@ -8,12 +8,12 @@ DataID=August10_Psi2Sonly
 ### This is the location of the original model (nTuple provided by Sergey or BK model txt file)
 OriginalModelID=BKmodel
 ### store here the ModelIngredients.root file and consts_star file
-ModelID=August14_BKmodel_ModelIntegratedRap #July28_ToyAddPol 
+ModelID=August24_BKmodel_NoAbsDef 
 ### store here the NRQCD objects combining data and model predictions
-DataModelCombID=August14_Psi2Sonly_BKmodel_ModelIntegratedRap
+DataModelCombID=August24_Psi2Sonly_BKmodel_NoAbsDef  #_ChaoDef_debug
 ### store here the output TTree of the likelihood sampling, and all Figures of the results:
-for JobID in August14_psi2Sonly_BKmodel_ModelIntegratedRap_SampleNp_MH;do
-#for JobID in BKtruth;do
+#for JobID in August24_Psi2Sonly_BKmodel_NoAbsDef_SampleNp_MH_pTmin13;do
+for JobID in BKtruth;do
 
 run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
@@ -21,8 +21,8 @@ run_ConvertBKmodelToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
 run_GenerateToyData=0
-run_SamplePPD=1
-run_InterpretPPD=1
+run_SamplePPD=0
+run_InterpretPPD=0
 run_PlotCompareDataModel=1
 
 ##################################
@@ -118,10 +118,16 @@ fi
 if [ ${run_InterpretPPD} -eq 1 ]
 then
 ./InterpretPPD_${JobID} ${JobID}=JobID ${MPValgo}MPValgo ${nSigma}nSigma ${storagedir}=storagedir
+mkdir Figures/${JobID}
+cp -r ${storagedir}/JobID/${JobID}/Figures/* Figures/${JobID}/
+cp -r ${storagedir}/JobID/${JobID}/*.txt Figures/${JobID}/
 fi
 if [ ${run_PlotCompareDataModel} -eq 1 ]
 then
 ./PlotCompareDataModel_${JobID} ${JobID}=JobID ${ModelID}=ModelID ${nSigma}nSigma ${MPValgo}MPValgo ${storagedir}=storagedir ${DataModelCombID}=DataModelCombID ${pTMin}pTMin ${pTMax}pTMax ${rapMin}rapMin ${rapMax}rapMax ${useOnlyState}useOnlyState useSstatesOnly=${useSstatesOnly} usePstatesOnly=${usePstatesOnly} useCharmoniumOnly=${useCharmoniumOnly} useBottomoniumOnly=${useBottomoniumOnly} SampleNp=${SampleNp} SampleNp_consts_star=${SampleNp_consts_star}
+mkdir Figures/${JobID}
+cp -r ${storagedir}/JobID/${JobID}/Figures/* Figures/${JobID}/
+cp -r ${storagedir}/JobID/${JobID}/*.txt Figures/${JobID}/
 fi
 
 rm ConvertDataInput_${DataID}

@@ -133,7 +133,7 @@ class NRQCDglobalfitObject {
 	  double getErrSyst() {return (Object_ErrSystPos+Object_ErrSystNeg)/2.;}
 	  double getErrTotPos() {return Object_ErrTotPos;}
 	  double getErrTotNeg() {return Object_ErrTotNeg;}
-	  double getErrTot() {return (Object_ErrTotPos+Object_ErrTotNeg)/2.;}
+	  double getErrTot() {return (fabs(Object_ErrTotPos)+fabs(Object_ErrTotNeg))/2.;}
 	  double getErrGlobalPos() {return Object_ErrGlobalPos;}
 	  double getErrGlobalNeg() {return Object_ErrGlobalNeg;}
 	  double getErrGlobal() {return (Object_ErrGlobalPos+Object_ErrGlobalNeg)/2.;}

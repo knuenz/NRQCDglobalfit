@@ -259,12 +259,24 @@ int main(int argc, char** argv) {
 											int n_events = int( nTupleModel_Transformed->GetEntries() );
 											cout<<n_events<<" events: Looping through nTuple of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
+											TH1F* h_weight_pT3 = new TH1F("h_weight_pT3","h_weight_pT3",100,-4000,4000);
+											TH1F* h_weight_pT4 = new TH1F("h_weight_pT4","h_weight_pT4",100,-4000,4000);
+											TH1F* h_weight_pT5 = new TH1F("h_weight_pT5","h_weight_pT5",100,-4000,4000);
+											TH1F* h_weight_pT6 = new TH1F("h_weight_pT6","h_weight_pT6",100,-4000,4000);
+
+											int i_eventPerBin[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
+											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
+											    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
+											    	i_eventPerBin[iRap][iP]=0;
+											    }
+											}
 											// loop over  events in the model ntuple
 											for ( int i_event = 1; i_event <= n_events; i_event++ ) {
 
 												nTupleModel_Transformed->GetEvent( i_event-1 );
 
 												//cout<<"i_event="<<i_event<<endl;
+
 
 												int pT_index=-1;
 												int rap_index=-1;
@@ -288,6 +300,22 @@ int main(int argc, char** argv) {
 
 												if(pT_index<0 || rap_index<0) continue;
 
+												if(rap_index==0){
+													if(pT_index==3){
+														h_weight_pT3->Fill(weight_mother);
+													}
+													if(pT_index==4){
+														h_weight_pT4->Fill(weight_mother);
+													}
+													if(pT_index==5){
+														h_weight_pT5->Fill(weight_mother);
+													}
+													if(pT_index==6){
+														h_weight_pT6->Fill(weight_mother);
+													}
+												}
+
+												i_eventPerBin[rap_index][pT_index]++;
 												Buffer_ShortDistanceCoef[rap_index][pT_index]+=weight_mother;
 												h_costh2[rap_index][pT_index]->Fill(model_costh_mother*model_costh_mother, weight_mother);
 												h_cos2ph[rap_index][pT_index]->Fill(TMath::Cos(2*model_phi_mother*TMath::Pi()/180), weight_mother);
@@ -295,18 +323,33 @@ int main(int argc, char** argv) {
 
 											}
 
+									    	if(iExperiment==0&&iMeasurementID==0&&iColorChannel==3){
+												h_weight_pT3->SaveAs("tmp/h_weight_pT3.root");
+												h_weight_pT4->SaveAs("tmp/h_weight_pT4.root");
+												h_weight_pT5->SaveAs("tmp/h_weight_pT5.root");
+												h_weight_pT6->SaveAs("tmp/h_weight_pT6.root");
+									    	}
 											//cout<<"Calculating SDC and vecLam of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
 											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 											    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 											    	if(!doesDataExist[iRap][iP]) continue;
+											    	if(i_eventPerBin[iRap][iP]<1) continue;
+
+
+											    	if(iExperiment==0&&iMeasurementID==0&&iColorChannel==3){
+											    		cout<<"Buffer_ShortDistanceCoef["<<iRap<<"]["<<iP<<"]"<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+											    	}
 
 											    	Buffer_ShortDistanceCoef[iRap][iP]*=nTupleModel_Transformed->GetWeight();
+
+
 
 											    	double deltaPt=DataObject[iRap][iP]->getpTMax()-DataObject[iRap][iP]->getpTMin();
 											    	double deltay=DataObject[iRap][iP]->getyMax()-DataObject[iRap][iP]->getyMin();
 											    	if(DataObject[iRap][iP]->getisAbsRap()) deltay*=2;
 											    	Buffer_ShortDistanceCoef[iRap][iP]/=deltaPt*deltay;
+
 
 											vector<double> lamVecRaw(3,0);
 											double costh2=h_costh2[iRap][iP]->GetMean();

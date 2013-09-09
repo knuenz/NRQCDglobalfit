@@ -422,6 +422,8 @@ int main(int argc, char** argv) {
 						ifstream inData;
 						inData.open(inname);
 
+						//cout<<inname<<endl;
+
 						if( inData.is_open() ){//Measurement present -> calculate model components:: Modified by Joao: more correct from ios point of view
 							//if(NRQCDvars::debug){
 								//cout << "Read in iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID];
@@ -469,6 +471,8 @@ int main(int argc, char** argv) {
 						}
 				    }//pT loop
 
+				    //cout<<"nPtBinsSel "<<nPtBinsSel<<endl;
+
 				    dvector data_centralval;
 				    dvector data_errlow_centralval;
 				    dvector data_errhigh_centralval;
@@ -505,6 +509,7 @@ int main(int argc, char** argv) {
 
 				    	if(DataPresentAndSelected[iRap][iP]){
 
+				    		cout<<"Plot state: "<<NRQCDvars::StateName[iState]<<" Measurement: "<<NRQCDvars::MeasurementIDName[iMeasurementID]<<" Experiment: "<<NRQCDvars::ExpName[iExperiment]<<" iRap: "<<iRap<<" iP "<<iP<<endl;
 
 							dvector ObjectLikelihoodVec;
 							double ModelPrediction;
@@ -770,12 +775,12 @@ int main(int argc, char** argv) {
 								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
 								ModelPrediction=ObjectLikelihoodVec[1];
 
-								//cout<<"directProductionCube"<<endl;
-								//cout<<directProductionCube<<endl;
-								//cout<<"promptProductionMatrix"<<endl;
-								//cout<<promptProductionMatrix<<endl;
-								//cout<<"polCorrFactor"<<endl;
-								//cout<<polCorrFactor<<endl;
+								cout<<"directProductionCube"<<endl;
+								cout<<directProductionCube<<endl;
+								cout<<"promptProductionMatrix"<<endl;
+								cout<<promptProductionMatrix<<endl;
+								cout<<"polCorrFactor"<<endl;
+								cout<<polCorrFactor<<endl;
 
 								bool useHistModeAsCentralModel=false;
 
@@ -981,9 +986,11 @@ int main(int argc, char** argv) {
 						for(int i=0;i<ColorChannels_c;i++){
 							for(int iP = 0; iP < nPtBinsSel; iP++){
 								d_model_centralval[iP] =  model_directProduction[iP][i];
-								if(iMeasurementID==0) d_model_centralval[iP];
+								//if(iMeasurementID==0) d_model_centralval[iP];
 							}
 							model_Graph_ColorChannels[i] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval);
+							cout<<"graph of CC"<<i<<endl;
+							model_Graph_ColorChannels[i]->Print();
 						}
 
 
@@ -1050,7 +1057,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	double y_min;
 	double y_max;
 	if(iMeasurementID==0) { y_min=5e-2; y_max =1e1; }
-	if(iMeasurementID==1) { y_min=-1.3; y_max =1.3; }
+	if(iMeasurementID==1) { y_min=-2.3; y_max =1.3; }
 	if(iMeasurementID==2) { y_min=-0.7; y_max =0.7; }
 	if(iMeasurementID==3) { y_min=-0.7; y_max =0.7; }
 

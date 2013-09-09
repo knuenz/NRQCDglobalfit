@@ -636,7 +636,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 					 nRapBins=3;
 					 maxPTPoints[0] = 4; maxPTPoints[1] = 4;  maxPTPoints[2] = 4;
 					 npTBins[0] = 4; npTBins[1] = 4;  npTBins[2] = 4;
-					 npTBins_toIgnoreAtBeginOfFile[0]=1; npTBins_toIgnoreAtBeginOfFile[1]=1; npTBins_toIgnoreAtBeginOfFile[2] = 10;
+					 npTBins_toIgnoreAtBeginOfFile[0]=1; npTBins_toIgnoreAtBeginOfFile[1]=1; npTBins_toIgnoreAtBeginOfFile[2] = 1;
 					 isMeasurementAvailable=true;
 					 break;
 //				 case NRQCDvars::UPS_1S:

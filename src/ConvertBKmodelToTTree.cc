@@ -53,6 +53,7 @@ int main(int argc, char** argv) {
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
   	}
 
+	gRandom = new TRandom3(NRQCDvars::randomSeed);  // better random generator
 
 	char outname[2000];
 	char inname[2000];
@@ -270,6 +271,7 @@ int main(int argc, char** argv) {
 	TGraph *Lamph_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven];
 	TGraph *Lamtp_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven];
 
+	bool UseChaoPolDenominatorDef=false;
 
 	int nBinsFinalModels=100;
 	for(int i=0;i<nStatesGiven;i++){
@@ -286,8 +288,10 @@ int main(int argc, char** argv) {
 					double deltaPt=(pTMax[j]-pTMin[j])/double(nBinsFinalModels);
 					pTmean_graph[m]=pTMin[j]+m*deltaPt;
 					SDC_graph[m]=model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]+2*model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k];
-					Lamth_graph[m]=(model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]-model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k])/(model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]+model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]);
-					Lamph_graph[m]=(model_Graph[i][j][k][2]->Eval(pTmean_graph[m])/fittedLDMEs[i][k])/(model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]+model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]);
+					double polDenominator=(model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]+model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]);
+					if(UseChaoPolDenominatorDef && model_Graph[i][j][k][1]->Eval(pTmean_graph[m]) * model_Graph[i][j][k][0]->Eval(pTmean_graph[m]) < 0) polDenominator=fabs(polDenominator);
+					Lamth_graph[m]=(model_Graph[i][j][k][1]->Eval(pTmean_graph[m])/fittedLDMEs[i][k]-model_Graph[i][j][k][0]->Eval(pTmean_graph[m])/fittedLDMEs[i][k])/polDenominator;
+					Lamph_graph[m]=(model_Graph[i][j][k][2]->Eval(pTmean_graph[m])/fittedLDMEs[i][k])/polDenominator;
 					Lamtp_graph[m]=0;
 				}
 
@@ -412,6 +416,8 @@ int main(int argc, char** argv) {
 			int nStep_ = 0;
 			bool genAngDist2D=true;
 
+			//if(iColorChannel==3) n_nTuple=100000;
+
 			for (int k=0; k<n_nTuple; k++){
 
 
@@ -443,6 +449,7 @@ int main(int argc, char** argv) {
 
 
 					model_weight=SDC_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
+					if(log(model_weight)>8 && TMath::Abs(model_rap)<1.2&&model_pT>12&&model_pT<13.5) cout<<"model_weight pT"<<model_weight<<endl;
 					//Define angular distribution:
 					//cout<<"model_weight pT"<<model_weight<<endl;
 
@@ -451,6 +458,12 @@ int main(int argc, char** argv) {
 					model_lamth=Lamth_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
 					model_lamph=Lamph_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
 					model_lamtp=Lamtp_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
+
+					if(model_lamth>-4.&&model_lamth<-2.){
+						double polDecision = gRandom->Uniform(-1,1);
+						if(polDecision>0) model_lamth=-2.;
+						else model_lamth=-4.;
+					}
 
 					//cout<<"model_lamth"<<model_lamth<<endl;
 					//cout<<"model_lamph"<<model_lamph<<endl;
@@ -463,10 +476,18 @@ int main(int argc, char** argv) {
 					if(genAngDist2D){
 						TF2 *fcosthphi;
 						fcosthphi = new TF2( "fcosthphi", "[0]*(1.+[1]*x[0]*x[0]+[2]*(1.-x[0]*x[0])*cos(2.*x[1]*0.0174532925)+[3]*2.*x[0]*sqrt(1.-x[0]*x[0])*cos(x[1]*0.0174532925))", -1., 1., -180., 180. );
-						fcosthphi->SetParameters(1.,model_lamth, model_lamph, model_lamtp);
+						fcosthphi->SetParameters(3./(3.+model_lamth),model_lamth, model_lamph, model_lamtp);
 						model_weight*=fcosthphi->Eval(model_costh,model_phi);
 						polNormFactor=fcosthphi->Integral(-1., 1., -180., 180. );
 						model_weight*=2.*360./fcosthphi->Integral(-1., 1., -180., 180. );
+						if(2.*360./fcosthphi->Integral(-1., 1., -180., 180. )-3>1e-2) cout<<"model_weight pol norm not 3 but "<<2.*360./fcosthphi->Integral(-1., 1., -180., 180. )<<endl;
+						if(log(model_weight)>8 && TMath::Abs(model_rap)<1.2&&model_pT>12&&model_pT<13.5){
+							cout<<"model_weight pT "<<SDC_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT)<<endl;
+							cout<<"model_lamth "<<model_lamth<<endl;
+							cout<<"model_weight pol function "<<fcosthphi->Eval(model_costh,model_phi)<<endl;
+							cout<<"model_weight pol norm "<<2.*360./fcosthphi->Integral(-1., 1., -180., 180. )<<endl;
+							cout<<"resulting weight "<<model_weight<<endl;
+						}
 
 						delete fcosthphi;
 					}

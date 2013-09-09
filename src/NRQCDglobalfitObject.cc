@@ -184,6 +184,14 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 
 
 
+#ifdef mydebug
+	for(int i=0 ; i<nOp ; i++){
+		cout<<"DirectOctetContFraction[ "<<i<<"] = "<<DirectOctetContFraction[i]<<endl;
+		cout<<"OctetCompLamth_corrected[ "<<i<<"] = "<<OctetCompLamth_corrected[i]<<endl;
+		cout<<"OctetCompLamph_corrected[ "<<i<<"] = "<<OctetCompLamph_corrected[i]<<endl;
+		cout<<"OctetCompLamtp_corrected[ "<<i<<"] = "<<OctetCompLamtp_corrected[i]<<endl;
+	}
+#endif
 
 
 	double DirectLamth_numerator=0;
@@ -472,6 +480,8 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 	double sigma_TransHX=PolCorrParams[1];
 	double sigma_Unpolarized=getCentralValue();
 	double PredPromptLamth=PredPromptCrossSect[1];
+
+	//cout<<"PredPromptLamth "<<PredPromptLamth<<endl;
 
 	double PolarizationCorrectionFactor=1+(sigma_TransHX-sigma_LongHX)/(2.*sigma_Unpolarized)*PredPromptLamth+
 			                              ((sigma_TransHX+sigma_LongHX)/(2.*sigma_Unpolarized)-1)*PredPromptLamth*PredPromptLamth;
