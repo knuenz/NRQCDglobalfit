@@ -233,6 +233,7 @@ int main(int argc, char** argv) {
 				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_Opi[i][j]->SetTitle(0);
+				cout<<branch_name<<endl;
 				if(FreeParam_Fractions[i][j]==1) FindMPV(h_Opi[i][j], buff_Opi_MPV, buff_Opi_errlow, buff_Opi_errhign, MPValgo, nSigma);
 				else{buff_Opi_MPV=DummyVal; buff_Opi_errlow=DummyVal; buff_Opi_errhign=DummyVal; }
 				Opi_MPV_state.at(j)=buff_Opi_MPV;
@@ -467,7 +468,8 @@ int main(int argc, char** argv) {
 		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
 		sprintf(hist_name,"h_Np_US_ModelSystematicScale%d",j);
 		h_Np_US[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_US, h_Np_US_min[i][j], h_Np_US_max[i][j] );
-		sprintf(hist_var_name,"ModelSystScale%d", j);
+		//sprintf(hist_var_name,"ModelSystScale%d", j);
+		sprintf(hist_var_name,"Np Model uncertainty, %s", ColorChannelNameTexS[j]);
 		h_Np_US[i][j] -> SetXTitle(hist_var_name);
 		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
 		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
@@ -536,7 +538,7 @@ int main(int argc, char** argv) {
 
 
 /////////////////////////////////////
-/// Plot 2D contourse in LDME space
+/// Plot 2D contours in LDME space
 /////////////////////////////////////
 
 
@@ -652,6 +654,124 @@ int main(int argc, char** argv) {
 
 
 
+	////////////////////////////////////////
+	/// Plot 2D contours in fraction space
+	////////////////////////////////////////
+
+
+
+
+		for (int i=0; i<NRQCDvars::nStates; i++){
+			if(FreeParam_Fractions_States[i]!=1) continue;
+
+			bool plot2DLDMEComb[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
+			TH2D* h_2DLDME[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
+			int nBins2D=35;
+			double f1Min, f1Max, f2Min, f2Max;
+			char branch_name_f1[200];
+			char branch_name_f2[200];
+			char hist_var_name_f1[200];
+			char hist_var_name_f2[200];
+
+			int nColorChannels_state;
+			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
+			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+			else nColorChannels_state=NRQCDvars::nColorChannels_P;
+			for (int j=1; j<nColorChannels_state; j++){
+				for (int k=1; k<nColorChannels_state; k++){
+					plot2DLDMEComb[j][k]=false;
+				}
+			}
+			for (int j=0; j<nColorChannels_state; j++){
+				for (int k=0; k<nColorChannels_state; k++){
+					if(j==k) continue;
+					plot2DLDMEComb[j][k]=true;
+					if(plot2DLDMEComb[k][j]) plot2DLDMEComb[j][k]=false;
+					if(plot2DLDMEComb[j][k]){
+						cout<<"j"<<j<<"k"<<k<<endl;
+						char h_2DLDME_name[200];
+						sprintf(h_2DLDME_name,"h_2DLDME_state%d_O%d_vs_O%d",i,j,k);
+						sprintf(branch_name_f1,"state%d_f%d",i,j);
+						sprintf(branch_name_f2,"state%d_f%d",i,k);
+						//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
+						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f1);
+						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f1);
+						f2Min=outputTreeAllSamplings->GetMinimum(branch_name_f2)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f2);
+						f2Max=outputTreeAllSamplings->GetMaximum(branch_name_f2)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f2);
+						if(isSstate){
+							sprintf(hist_var_name_f1,"f_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
+							sprintf(hist_var_name_f2,"f_{%s}^{%s}", ColorChannelNameTexS[k], StateNameTex[i]);
+						}
+						else{
+							sprintf(hist_var_name_f1,"f_{%s}^{%s}", ColorChannelNameTexP[j], StateNameTex[i]);
+							sprintf(hist_var_name_f2,"f_{%s}^{%s}", ColorChannelNameTexP[k], StateNameTex[i]);
+						}
+						if(j==0) sprintf(hist_var_name_f1,"R^{%s}", StateNameTex[i]);
+						if(k==0) sprintf(hist_var_name_f2,"R^{%s}", StateNameTex[i]);
+						sprintf(projectchar,"%s:%s>>%s",branch_name_f2, branch_name_f1, h_2DLDME_name);
+						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						h_2DLDME[j][k] 	= new TH2D( h_2DLDME_name, h_2DLDME_name, nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
+						outputTreeAllSamplings->Draw(projectchar, selectchar);
+
+
+
+						  TCanvas *c1 = new TCanvas("c1", "c1", 10, 28, 650,571);
+						  c1->Range(-237.541,-66.47556,187.377,434.8609);
+						  c1->SetFillColor(0);
+						  c1->SetBorderMode(0);
+						  c1->SetBorderSize(0);
+						  c1->SetLeftMargin(0.215);
+						  c1->SetRightMargin(0.03);
+						  c1->SetTopMargin(0.01841621);
+						  c1->SetBottomMargin(0.16);
+						  c1->SetFrameBorderMode(0);
+
+
+						  TH2D* h_2DLDME_axis;
+						  h_2DLDME_axis 	= new TH2D( Form("%s_axis",h_2DLDME_name), Form("%s_axis",h_2DLDME_name), nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
+
+						  char DrawContourStyle[200];
+						  sprintf(DrawContourStyle,"cont2,same");
+						  int LineWidth=4;
+						  int LineStyle=2;
+
+						  h_2DLDME_axis->GetXaxis()->SetTitle(hist_var_name_f1);
+						  h_2DLDME_axis->GetXaxis()->SetLabelOffset(0.028);
+						  h_2DLDME_axis->GetXaxis()->SetTitleSize(0.05);
+						  h_2DLDME_axis->GetXaxis()->SetTickLength(-0.03);
+						  h_2DLDME_axis->GetXaxis()->SetTitleOffset(1.4);
+						  h_2DLDME_axis->GetYaxis()->SetTitle(hist_var_name_f2);
+						  h_2DLDME_axis->GetYaxis()->SetLabelOffset(0.032);
+						  h_2DLDME_axis->GetYaxis()->SetTitleSize(0.05);
+						  h_2DLDME_axis->GetYaxis()->SetTickLength(-0.03);
+						  h_2DLDME_axis->GetYaxis()->SetTitleOffset(1.95);
+						  h_2DLDME_axis->SetTitle(0);
+						  h_2DLDME_axis->SetStats(0);
+						  h_2DLDME_axis->Draw("");
+
+						  setContourHistogram ( h_2DLDME[j][k] );
+						  h_2DLDME[j][k]->SetLineColor( kGreen+2 );
+						  h_2DLDME[j][k]->SetLineWidth( LineWidth );
+						  h_2DLDME[j][k]->SetLineStyle( LineStyle  );
+						  h_2DLDME[j][k]->SetTitle(0);
+						  h_2DLDME[j][k]->SetStats(0);
+						  h_2DLDME[j][k]->Draw( DrawContourStyle );
+
+						  char filename[200];
+						  sprintf(filename,"%s/Figures",jobdirname);
+						  gSystem->mkdir(filename);
+						  sprintf(filename,"%s/2D_PPD_contours_state%d_f%d_vs_f%d.pdf",filename, i,j,k);
+						  c1->SaveAs(filename);
+						  c1->Close();
+
+						  delete c1;
+
+					}
+				}
+			}
+		}
+
+
 
 
 
@@ -680,7 +800,7 @@ void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPV
 		MPVerrorHigh=PosteriorDist->GetRMS();
 	}
 
-	if(MPValgo==2||MPValgo==3){
+	if(MPValgo==2||MPValgo==3||MPValgo==4){
 
 		int nBins = PosteriorDist->GetNbinsX();
 		int maxbin_PosteriorDist = PosteriorDist->GetMaximumBin();
@@ -690,21 +810,25 @@ void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPV
 
 		TF1 *gauss;
 
-		int nMaxFits=1;
-		if(MPValgo==3) nMaxFits=20;
-		for(int iFits=0;iFits<nMaxFits;iFits++){
-			gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
-			gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
-			PosteriorDist->Fit(gauss, "R");
-			gauss->GetParameters(PosteriorDist_par);
-			double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
-			cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
-			PosteriorDist_initial=PosteriorDist_par[1];
-			err_PosteriorDist_initial=err_PosteriorDist_initial/2;
-			if(gauss->GetChisquare()/ndof<5) break;
-			if(iFits==nMaxFits-1) illPPD=true;
+		if(MPValgo==4) MPV=PosteriorDist_initial;
+		else{
+			int nMaxFits=1;
+			if(MPValgo==3) nMaxFits=20;
+			for(int iFits=0;iFits<nMaxFits;iFits++){
+				gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
+				gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
+				PosteriorDist->Fit(gauss, "R");
+				gauss->GetParameters(PosteriorDist_par);
+				double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
+				cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
+				PosteriorDist_initial=PosteriorDist_par[1];
+				err_PosteriorDist_initial=err_PosteriorDist_initial/2;
+				double chi2max=4.;
+				if(gauss->GetChisquare()/ndof<chi2max) {cout<<"chi2 < "<<chi2max<<" -> good enough"<<endl; break;}
+				if(iFits==nMaxFits-1) illPPD=true;
+			}
+			MPV=PosteriorDist_par[1];
 		}
-		MPV=PosteriorDist_par[1];
 
 		double OneSigmaCL;
 		if(nSigma==1) OneSigmaCL=0.682689492137;

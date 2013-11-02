@@ -27,6 +27,7 @@
 #include "TRandom3.h"
 #include "TSystem.h"
 #include "TBranch.h"
+#include "TLatex.h"
 #include "TLine.h"
 #include "TLegend.h"
 #include "TStyle.h"
@@ -40,11 +41,15 @@
 using namespace NRQCDvars;
 
 
-void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing);
+void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
 
 int main(int argc, char** argv) {
+
+
+	bool HPbool=true;
+
 
   	Char_t *JobID = "Default";
   	Char_t *ModelID = "Default";
@@ -275,6 +280,34 @@ int main(int argc, char** argv) {
     in.close();
 
 
+	sprintf(inname,"%s/chi2ndf.txt",jobdirname);
+	cout<<"read chi2 from "<<inname<<endl;
+
+  	double chi2Min;
+  	double reduced_chi2Min;
+  	int nDataPoints;
+  	int nOps;
+  	int ndf;
+
+    in.open(inname);//, std::ofstream::app);
+
+	in >> chi2Min;
+	in >> nDataPoints;
+	in >> nOps;
+	in >> ndf;
+	in >> reduced_chi2Min;
+
+    in.close();
+
+    cout<<"chi2Min:"<<chi2Min<<endl;
+    cout<<"nDataPoints:"<<nDataPoints<<endl;
+    cout<<"nOps:"<<nOps<<endl;
+    cout<<"ndf:"<<ndf<<endl;
+    cout<<"reduced_chi2Min:"<<reduced_chi2Min<<endl;
+
+    double chi2Prob=TMath::Prob(chi2Min, ndf);
+
+
 	dmatrix Np_US_MPV; //Uncertainty scales, [0=Data, 1=Model][nScales]
 	dmatrix Np_US_errlow; //Uncertainty scales, [0=Data, 1=Model][nScales]
 	dmatrix Np_US_errhigh; //Uncertainty scales, [0=Data, 1=Model][nScales]
@@ -385,6 +418,7 @@ int main(int argc, char** argv) {
 	//	}
 	//}
 
+	double pTMinModel=pTMin;
 
 
     cout<<"Loop through data to plot:"<<endl;
@@ -395,6 +429,7 @@ int main(int argc, char** argv) {
 		for(int iMeasurementID=0; iMeasurementID < NRQCDvars::nMeasurementIDs; iMeasurementID++){
 			for(int iExperiment=0; iExperiment < NRQCDvars::nExperiments; iExperiment++){
 
+		    	//cout<<"Plot iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<endl;
 
 				NRQCDglobalfitObject *DataModelObject[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 				bool DataPresentAndSelected[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -442,6 +477,14 @@ int main(int argc, char** argv) {
 								&& DataModelObject[iRap][iP]->getyMax() <= rapMax
 							) DataSelected=true;
 
+							if(
+								HPbool
+								&& DataModelObject[iRap][iP]->getpTMax() <= pTMax
+								&& DataModelObject[iRap][iP]->getyMin() >= rapMin
+								&& DataModelObject[iRap][iP]->getyMax() <= rapMax
+							) DataSelected=true;
+
+							if(DataModelObject[iRap][iP]->getpTMin() >= 29 && iMeasurementID==1 && pTMin==35) DataSelected=true;
 
 							if(useSstatesOnly && StateQuantumID[DataModelObject[iRap][iP]->getState()] != NRQCDvars::quID_S)
 								DataSelected=false;
@@ -523,6 +566,8 @@ int main(int argc, char** argv) {
 
 							bool LoopThroughPPD=false;
 							if(MinimizerMH) LoopThroughPPD=true;
+
+							//LoopThroughPPD=false;
 
 						    if(!LoopThroughPPD){
 
@@ -624,7 +669,7 @@ int main(int argc, char** argv) {
 								}
 
 
-								sprintf(outname,"%s/tmp.root",jobdirname);
+								sprintf(outname,"%s/ModelPrediction_exp%d_meas%d_state%d_pt%d_rap%d.root",jobdirname, iExperiment, iMeasurementID, iState, iP, iRap);
 						    	TFile *DummyFile = new TFile(outname, "RECREATE");
 
 						      	TTree*  ModelPredictionTree;
@@ -760,6 +805,11 @@ int main(int argc, char** argv) {
 
 
 								FindMPV(h_ModelPrediction[0], buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+								cout<<"nSigma "<<nSigma<<endl;
+								cout<<"MPValgo "<<MPValgo<<endl;
+								cout<<"buff_MPV "<<buff_MPV<<endl;
+								cout<<"buff_errlow "<<buff_errlow<<endl;
+								cout<<"buff_errhigh "<<buff_errhigh<<endl;
 
 								if(iExperiment==0 && iMeasurementID==0 && iRap==0 && iP==3){
 									h_ModelPrediction[0]->SaveAs("tmp_Modelpred.root");
@@ -788,24 +838,34 @@ int main(int argc, char** argv) {
 									model_centralval.push_back(buff_MPV);
 									model_errlow_centralval.push_back(fabs(buff_errlow));
 									model_errhigh_centralval.push_back(fabs(buff_errhigh));
+									cout<<"model_centralval "<<buff_MPV<<endl;
+									cout<<"model_errlow_centralval "<<fabs(buff_errlow)<<endl;
+									cout<<"model_errhigh_centralval "<<fabs(buff_errhigh)<<endl;
 									FindMPV(h_ModelPrediction[1], buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
 									polCorrFactorVec.push_back(buff_MPV);
+
 								}
 								else{
 									model_centralval.push_back(ModelPrediction);
-									model_errlow_centralval.push_back(fabs(buff_errlow)+ModelPrediction-buff_MPV);
-									model_errhigh_centralval.push_back(fabs(buff_errhigh)-ModelPrediction+buff_MPV);
+									//model_errlow_centralval.push_back(fabs(buff_errlow)+ModelPrediction-buff_MPV);
+									//model_errhigh_centralval.push_back(fabs(buff_errhigh)-ModelPrediction+buff_MPV);
+									model_errlow_centralval.push_back(fabs(buff_errlow));
+									model_errhigh_centralval.push_back(fabs(buff_errhigh));
 									polCorrFactorVec.push_back(polCorrFactor);
+
+									cout<<"model_centralval "<<ModelPrediction<<endl;
+									cout<<"model_errlow_centralval "<<fabs(buff_errlow)<<endl;
+									cout<<"model_errhigh_centralval "<<fabs(buff_errhigh)<<endl;
 								}
 
 
-								//ModelPredictionTree->Write();
+								ModelPredictionTree->Write();
 								DummyFile->Close();
 
 								delete DummyFile;
 								delete ResultsFile;
 
-								gSystem->Unlink(outname);
+								//gSystem->Unlink(outname);
 								//cout<<"end loop"<<endl;
 
 						    }
@@ -958,6 +1018,8 @@ int main(int argc, char** argv) {
 						TGraph *data_Graph_nopolcorr = new TGraph(nPtBinsSel,d_data_pTmean,d_data_centralval_nopolcorr);
 
 						model_Graph->Print();
+						model_Graph_low->Print();
+						model_Graph_high->Print();
 
 						//Make TGraphs for model contributions
 						const int StatesCont_c=StatesCont;
@@ -1003,9 +1065,17 @@ int main(int argc, char** argv) {
 
 
 						char rapchar[200];
-						if(isAbsRap) sprintf(rapchar,"%1.1f < |y| < %1.1f",rapMinObject, rapMaxObject);
-						else sprintf(rapchar,"%1.1f < y < %1.1f",rapMinObject, rapMaxObject);
-						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, data_Graph_nopolcorr, StatesContributing_);
+						if(isAbsRap) sprintf(rapchar,"%1.1f < |#it{y}| < %1.1f",rapMinObject, rapMaxObject);
+						else sprintf(rapchar,"%1.1f < #it{y} < %1.1f",rapMinObject, rapMaxObject);
+
+						bool longrapchar=true;
+
+						if(isAbsRap&&rapMinObject<1e-3){
+							sprintf(rapchar,"|#it{y}| < %1.1f", rapMaxObject);
+							longrapchar=false;
+						}
+
+						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, data_Graph_nopolcorr, StatesContributing_, chi2Min, chi2Prob, ndf, HPbool, pTMinModel, longrapchar);
 
 				}
 
@@ -1034,7 +1104,7 @@ int main(int argc, char** argv) {
 
 
 
-void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing){
+void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar){
 	gROOT->Reset();
 	gStyle->SetOptStat(11);
 	gStyle->SetOptFit(101);
@@ -1057,24 +1127,39 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	double y_min;
 	double y_max;
 	if(iMeasurementID==0) { y_min=5e-2; y_max =1e1; }
-	if(iMeasurementID==1) { y_min=-2.3; y_max =1.3; }
+	if(iMeasurementID==1) { y_min=-1.3; y_max =1.3; }
 	if(iMeasurementID==2) { y_min=-0.7; y_max =0.7; }
 	if(iMeasurementID==3) { y_min=-0.7; y_max =0.7; }
 
 	if(iMeasurementID==0) { y_min=1e-3; y_max =1.5e1; }
-	if(iMeasurementID==0 && iExperiment==1) { y_min=1e-3; y_max =1e3; }
+	if(iMeasurementID==0 && iExperiment==1) { y_min=1e-1; y_max =1.5e2; }
 	if(iMeasurementID==0) { x_min=8; x_max=50; }
-	if(iMeasurementID==0 && iExperiment==1) { x_min=2; x_max=17; }
+	if(iMeasurementID==0 && iExperiment==1) { x_min=2; x_max=15; }
 	if(iMeasurementID!=0) { x_min=8; x_max=65; }
+
+	//Ups3S
+
+	if(iState==10){
+
+		if(iMeasurementID==0) { y_min=1e-6; y_max =1e-1; x_min=20; x_max =135;  }
+		if(iMeasurementID==1) { y_min=-1.3; y_max =1.3; x_min=8; x_max =70; }
+		if(iMeasurementID==2) { y_min=-0.7; y_max =0.7; x_min=8; x_max =70;  }
+		if(iMeasurementID==3) { y_min=-0.7; y_max =0.7; x_min=8; x_max =70;  }
+
+	}
+
 
 	TH1F *axishist = new TH1F;
 	axishist = plotCanvas->DrawFrame(x_min,y_min,x_max,y_max);
 
 	axishist->SetTitle(0);
 	axishist->GetXaxis()->SetTitle("#it{p}_{T} [GeV]");
-	axishist->GetYaxis()->SetTitle(Form("%s",NRQCDvars::MeasurementIDNameTex[iMeasurementID]));
+	if(iMeasurementID==0) axishist->GetYaxis()->SetTitle(Form("%s",NRQCDvars::MeasurementIDNameTex[iMeasurementID]));
+	else axishist->GetYaxis()->SetTitle("");
 	axishist->GetYaxis()->SetTitleSize(0.05);
-	axishist->GetYaxis()->SetTitleOffset(1.);
+	axishist->GetXaxis()->SetTitleSize(0.05);
+	axishist->GetYaxis()->SetTitleOffset(0.8);
+	axishist->GetXaxis()->SetTitleOffset(1.1);
 
 
 
@@ -1082,18 +1167,56 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	int colorModel=600;
 	int colorData_nopolcorr=418;
 	double linewidthModel=2;
-	double linewidthModel_nopolcorr=1;
 	double linewidthModelErrors=1;
 
 	int colorCC[6]={435, 1, 1, 1, 1, 1};//{632, 418, 616, 800, 0, 0};
-	int colorCC_neg=632;
+	int colorCC_neg[6]={632, 632, 632, 632, 632, 632};
 	int colorFD[6]={418, 616, 800, 632, 0, 0};
 	int linestyleCC[6]={4, 5, 7, 9, 10, 6};
+	int linestyleCC_neg[6]={4, 5, 7, 9, 10, 6};
 	int linestyleFD=3;
+	int MarkerStyle[6]={21, 24, 25, 26, 27, 28};//{632, 418, 616, 800, 0, 0};
 	double linewidthCC=1;
 	double linewidthFD=1;
 
 
+	if(HPbool){
+
+		colorData=1;
+		colorModel=1;
+		linewidthModel=2;
+		linewidthModelErrors=1;
+		linewidthCC=1;
+
+
+		colorCC[0]=921;
+		colorCC[1]=418;
+		colorCC[2]=632;
+		colorCC[3]=435;
+		colorCC[4]=1;
+		colorCC[5]=1;
+
+		colorCC_neg[0]=921;
+		colorCC_neg[1]=418;
+		colorCC_neg[2]=632;
+		colorCC_neg[3]=435;
+		colorCC_neg[4]=1;
+		colorCC_neg[5]=1;
+
+		linestyleCC[0]=1;
+		linestyleCC[1]=1;
+		linestyleCC[2]=1;
+		linestyleCC[3]=1;
+		linestyleCC[4]=1;
+		linestyleCC[5]=1;
+		linestyleCC_neg[0]=2;
+		linestyleCC_neg[1]=2;
+		linestyleCC_neg[2]=2;
+		linestyleCC_neg[3]=2;
+		linestyleCC_neg[4]=2;
+		linestyleCC_neg[5]=2;
+
+	}
 
 
 	data_Graph->SetMarkerStyle(20);
@@ -1111,63 +1234,174 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	model_Graph->SetLineWidth(linewidthModel);
 	model_Graph->SetFillColor(colorModel);
 
+	model_Graph->SetMarkerStyle(MarkerStyle[0]);
+	model_Graph->SetMarkerSize(1.5);
+	model_Graph->SetMarkerColor(colorModel);
+
+
 	model_Graph_low->SetLineColor(colorModel);
-	model_Graph_low->SetLineStyle(2);
+	model_Graph_low->SetLineStyle(3);
 	model_Graph_low->SetLineWidth(linewidthModelErrors);
 	model_Graph_low->SetFillColor(colorModel);
 
 	model_Graph_high->SetLineColor(colorModel);
-	model_Graph_high->SetLineStyle(2);
+	model_Graph_high->SetLineStyle(3);
 	model_Graph_high->SetLineWidth(linewidthModelErrors);
 	model_Graph_high->SetFillColor(colorModel);
 
+	cout<<"pTMinModel = "<<pTMinModel<<endl;
+	cout<<"model_Graph->GetN() = "<<model_Graph->GetN()<<endl;
+
+	bool PlotModel=true;
+	if(iExperiment==1 && pTMinModel>9.99) PlotModel=false;
+
+	if(HPbool){
+		int nGraph=model_Graph->GetN();
+		int jTG=0;
+		for(int j=0;j<nGraph;j++){
+			cout<<"j = "<<j<<endl;
+			cout<<"jTG = "<<jTG<<endl;
+			model_Graph->Print();
+			double buffx, buffy;
+			model_Graph->GetPoint(jTG, buffx, buffy);
+			cout<<"working bin at pT = "<<buffx<<endl;
+			if(buffx<pTMinModel){
+				if(iExperiment==1){
+					cout<<"remove bin at pT = "<<buffx<<endl;
+				}
+				model_Graph->RemovePoint(0);
+				jTG--;
+			}
+
+			jTG++;
+		}
+		nGraph=model_Graph_low->GetN();
+		jTG=0;
+		for(int j=0;j<nGraph;j++){
+			double buffx, buffy;
+			model_Graph_low->GetPoint(jTG, buffx, buffy);
+			if(buffx<pTMinModel){
+				model_Graph_low->RemovePoint(jTG);
+				jTG--;
+			}
+
+			jTG++;
+		}
+		nGraph=model_Graph_high->GetN();
+		jTG=0;
+		for(int j=0;j<nGraph;j++){
+			double buffx, buffy;
+			model_Graph_high->GetPoint(jTG, buffx, buffy);
+			if(buffx<pTMinModel){
+				model_Graph_high->RemovePoint(jTG);
+				jTG--;
+			}
+
+			jTG++;
+		}
+	}
 
 
 
-	int nLegendEntries=2;
+	int nLegendEntries=1;
 	if(plotDirectColorChannels) nLegendEntries+=ColorChannels_c;
 	if(plotIndividualFeedDown) nLegendEntries+=StatesCont_c;
 	if(plotInclusiveFeedDown) nLegendEntries+=1;
 
 	if(iMeasurementID==0) nLegendEntries++;
 
+	if(iMeasurementID==0&&HPbool) nLegendEntries--;
 
 
-	//TLine* extreme0 = new TLine( pTmin, 0, pTmax, 0);
-	//extreme0->SetLineWidth( 1 );
-	//extreme0->SetLineStyle( 2 );
-	//extreme0->SetLineColor( kBlack );
-	//extreme0->Draw( "same" );
+	double buff_pT;
+	double buff_errpT_low;
+	double buff_errpT_high;
+	double buff_res;
+	double buff_errres;
 
-	//data_Graph->Draw("ap");
-	model_Graph->Draw("Csame");
-	model_Graph_low->Draw("Csame");
-	model_Graph_high->Draw("Csame");
+	bool singlePointModel=false;
+	if(model_Graph->GetN()<2){
+		singlePointModel=true;
+
+		double buffModel_pT, buffModel_res;
+		double buffData_pT, buffData_err_pTlow, buffData_err_pThigh, buffData_res;
+		model_Graph->GetPoint(0, buffModel_pT, buffModel_res);
+
+		for(int iData=0; iData<data_Graph->GetN();iData++){
+			data_Graph->GetPoint(iData, buffData_pT, buffData_res);
+			buffData_err_pTlow=data_Graph->GetErrorXlow(iData);
+			buffData_err_pThigh=data_Graph->GetErrorXhigh(iData);
+			if(buffData_pT-buffData_err_pTlow<buffModel_pT && buffData_pT+buffData_err_pThigh>buffModel_pT){
+				buff_pT=buffData_pT;
+				buff_errpT_low=buffData_err_pTlow;
+				buff_errpT_high=buffData_err_pThigh;
+			}
+		}
+	}
+
+	if(PlotModel){
+		model_Graph->Draw("lsame");
+		if(singlePointModel){
+			double buffModel_pT, buffModel_res;
+			model_Graph->GetPoint(0, buffModel_pT, buffModel_res);
+			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+			modelReplacement->SetLineColor(colorModel);
+			modelReplacement->SetLineStyle(1);
+			modelReplacement->SetLineWidth(linewidthModel);
+			modelReplacement->Draw( "same" );
+		}
+		model_Graph_low->Draw("lsame");
+		if(singlePointModel){
+			double buffModel_pT, buffModel_res;
+			model_Graph_low->GetPoint(0, buffModel_pT, buffModel_res);
+			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+			modelReplacement->SetLineColor(model_Graph_low->GetLineColor());
+			modelReplacement->SetLineStyle(model_Graph_low->GetLineStyle());
+			modelReplacement->SetLineWidth(model_Graph_low->GetLineWidth());
+			modelReplacement->Draw( "same" );
+		}
+		model_Graph_high->Draw("lsame");
+		if(singlePointModel){
+			double buffModel_pT, buffModel_res;
+			model_Graph_high->GetPoint(0, buffModel_pT, buffModel_res);
+			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+			modelReplacement->SetLineColor(model_Graph_high->GetLineColor());
+			modelReplacement->SetLineStyle(model_Graph_high->GetLineStyle());
+			modelReplacement->SetLineWidth(model_Graph_high->GetLineWidth());
+			modelReplacement->Draw( "same" );
+		}
+	}
 	data_Graph->Draw("psame");
 
-	if(iMeasurementID==0) data_Graph_nopolcorr->Draw("psame");
+	if(iMeasurementID==0) if(!HPbool) data_Graph_nopolcorr->Draw("psame");
+
 
 
 	double delta_y_legend=0.085*nLegendEntries;
 	double max_y_legend;
 	double min_x_legend=0.65;
 	double max_x_legend=0.95;
-	if(iMeasurementID==0) max_y_legend=0.95;
-	if(iMeasurementID>0 && iMeasurementID<4) max_y_legend=0.95;
+	min_x_legend=0.775;
+	if(iMeasurementID==0) max_y_legend=0.85;
+	if(iMeasurementID>0 && iMeasurementID<4) max_y_legend=0.85;
 
 	TLegend* legend;
 	legend = new TLegend(min_x_legend,max_y_legend-delta_y_legend,max_x_legend,max_y_legend);
 	legend->SetFillColor(0);
-	legend->SetTextSize(0.03);
+	legend->SetTextSize(0.04);
 	legend->SetBorderSize(0);
-	legend->AddEntry(data_Graph,Form("%s %s, %s", ExpName[iExperiment], StateNameTex[iState], rapchar),"lp");
-	if(iMeasurementID==0) legend->AddEntry(data_Graph_nopolcorr,Form("%s %s (#vec{#lambda}=0)", ExpName[iExperiment], StateNameTex[iState]),"p");
-	legend->AddEntry(model_Graph,"NRQCD inclusive model","l");
+	legend->AddEntry(data_Graph,Form("%s", ExpName[iExperiment]),"lp");
+	if(iMeasurementID==0) if(!HPbool) legend->AddEntry(data_Graph_nopolcorr,Form("%s %s (#vec{#lambda}=0)", ExpName[iExperiment], StateNameTex[iState]),"p");
+
+	if(PlotModel){
+		if(model_Graph->GetN()>1) legend->AddEntry(model_Graph,"Total","l");
+		else legend->AddEntry(model_Graph,"Total","l");
+	}
 
 	TGraph* model_Graph_ColorChannels_neg[ColorChannels_c];
 	TGraph* model_Graph_ColorChannels_pos[ColorChannels_c];
 
-	if(plotDirectColorChannels){
+	if(plotDirectColorChannels&&PlotModel){
 		//cout<<"ColorChannels_c "<<ColorChannels_c<<endl;
 		bool PlotNegChannels[ColorChannels_c];
 		bool PlotPosChannels[ColorChannels_c];
@@ -1180,6 +1414,27 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 			model_Graph_ColorChannels[i]->SetLineColor(colorCC[i]);
 			model_Graph_ColorChannels[i]->SetLineStyle(linestyleCC[i]);
 			model_Graph_ColorChannels[i]->SetLineWidth(linewidthCC);
+
+			model_Graph_ColorChannels[i]->SetMarkerStyle(MarkerStyle[i+1]);
+			model_Graph_ColorChannels[i]->SetMarkerSize(1.5);
+			model_Graph_ColorChannels[i]->SetMarkerColor(colorCC[i]);
+
+
+
+			if(HPbool){
+				int nGraph=model_Graph_ColorChannels[i]->GetN();
+				int jTG=0;
+				for(int j=0;j<nGraph;j++){
+					double buffx, buffy;
+					model_Graph_ColorChannels[i]->GetPoint(jTG, buffx, buffy);
+					if(buffx<pTMinModel){
+						model_Graph_ColorChannels[i]->RemovePoint(jTG);
+						jTG--;
+					}
+
+					jTG++;
+				}
+			}
 
 			//Check if plotting of neg component is necessary
 			for(int j=0;j<model_Graph_ColorChannels[i]->GetN();j++){
@@ -1207,8 +1462,8 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 				model_Graph_ColorChannels_pos[i]->SetLineStyle(linestyleCC[i]);
 				model_Graph_ColorChannels_pos[i]->SetLineWidth(linewidthCC);
 				model_Graph_ColorChannels_neg[i] = new TGraph(model_Graph_ColorChannels[i]->GetN(), set_buffx, set_buffy);
-				model_Graph_ColorChannels_neg[i]->SetLineColor(colorCC_neg);
-				model_Graph_ColorChannels_neg[i]->SetLineStyle(linestyleCC[i]);
+				model_Graph_ColorChannels_neg[i]->SetLineColor(colorCC_neg[i]);
+				model_Graph_ColorChannels_neg[i]->SetLineStyle(linestyleCC_neg[i]);
 				model_Graph_ColorChannels_neg[i]->SetLineWidth(linewidthCC);
 
 				bool isContributionPositive[model_Graph_ColorChannels[i]->GetN()];
@@ -1246,24 +1501,77 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 			if(!PlotNegChannels[i]){
 				model_Graph_ColorChannels[i]->Draw("lsame");
+				if(singlePointModel){
+					double buffModel_pT, buffModel_res;
+					model_Graph_ColorChannels[i]->GetPoint(0, buffModel_pT, buffModel_res);
+					TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+					modelReplacement->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
+					modelReplacement->SetLineStyle(model_Graph_ColorChannels[i]->GetLineStyle());
+					modelReplacement->SetLineWidth(model_Graph_ColorChannels[i]->GetLineWidth());
+					modelReplacement->Draw( "same" );
+				}
+
 				cout<<"model_Graph_ColorChannels["<<i<<"]:"<<endl;
 				model_Graph_ColorChannels[i]->Print();
-				if(isSstate) legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
-				else legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
+				//if(model_Graph_ColorChannels[i]->GetN()>1){
+					//if(isSstate) legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
+					//else legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
+					if(isSstate) legend->AddEntry(model_Graph_ColorChannels[i],Form("%s", ColorChannelNameTexS[i]),"l");
+					else legend->AddEntry(model_Graph_ColorChannels[i],Form("%s", ColorChannelNameTexP[i]),"l");
+				//	}
+				//else{
+				//	//if(isSstate) legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"p");
+				//	//else legend->AddEntry(model_Graph_ColorChannels[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"p");
+				//	if(isSstate) legend->AddEntry(model_Graph_ColorChannels[i],Form("%s", ColorChannelNameTexS[i]),"l");
+				//	else legend->AddEntry(model_Graph_ColorChannels[i],Form("%s", ColorChannelNameTexP[i]),"p");
+				//}
+
 			}
 			if(PlotNegChannels[i]){
 				if(PlotPosChannels[i]){
 					model_Graph_ColorChannels_pos[i]->Draw("lsame");
+					if(singlePointModel){
+						double buffModel_pT, buffModel_res;
+						model_Graph_ColorChannels_pos[i]->GetPoint(0, buffModel_pT, buffModel_res);
+						TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+						modelReplacement->SetLineColor(model_Graph_ColorChannels_pos[i]->GetLineColor());
+						modelReplacement->SetLineStyle(model_Graph_ColorChannels_pos[i]->GetLineStyle());
+						modelReplacement->SetLineWidth(model_Graph_ColorChannels_pos[i]->GetLineWidth());
+						modelReplacement->Draw( "same" );
+					}
+
 					cout<<"model_Graph_ColorChannels_pos["<<i<<"]:"<<endl;
 					model_Graph_ColorChannels_pos[i]->Print();
-					if(isSstate) legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
-					else legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
-				}
+					//if(model_Graph_ColorChannels_pos[i]->GetN()>1){
+						//if(isSstate) legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
+						//else legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
+						if(isSstate) legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("%s", ColorChannelNameTexS[i]),"l");
+						else legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("%s", ColorChannelNameTexP[i]),"l");
+					//}
+					//else{
+					//	//if(isSstate) legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"p");
+					//	//else legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"p");
+					//	if(isSstate) legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("%s", ColorChannelNameTexS[i]),"p");
+					//	else legend->AddEntry(model_Graph_ColorChannels_pos[i],Form("%s", ColorChannelNameTexP[i]),"p");
+					//}
+
+					}
 				model_Graph_ColorChannels_neg[i]->Draw("lsame");
+				if(singlePointModel){
+					double buffModel_pT, buffModel_res;
+					model_Graph_ColorChannels_neg[i]->GetPoint(0, buffModel_pT, buffModel_res);
+					TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+					modelReplacement->SetLineColor(model_Graph_ColorChannels_neg[i]->GetLineColor());
+					modelReplacement->SetLineStyle(model_Graph_ColorChannels_neg[i]->GetLineStyle());
+					modelReplacement->SetLineWidth(model_Graph_ColorChannels_neg[i]->GetLineWidth());
+					modelReplacement->Draw( "same" );
+				}
 				cout<<"model_Graph_ColorChannels_neg["<<i<<"]:"<<endl;
 				model_Graph_ColorChannels_neg[i]->Print();
-				if(isSstate) legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("(neg.) Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
-				else legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("(neg.) Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
+				//if(isSstate) legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("(neg.) Direct production, O_{%s}^{%s}", ColorChannelNameTexS[i], StateNameTex[iState]),"l");
+				//else legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("(neg.) Direct production, O_{%s}^{%s}", ColorChannelNameTexP[i], StateNameTex[iState]),"l");
+				if(isSstate) legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("%s (neg.)", ColorChannelNameTexS[i]),"l");
+				else legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("%s (neg.)", ColorChannelNameTexP[i]),"l");
 
 			}
 
@@ -1295,19 +1603,45 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	}
 
 
-	legend->Draw("same");
+	if(PlotModel) legend->Draw("same");
 
 	////draw latex
-	//double left=0.155, top=0.92, textSize=0.045;
-	//TLatex *latex=new TLatex();
-	//latex->SetTextFont(42);
-	//latex->SetNDC(kTRUE);
-	//latex->SetTextSize(textSize);
+	double left=0.725, top=0.1875, textSize=0.03625;
+	TLatex *latex=new TLatex();
+	latex->SetTextFont(42);
+	latex->SetNDC(kTRUE);
+	latex->SetTextSize(textSize);
 	//double stepLatex=textSize*1.3;
-	//
-	//latex->DrawLatex(left,top, "pp  #sqrt{s} = 7 TeV");
+
+	if(chi2Min>1e-2 && chi2Min<998) latex->DrawLatex(left,top, Form("#chi^{2} / ndf = %1.1f / %d", chi2Min, ndf));
+	top=0.25;
+	if(chi2Min>1e-2 && chi2Min<998) latex->DrawLatex(left,top, Form("P(#chi^{2}, ndf) = %1.2G", chi2Prob));
 
 	if(iMeasurementID==0) plotCanvas->SetLogy(true);
+
+	left=0.725; top=0.895;
+	if(longrapchar) left=0.68125;
+	textSize=0.05;
+	latex->SetTextFont(42);
+	latex->SetTextSize(textSize);
+	latex->DrawLatex(left,top, Form("%s, %s", StateNameTex[iState], rapchar));
+
+	if(!PlotModel){
+		left=0.7875; top=0.825;
+		textSize=0.05;
+		latex->SetTextFont(42);
+		latex->SetTextSize(textSize);
+		latex->DrawLatex(left,top, Form("%s", ExpName[iExperiment]));
+
+	}
+
+	left=0.03; top=0.55;
+	textSize=0.08;
+	latex->SetTextFont(42);
+	latex->SetTextSize(textSize);
+	if(iMeasurementID==1) latex->DrawLatex(left,top, "#lambda_{#vartheta}^{#scale[0.7]{HX}}");
+	if(iMeasurementID==2) latex->DrawLatex(left,top, "#lambda_{#varphi}^{#scale[0.7]{HX}}");
+	if(iMeasurementID==3) latex->DrawLatex(left,top, "#lambda_{#vartheta#varphi}^{#scale[0.7]{HX}}");
 
 	char savename[1000];
 	sprintf(savename,"%s/Figures/DataModelComp_%s_%s_%s_rap%d.pdf",jobdirname, ExpName[iExperiment], StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
@@ -1388,7 +1722,7 @@ void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPV
 		MPVerrorHigh=PosteriorDist->GetRMS();
 	}
 
-	if(MPValgo==2||MPValgo==3){
+	if(MPValgo==2||MPValgo==3||MPValgo==4){
 
 		int nBins = PosteriorDist->GetNbinsX();
 		int maxbin_PosteriorDist = PosteriorDist->GetMaximumBin();
@@ -1398,21 +1732,25 @@ void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPV
 
 		TF1 *gauss;
 
-		int nMaxFits=1;
-		if(MPValgo==3) nMaxFits=20;
-		for(int iFits=0;iFits<nMaxFits;iFits++){
-			gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
-			gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
-			PosteriorDist->Fit(gauss, "R");
-			gauss->GetParameters(PosteriorDist_par);
-			double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
-			cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
-			PosteriorDist_initial=PosteriorDist_par[1];
-			err_PosteriorDist_initial=err_PosteriorDist_initial/2;
-			if(gauss->GetChisquare()/ndof<5) break;
-			if(iFits==nMaxFits-1) illPPD=true;
-		}
-		MPV=PosteriorDist_par[1];
+		if(MPValgo==4) MPV=PosteriorDist_initial;
+				else{
+					int nMaxFits=1;
+					if(MPValgo==3) nMaxFits=20;
+					for(int iFits=0;iFits<nMaxFits;iFits++){
+						gauss = new TF1("f1", "gaus", PosteriorDist_initial-err_PosteriorDist_initial, PosteriorDist_initial+err_PosteriorDist_initial);
+						gauss->SetParameters(PosteriorDist_initial,err_PosteriorDist_initial);
+						PosteriorDist->Fit(gauss, "R");
+						gauss->GetParameters(PosteriorDist_par);
+						double ndof = 2*err_PosteriorDist_initial/PosteriorDist->GetBinWidth(1)-3;
+						cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
+						PosteriorDist_initial=PosteriorDist_par[1];
+						err_PosteriorDist_initial=err_PosteriorDist_initial/2;
+						double chi2max=4.;
+						if(gauss->GetChisquare()/ndof<chi2max) {cout<<"chi2 < "<<chi2max<<" -> good enough"<<endl; break;}
+						if(iFits==nMaxFits-1) illPPD=true;
+					}
+					MPV=PosteriorDist_par[1];
+				}
 
 		double OneSigmaCL;
 		if(nSigma==1) OneSigmaCL=0.682689492137;

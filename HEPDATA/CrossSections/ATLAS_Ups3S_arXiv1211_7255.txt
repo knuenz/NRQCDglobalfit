@@ -1,6 +1,6 @@
 ATLAS, sigma*BR, sqrt(s) = 7 TeV; no polariation, arXiv:1211.7255
 values from http://hepdata.cedar.ac.uk/view/ins1204994
-yMin  yMax    pTMean   pTMin    pTMax   sigma[nb] statPos statNeg sysPos sysNeg spinPos spinNeg
+yMin  yMax    pTMean   pTMin    pTMax   sigma[fb] statPos statNeg sysPos sysNeg spinPos spinNeg
 0.0	1.2	0.5	0.0	1.0	6022.32	  +357.98   -357.98	+377.25	  -377.25	+1393.32    -1483.56	
 0.0	1.2	1.5	1.0	2.0	14021.13  +537.42   -537.42	+756.51	  -756.51	+4481.07    -3679.83	
 0.0	1.2	2.5	2.0	3.0	20711.77  +639.56   -639.56	+912.14	  -912.14	+14260.09   -5569.97	

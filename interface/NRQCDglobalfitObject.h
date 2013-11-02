@@ -275,14 +275,14 @@ class NRQCDglobalfitObject {
   dmatrix Object_OctetCompLamph_PointByPointSyst; // [nMothers][nColorChannels]
   dmatrix Object_OctetCompLamtp_PointByPointSyst; // [nMothers][nColorChannels]
 
-  dcube Object_ShortDistanceCoef_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_ShortDistanceCoef_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamth_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamth_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamph_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamph_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamtp_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales]
-  dcube Object_OctetCompLamtp_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales]
+  dcube Object_ShortDistanceCoef_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales] // Default + syst
+  dcube Object_ShortDistanceCoef_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales] // Default - syst
+  dcube Object_OctetCompLamth_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales] // Default + syst
+  dcube Object_OctetCompLamth_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales] // Default - syst
+  dcube Object_OctetCompLamph_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales] // Default + syst
+  dcube Object_OctetCompLamph_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales] // Default - syst
+  dcube Object_OctetCompLamtp_globalSystPos; // [nMothers][nColorChannels][nModelSystematicScales] // Default + syst
+  dcube Object_OctetCompLamtp_globalSystNeg; // [nMothers][nColorChannels][nModelSystematicScales] // Default - syst
 
   bool Object_isModelValid;
 

@@ -100,6 +100,14 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 
 
 
+    char outname[2000];
+    char inname[2000];
+    char predirname[2000];
+    char dirname[2000];
+    sprintf(predirname,"%s/DataID", storagedir);
+    gSystem->mkdir(predirname);
+    sprintf(dirname,"%s/%s",predirname,DataID);
+    gSystem->mkdir(dirname);
 
 
 
@@ -111,6 +119,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	  FILE *fIn;
 	  Int_t maxPTPoints[nMaxRapBins];
 	  bool LumiUncertaintyGivenOverall=false;
+	  bool noPolUncertaintyGiven_setZero=false;
 	  double RelativeLumiUncertainty=0.;
 
 	  // CrossSection Measurements:::
@@ -182,17 +191,19 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 			 break;
 		 case NRQCDvars::CMS:
 			 switch( nState ){
-//			 case NRQCDvars::PSI_1S:
-//				 fIn = fopen("HEPDATA/CrossSections/CMS_promptJpsi_JHEP02_2012_011.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CMS << "not found" << endl;
-//	             }
-//				 nRapBins=5;
-//				 maxPTPoints[0] = 10; maxPTPoints[1] = 6; maxPTPoints[2] = 11; maxPTPoints[3] = 11; maxPTPoints[4] = 6;
-//				 npTBins[0] = 10; npTBins[1] = 6; npTBins[2] = 11;
-//				 npTBins[3] = 11; npTBins[4] = 6;
-//				 isMeasurementAvailable=true;
-//				 break;
+			 case NRQCDvars::PSI_1S:
+				 fIn = fopen("HEPDATA/CrossSections/CMS_promptJpsi_JHEP02_2012_011.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
+				 nRapBins=5;
+				 maxPTPoints[0] = 10; maxPTPoints[1] = 6; maxPTPoints[2] = 11; maxPTPoints[3] = 11; maxPTPoints[4] = 6;
+				 npTBins[0] = 10; npTBins[1] = 6; npTBins[2] = 11;
+				 npTBins[3] = 11; npTBins[4] = 6;
+				 isMeasurementAvailable=true;
+				 noPolUncertaintyGiven_setZero=true;
+				 //polarization uncertainty not yet implemented = 0
+				 break;
 			 case NRQCDvars::PSI_2S:
 				 fIn = fopen("HEPDATA/CrossSections/CMS_psiPrime_JHEP02_2012_011.txt", "read");
 	             if( !fIn ){
@@ -203,13 +214,49 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 				 npTBins[0] = 9; npTBins[1] = 7; npTBins[2] = 7;
 				 isMeasurementAvailable=true;
 				 break;
+			 case NRQCDvars::UPS_1S:
+				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups1S_2011_AN.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_1S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
+				 nRapBins=1;
+				 maxPTPoints[0] = 22;
+				 npTBins[0] = 22;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.022;
+				 break;
+			 case NRQCDvars::UPS_2S:
+				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups2S_2011_AN.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_2S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
+				 nRapBins=1;
+				 maxPTPoints[0] = 22;
+				 npTBins[0] = 22;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.022;
+				 break;
+			 case NRQCDvars::UPS_3S:
+				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_2011_AN.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS << "not found" << endl;
+	             }
+				 nRapBins=1;
+				 maxPTPoints[0] = 22;
+				 npTBins[0] = 22;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.022;
+				 break;
 			 default:
 				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
 				 break;
 			 }
 			 break;
-//		 case NRQCDvars::ATLAS:
-//			 switch( nState ){
+		 case NRQCDvars::ATLAS:
+			 switch( nState ){
 //			 case NRQCDvars::PSI_1S:
 //				 fIn = fopen("HEPDATA/CrossSections/ATLAS_promptJpsi_NPB850_2011_387.txt", "read");
 //	             if( !fIn ){
@@ -241,21 +288,23 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 //				 npTBins[0] = 25; npTBins[1] = 24;
 //				 isMeasurementAvailable=true;
 //				 break;
-//			 case NRQCDvars::UPS_3S:
-//				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups3S_arXiv1211_7255.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::ATLAS << "not found" << endl;
-//	             }
-//				 nRapBins=2;
-//				 maxPTPoints[0] = 25; maxPTPoints[1] = 24;
-//				 npTBins[0] = 25; npTBins[1] = 25;
-//				 isMeasurementAvailable=true;
-//				 break;
-//			 default:
-//				 cerr << "Error: Unknown state for ATLAS. Execution stop!" << endl;
-//				 break;
-//			 }
-//			 break;
+			 case NRQCDvars::UPS_3S:
+				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups3S_arXiv1211_7255.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	             }
+				 nRapBins=2;
+				 maxPTPoints[0] = 25; maxPTPoints[1] = 25;
+				 npTBins[0] = 25; npTBins[1] = 25;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.039;
+				 break;
+			 default:
+				 cerr << "Error: Unknown state for ATLAS. Execution stop!" << endl;
+				 break;
+			 }
+			 break;
 //		 case NRQCDvars::CDF:
 //			 switch( nState ){
 //			 case NRQCDvars::PSI_1S:
@@ -326,6 +375,10 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	  Float_t* errGlobalPos = newCVector< Float_t > (100);
 	  Float_t* errGlobalNeg = newCVector< Float_t > (100);
 
+		char outfilename[200];
+	    sprintf(outfilename,"%s/TGraphs_%s_%s_%s.root",dirname, StateName[nState],  MeasurementIDName[MeasurementID],  ExpName[nExp]);
+		TFile *outfile = new TFile(outfilename,"RECREATE");
+		char graphName[200];
 
 	  fgets(line, sizeof(line), fIn); //comment
 	  fgets(line, sizeof(line), fIn); //comment
@@ -333,36 +386,61 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	  Double_t relChangeNeg, relChangePos, scaleFac = 1.;
 	  for(int iRap = 0; iRap < nRapBins; iRap++){
 
+
 	    for(int iP = 0; iP < maxPTPoints[iRap]; iP++){
 	      fgets(line, sizeof(line), fIn);//TODO: many wrong colums! pol and lumi uncertainties mix-ups!
 
+	      if(!noPolUncertaintyGiven_setZero){
 			 if(!LumiUncertaintyGivenOverall){
-	      sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-		     &rapMin[iRap], &rapMax[iRap],
-		     &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
-		     &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
-		     &errSystPos[0][iP], &errSystNeg[0][iP],
-		     &errPolPos[iP], &errPolNeg[iP], &errLumiPos[iP], &errLumiNeg[iP]);
-
+				 sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+				 &rapMin[iRap], &rapMax[iRap],
+				 &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
+				 &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
+				 &errSystPos[0][iP], &errSystNeg[0][iP],
+				 &errPolPos[iP], &errPolNeg[iP], &errLumiPos[iP], &errLumiNeg[iP]);
 			 }
 			 else{
-	      sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f",
-		     &rapMin[iRap], &rapMax[iRap],
-		     &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
-		     &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
-		     &errSystPos[0][iP], &errSystNeg[0][iP],
-		     &errPolPos[iP], &errPolNeg[iP]);
+				 sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f",
+				 &rapMin[iRap], &rapMax[iRap],
+				 &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
+				 &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
+				 &errSystPos[0][iP], &errSystNeg[0][iP],
+				 &errPolPos[iP], &errPolNeg[iP]);
 
-	      	  errLumiPos[iP]=sigma[0][iP]*RelativeLumiUncertainty;
-	      	  errLumiNeg[iP]=errLumiPos[iP];
-
-
+				 errLumiPos[iP]=sigma[0][iP]*RelativeLumiUncertainty;
+				 errLumiNeg[iP]=errLumiPos[iP];
 			 }
+	      }
+	      else{
+			 if(!LumiUncertaintyGivenOverall){
+				 sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f %f",
+				 &rapMin[iRap], &rapMax[iRap],
+				 &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
+				 &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
+				 &errSystPos[0][iP], &errSystNeg[0][iP],
+				 &errLumiPos[iP], &errLumiNeg[iP]);
+			 }
+			 else{
+				 sscanf(line, "%f %f %f %f %f %f %f %f %f %f",
+				 &rapMin[iRap], &rapMax[iRap],
+				 &pTMean[iRap][iP], &pTMin[iRap][iP], &pTMax[iRap][iP],
+				 &sigma[0][iP], &errStatPos[0][iP], &errStatNeg[0][iP],
+				 &errSystPos[0][iP], &errSystNeg[0][iP]);
+
+				 errLumiPos[iP]=sigma[0][iP]*RelativeLumiUncertainty;
+				 errLumiNeg[iP]=errLumiPos[iP];
+			 }
+			 errPolPos[iP]=0;
+			 errPolNeg[iP]=0;
+	      }
+
 
 	      //printf("iRap %d, iP %d, pTMin %1.3f, pTMax %1.3f, sigma %1.3f, polPos %1.3f, polNeg %1.3f\n",
 		  //   iRap, iP, pTMin[iRap][iP], pTMax[iRap][iP], sigma[0][iP], errPolPos[iP], errPolNeg[iP]);
 
+
 	      Double_t deltaRap = 2*fabs(rapMax[iRap] - rapMin[iRap]);
+	      if(!NRQCDvars::isAbsRapExp[nExp]) deltaRap/=2;
 	      Double_t deltaPT = pTMax[iRap][iP] - pTMin[iRap][iP];
 
 	      pT[iP] = pTMin[iRap][iP] + 0.5*(pTMax[iRap][iP] - pTMin[iRap][iP]); //use the bin centre, since we will be fitting with a histogram!
@@ -379,9 +457,9 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	      double errTheoryNeg=0;
 
 	      switch( nState ){
-	      case NRQCDvars::PSI_1S://TODO: scale CMS, not LHCb and ALICE and CDF!!!
-			if(nExp == NRQCDvars::LHCb || nExp == NRQCDvars::ALICE){
-				scaleFac = 1 / 0.0593; //BR used by LHCb
+	      case NRQCDvars::PSI_1S:
+			if(nExp == NRQCDvars::CMS){
+				scaleFac = 0.0593; //BR Jpsi->mumu
 			}
 			else if(nExp == NRQCDvars::CDF){
 				scaleFac = 2*0.6; //correct for the rap-interval
@@ -402,14 +480,35 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 			  err_scaleFac=0;
 			}
 			break;
+	      case NRQCDvars::UPS_1S:
+			if(nExp == NRQCDvars::CMS){
+				scaleFac = 1e6; //fb --> nb
+				scaleFac*= 0.0248; //sigma*BR -> sigma
+				scaleFac*= deltaRap; //results given integrated in rapidity
+			}
+			break;
+	      case NRQCDvars::UPS_2S:
+			if(nExp == NRQCDvars::CMS){
+				scaleFac = 1e6; //fb --> nb
+				scaleFac*= 0.0193; //sigma*BR -> sigma
+				scaleFac*= deltaRap; //results given integrated in rapidity
+			}
+			break;
+	      case NRQCDvars::UPS_3S:
+			if(nExp == NRQCDvars::CMS){
+				scaleFac = 1e6; //fb --> nb
+				scaleFac*= 0.0218; //sigma*BR -> sigma
+				scaleFac*= deltaRap; //results given integrated in rapidity
+			}
+			break;
 	      }
 	      if(nState == NRQCDvars::UPS_1S || nState == NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S){
-			if(nExp == NRQCDvars::CMS) //normalize to the bin-width (pT and y)
-			  scaleFac = (deltaRap * deltaPT);
-			else if(nExp == NRQCDvars::LHCb)
-			  scaleFac = 1000.; //pb --> nb
-			else if(nExp == NRQCDvars::ATLAS)
-			  scaleFac = 1e6; //fb --> nb
+	    	  if(nExp == NRQCDvars::LHCb)
+	    		  scaleFac = 1000.; //pb --> nb
+	    	  else if(nExp == NRQCDvars::ATLAS){
+	    		  scaleFac = 1e6; //fb --> nb
+	    		  scaleFac*= 0.0218; //sigma*BR -> sigma
+	    	  }
 	      }
 	      sigma[0][iP] /= scaleFac;
 	      errStatPos[0][iP] /= scaleFac;
@@ -494,9 +593,93 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	      gSigma_tot_Mult[iPol][iRap] = new TGraphAsymmErrors(maxPTPoints[iRap], pTMean[iRap], sigma[iPol], errX_syst, errX_syst, errTotNeg[iPol], errTotPos[iPol]);
 	    }//polarization
 
+
+
+
+	    TGraphAsymmErrors *ResGraph_tot;
+	    TGraphAsymmErrors *ResGraph_syst;
+	    TGraphAsymmErrors *ResGraph_stat;
+
+		const int nResBins=maxPTPoints[iRap];
+		double arr_pTmean[nResBins];
+		double arr_errpT_low[nResBins];
+		double arr_errpT_high[nResBins];
+		double arr_Resmean[nResBins];
+		double arr_tot_errRes_low[nResBins];
+		double arr_tot_errRes_high[nResBins];
+		double arr_syst_errRes_low[nResBins];
+		double arr_syst_errRes_high[nResBins];
+		double arr_stat_errRes_low[nResBins];
+		double arr_stat_errRes_high[nResBins];
+
+
+		for(int i=0; i<nResBins;i++){
+
+			arr_pTmean[i]=pTMean[iRap][i];
+			arr_errpT_low[i]=pTMean[iRap][i]-pTMin[iRap][i];
+			arr_errpT_high[i]=pTMax[iRap][i]-pTMean[iRap][i];
+			arr_Resmean[i]=sigma[0][i];
+			arr_tot_errRes_low[i]=errTotNeg[0][i];
+			arr_tot_errRes_high[i]=errTotPos[0][i];
+			arr_syst_errRes_low[i]=errSystNeg[0][i];
+			arr_syst_errRes_high[i]=errSystPos[0][i];
+			arr_stat_errRes_low[i]=errStatNeg[0][i];
+			arr_stat_errRes_high[i]=errSystPos[0][i];
+
+		}
+
+
+
+		ResGraph_tot = new TGraphAsymmErrors(nResBins, arr_pTmean, arr_Resmean, arr_errpT_low, arr_errpT_high, arr_tot_errRes_low, arr_tot_errRes_high);
+		ResGraph_syst = new TGraphAsymmErrors(nResBins, arr_pTmean, arr_Resmean, arr_errpT_low, arr_errpT_high, arr_syst_errRes_low, arr_syst_errRes_high);
+		ResGraph_stat = new TGraphAsymmErrors(nResBins, arr_pTmean, arr_Resmean, arr_errpT_low, arr_errpT_high, arr_stat_errRes_low, arr_stat_errRes_high);
+
+		sprintf(graphName,"Result_totErr_rap%d",iRap);
+		ResGraph_tot->SetName(graphName);
+		sprintf(graphName,"Result_systErr_rap%d",iRap);
+		ResGraph_syst->SetName(graphName);
+		sprintf(graphName,"Result_statErr_rap%d",iRap);
+		ResGraph_stat->SetName(graphName);
+
+
+		outfile->cd();
+		ResGraph_tot->Write();
+		ResGraph_syst->Write();
+		ResGraph_stat->Write();
+
+
+
 	  }//loop over rapidity bins
 
 
+
+	    TGraph *ResGraph_rapBins;
+
+		double arr_rappoint[nRapBins+1];
+		double arr_index[nRapBins+1];
+		arr_rappoint[0]=rapMin[0];
+		arr_index[0]=0;
+
+		for(int iRap = 0; iRap < nRapBins; iRap++){
+			arr_rappoint[iRap+1]=rapMax[iRap];
+			arr_index[iRap+1]=iRap+1;
+		}
+
+
+		ResGraph_rapBins = new TGraph(nRapBins+1, arr_index, arr_rappoint);
+		sprintf(graphName,"Result_RapBinDef");
+		ResGraph_rapBins->SetName(graphName);
+
+		outfile->cd();
+		ResGraph_rapBins->Write();
+
+
+
+		//TODO: close, write file
+		outfile->Write();
+		outfile->Close();
+		delete outfile;
+		outfile = NULL;
 
 		 //Fill NRQCDglobalfitObjects
 
@@ -563,14 +746,6 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 
 
 
-		    char outname[2000];
-		    char inname[2000];
-		    char predirname[2000];
-		    char dirname[2000];
-		    sprintf(predirname,"%s/DataID", storagedir);
-		    gSystem->mkdir(predirname);
-		    sprintf(dirname,"%s/%s",predirname,DataID);
-		    gSystem->mkdir(dirname);
 		    sprintf(outname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",dirname, StateName[nState],  MeasurementIDName[MeasurementID],  ExpName[nExp], iRap, iP);
 
 
@@ -655,14 +830,14 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 //					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
 //					 isMeasurementAvailable=true;
 //					 break;
-//				 case NRQCDvars::UPS_3S:
-//					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_3SUps_1sigma.root", "read");
-//					 nRapBins=2;
-//					 maxPTPoints[0] = 5; maxPTPoints[1] = 5;
-//					 npTBins[0] = 5; npTBins[1] = 5;
-//					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
-//					 isMeasurementAvailable=true;
-//					 break;
+				 case NRQCDvars::UPS_3S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_3SUps_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 5; maxPTPoints[1] = 5;
+					 npTBins[0] = 5; npTBins[1] = 5;
+					 npTBins_toIgnoreAtBeginOfFile[0]=5; npTBins_toIgnoreAtBeginOfFile[1]=5;
+					 isMeasurementAvailable=true;
+					 break;
 				 default:
 					 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
 					 break;

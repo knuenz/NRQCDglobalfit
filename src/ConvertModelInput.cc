@@ -465,7 +465,7 @@ int main(int argc, char** argv) {
 					int nBinsh_rap=15;//TODO: fine-tune
 					TH2D *h_pTrap_DirectProd = new TH2D ("h_pTrap_DirectProd", "h_pTrap_DirectProd", nBinsh_pT, model_pTMin, model_pTMax, nBinsh_rap, model_rapMin, model_rapMax);
 					h_pTrap_DirectProd->Sumw2();
-					int gStarBin = h_pTrap_DirectProd->FindBin(NRQCDvars::pT_star, NRQCDvars::rap_star);
+					int gStarBin = h_pTrap_DirectProd->FindBin(NRQCDvars::pT_star_over_m*NRQCDvars::mass[iMother], NRQCDvars::rap_star);
 					int StarBin_pT, StarBin_rap, StarBinz;
 					h_pTrap_DirectProd->GetBinXYZ(gStarBin, StarBin_pT, StarBin_rap, StarBinz);
 					double BinWidth_pT=(model_pTMax-model_pTMin)/double(nBinsh_pT);
@@ -540,9 +540,9 @@ int main(int argc, char** argv) {
 
 					g1D_pTrap_DirectProd->Print();
 
-					double g_consts_star_vals=g_pTrap_DirectProd->Interpolate(NRQCDvars::pT_star, NRQCDvars::rap_star)/(BinWidth_pT*BinWidth_rap);
+					double g_consts_star_vals=g_pTrap_DirectProd->Interpolate(NRQCDvars::pT_star_over_m*NRQCDvars::mass[iMother], NRQCDvars::rap_star)/(BinWidth_pT*BinWidth_rap);
 					double h_consts_star_vals=h_pTrap_DirectProd->GetBinContent(StarBin_pT, StarBin_rap)/(BinWidth_pT*BinWidth_rap);
-					double g1D_consts_star_vals=g1D_pTrap_DirectProd->Eval(NRQCDvars::pT_star)/(BinWidth_pT*BinWidth_rap);
+					double g1D_consts_star_vals=g1D_pTrap_DirectProd->Eval(NRQCDvars::pT_star_over_m*NRQCDvars::mass[iMother])/(BinWidth_pT*BinWidth_rap);
 
 					cout<<"g_consts_star_vals "<<g_consts_star_vals<<endl;
 					cout<<"g1D_consts_star_vals "<<g1D_consts_star_vals<<endl;

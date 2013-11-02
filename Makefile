@@ -16,7 +16,7 @@ LIBS+=-L/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/lib
 	$(CXX) -c $<
 
 
-all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree
+all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD
 
 SamplePPD: src/SamplePPD.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit  -lMinuit2
@@ -44,8 +44,19 @@ PlotCompareDataModel: src/PlotCompareDataModel.cc
 
 ConvertBKmodelToTTree: src/ConvertBKmodelToTTree.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
-					
+
+ScaleBKmodel: src/ScaleBKmodel.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+
+ScaleGWWZmodel: src/ScaleGWWZmodel.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+
+FitPtDists: src/FitPtDists.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit				
+
+PlotPPD: src/PlotPPD.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit				
 								
 clean: 
-	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree*.o
+	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD*.o
 	

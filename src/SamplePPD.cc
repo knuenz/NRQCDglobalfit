@@ -242,6 +242,9 @@ int main(int argc, char** argv) {
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
+				    	//if(iMeasurementID!=0) continue;
+				    	if(iMeasurementID>1) continue;
+
 				    	//if(iState!=0 || iMeasurementID!=0 || iExperiment!=0 || iRap!=0 || iP!=0) continue;
 
 						sprintf(inname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],
@@ -267,6 +270,8 @@ int main(int argc, char** argv) {
 								&& readDataModelObject.getyMin() >= rapMin
 								&& readDataModelObject.getyMax() <= rapMax
 							) DataSelected=true;
+
+							if(readDataModelObject.getpTMin() >= 29 && iMeasurementID==1 && pTMin==35) DataSelected=true;
 
 							if(useSstatesOnly && StateQuantumID[readDataModelObject.getState()] != NRQCDvars::quID_S)
 								DataSelected=false;
@@ -553,7 +558,8 @@ int main(int argc, char** argv) {
 
 	cout<<"set starting point of Candidates:"<<endl;
 
-	double RstartingVal=36.;
+	double RstartingVal=36.;//worked fine for HP_1-2
+	//RstartingVal=70.;
 
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
@@ -668,6 +674,8 @@ int main(int argc, char** argv) {
 	cout<<"FreeParam_Fractions"<<endl;
 	cout<<FreeParam_Fractions<<endl;
 
+	int nOps=0;
+
 	ivector FreeParam_Fractions_States(NRQCDvars::nStates);
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		int nColorChannels_state;
@@ -676,7 +684,11 @@ int main(int argc, char** argv) {
 		else nColorChannels_state=NRQCDvars::nColorChannels_P;
 		bool FreeParam_Fractions_State=false;
 		for (int j=0; j<nColorChannels_state; j++){
-			if(FreeParam_Fractions[i][j]==1) FreeParam_Fractions_State=true;
+			if(FreeParam_Fractions[i][j]==1){
+				FreeParam_Fractions_State=true;
+				nOps++;
+				if(isSstate && j==nColorChannels_state-1) nOps--;
+			}
 		}
 		if(FreeParam_Fractions_State) FreeParam_Fractions_States.at(i)=1;
 	}
@@ -750,6 +762,7 @@ int main(int argc, char** argv) {
 		if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Np_US[0][j]=1;
 	}
 	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+		//cout<<"Baseline ModelSystematicScaleTest "<<j<<endl;
 		loglikelihood=0;
 		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
 			ObjectLikelihoodVec=state->getObjectLikelihood(Op, Np_BR, Np_US, false, directProductionCube, promptProductionMatrix, polCorrFactor);
@@ -757,6 +770,7 @@ int main(int argc, char** argv) {
 		}
 		FreeParam_LikelihoodBaseline=loglikelihood;
 
+		//cout<<"Variation ModelSystematicScaleTest "<<j<<endl;
 		Np_US[1][j]=Np_US[1][j]+Np_US_ExpectationUncertainty[1][j]*FreeParam_nSigmaVar;
 		loglikelihood=0;
 		for(vector< NRQCDglobalfitObject >::iterator state = DataModelObject.begin(); state != DataModelObject.end(); ++state){
@@ -765,8 +779,8 @@ int main(int argc, char** argv) {
 		}
 		Np_US[1][j]=Np_US[1][j]-Np_US_ExpectationUncertainty[1][j]*FreeParam_nSigmaVar;
 		FreeParam_LikelihoodVariation=loglikelihood;
-		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
-		cout<<"FreeParam_Np_US 0"<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
+		cout<<"FreeParam_Np_US 1"<<" "<<j<<" FreeParam_LikelihoodBaseline "<<FreeParam_LikelihoodBaseline<<endl;
+		cout<<"FreeParam_Np_US 1"<<" "<<j<<" FreeParam_LikelihoodVariation "<<FreeParam_LikelihoodVariation<<endl;
 
 		if(fabs(FreeParam_LikelihoodBaseline-FreeParam_LikelihoodVariation)>1e-20) FreeParam_Np_US[1][j]=1;
 	}
@@ -839,10 +853,14 @@ int main(int argc, char** argv) {
 
 	TFile *ResultsFile = new TFile(outname, "RECREATE");
 
+	double chi2Min=999;
+	int ndf=999;
+	double reduced_chi2Min=999;
 
 
 
 	if(Minimizer==NRQCDvars::Minuit){//Use Minuit to minimize the likelihood
+		//TODO: implement chi2
 
 		   double amin, edm, errdef;
 		   int nvpar, nparx;
@@ -1972,6 +1990,7 @@ int main(int argc, char** argv) {
 		int iTotalSinceLastStep=0;
 		int iAcceptedSinceLastStep=0;
 
+		chi2Min=-1e10;
 		BurnInInt=1;
 		iAccSampling=0;
 		nSampledPointsTotal=1;
@@ -2281,6 +2300,8 @@ int main(int argc, char** argv) {
 				 acceptedSampling=1;
 				 iAcceptedSinceLastStep++;
 				 nMH_rejectedInARow=0;
+
+				 if(loglikelihood>chi2Min && !BurnIn) chi2Min=loglikelihood;
 				 //cout<<"MH accepts event: YES"<<endl;
 				// cout<<"loglikelihood_Candidate = "<<loglikelihood_Candidate<<endl;
 				//	cout << "PreviousCandidates:"<<endl;
@@ -2355,12 +2376,35 @@ int main(int argc, char** argv) {
 
 		outputTreeAllSamplings->Write();
 
+		chi2Min*=-2.;
+		ndf=nDataPoints-nOps;
+		reduced_chi2Min=chi2Min/double(ndf);
+
 	}
 
 
 
     ResultsFile->Close();
 
+	sprintf(outname,"%s/chi2ndf.txt",jobdirname);
+	cout<<"save chi2ndf results to "<<outname<<endl;
+
+	cout<<"chi2Min = "<<chi2Min<<endl;
+	cout<<"nDataPoints = "<<nDataPoints<<endl;
+	cout<<"nOps = "<<nOps<<endl;
+	cout<<"ndf = "<<ndf<<endl;
+	cout<<"reduced_chi2Min = "<<reduced_chi2Min<<endl;
+
+    ofstream out;
+    out.open(outname);//, std::ofstream::app);
+
+	out << chi2Min <<endl;
+	out << nDataPoints <<endl;
+	out << nOps <<endl;
+	out << ndf <<endl;
+	out << reduced_chi2Min <<endl;
+
+    out.close();
 
     ivector int_Sample_Np(1,0);
     ivector int_Sample_Np_consts_star(1,0);
@@ -2372,7 +2416,6 @@ int main(int argc, char** argv) {
 	sprintf(outname,"%s/FreeParam.txt",jobdirname);
 	cout<<"save FreeParam to "<<outname<<endl;
 
-	ofstream out;
     out.open(outname);
 
     cout << "FreeParam_Fractions"<<endl;
@@ -2686,7 +2729,8 @@ void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPV
 			cout<<"chi2/ndf = "<<gauss->GetChisquare()/ndof<<endl;
 			PosteriorDist_initial=PosteriorDist_par[1];
 			err_PosteriorDist_initial=err_PosteriorDist_initial/2;
-			if(gauss->GetChisquare()/ndof<5 && gauss->GetChisquare()/ndof<5 >0) break;
+			double chi2max=4.;
+			if(gauss->GetChisquare()/ndof<chi2max) {cout<<"chi2 < "<<chi2max<<" -> good enough"<<endl; break;}
 			if(iFits==nMaxFits-1) illPPD=true;
 		}
 		MPV=PosteriorDist_par[1];

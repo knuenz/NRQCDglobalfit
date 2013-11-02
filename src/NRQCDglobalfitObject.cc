@@ -107,15 +107,19 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 	for(int i=0; i<nOp ; i++){
 		double sigma_Central=ShortDistanceCoef_[i];
 		//cout<<"sigma_Central "<<sigma_Central<<endl;
+		//cout<<"ShortDistanceCoef_globalSystPos[0][0] "<<ShortDistanceCoef_globalSystPos[0][0]<<endl;
+		//cout<<"ShortDistanceCoef_globalSystNeg[0][0] "<<ShortDistanceCoef_globalSystNeg[0][0]<<endl;
+		ShortDistanceCoef_corrected[i]=sigma_Central;
 		for(int j=0; j<nModelSystematicScales_ ; j++){
 			double sigma_Pos=ShortDistanceCoef_globalSystPos[i][j];
 			double sigma_Neg=ShortDistanceCoef_globalSystNeg[i][j];
 			double RandomUS=Np_US[1][j];
 			double GlobalSystCorrectionFactor=1+(sigma_Pos-sigma_Neg)/(2.*sigma_Central)*RandomUS+((sigma_Pos+sigma_Neg)/(2.*sigma_Central)-1)*RandomUS*RandomUS;
-			ShortDistanceCoef_corrected[i]=sigma_Central*GlobalSystCorrectionFactor;
+			//cout<<"RandomUS "<<RandomUS<<endl;
+			//cout<<"GlobalSystCorrectionFactor "<<GlobalSystCorrectionFactor<<endl;
+			ShortDistanceCoef_corrected[i]*=GlobalSystCorrectionFactor;
 		}
-		if(nModelSystematicScales_==0) ShortDistanceCoef_corrected[i]=sigma_Central;
-		//cout<<"ShortDistanceCoef_corrected[i] "<<ShortDistanceCoef_corrected[i]<<endl;
+		//cout<<"ShortDistanceCoef_corrected["<<i<<"] "<<ShortDistanceCoef_corrected[i]<<endl;
 	}
 
 	double DirectCrossSect=0;
@@ -156,6 +160,9 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 		double Lamth_Central=OctetCompLamth_[i];
 		double Lamph_Central=OctetCompLamph_[i];
 		double Lamtp_Central=OctetCompLamtp_[i];
+		OctetCompLamth_corrected[i]=Lamth_Central;
+		OctetCompLamph_corrected[i]=Lamph_Central;
+		OctetCompLamtp_corrected[i]=Lamtp_Central;
 		for(int j=0 ; j<nModelSystematicScales_ ; j++){
 
 			double Lamth_Pos=OctetCompLamth_globalSystPos[i][j];
@@ -166,18 +173,13 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 			double Lamtp_Neg=OctetCompLamtp_globalSystNeg[i][j];
 			double RandomUS=Np_US[1][j];
 
-			double GlobalLamthCorrectionTerm=(Lamth_Pos-Lamth_Neg)/(2.)*RandomUS+((Lamth_Pos+Lamth_Neg)/(2.)-Lamth_Central)*RandomUS*RandomUS;
-			double GlobalLamphCorrectionTerm=(Lamph_Pos-Lamph_Neg)/(2.)*RandomUS+((Lamph_Pos+Lamph_Neg)/(2.)-Lamph_Central)*RandomUS*RandomUS;
-			double GlobalLamtpCorrectionTerm=(Lamtp_Pos-Lamtp_Neg)/(2.)*RandomUS+((Lamtp_Pos+Lamtp_Neg)/(2.)-Lamtp_Central)*RandomUS*RandomUS;
+			double GlobalLamthCorrectionTerm=1+(Lamth_Pos-Lamth_Neg)/(2.)*RandomUS+((Lamth_Pos+Lamth_Neg)/(2.)-Lamth_Central)*RandomUS*RandomUS;
+			double GlobalLamphCorrectionTerm=1+(Lamph_Pos-Lamph_Neg)/(2.)*RandomUS+((Lamph_Pos+Lamph_Neg)/(2.)-Lamph_Central)*RandomUS*RandomUS;
+			double GlobalLamtpCorrectionTerm=1+(Lamtp_Pos-Lamtp_Neg)/(2.)*RandomUS+((Lamtp_Pos+Lamtp_Neg)/(2.)-Lamtp_Central)*RandomUS*RandomUS;
 
-			OctetCompLamth_corrected[i]=Lamth_Central+GlobalLamthCorrectionTerm;
-			OctetCompLamph_corrected[i]=Lamph_Central+GlobalLamphCorrectionTerm;
-			OctetCompLamtp_corrected[i]=Lamtp_Central+GlobalLamtpCorrectionTerm;
-		}
-		if(nModelSystematicScales_==0){
-			OctetCompLamth_corrected[i]=Lamth_Central;
-			OctetCompLamph_corrected[i]=Lamph_Central;
-			OctetCompLamtp_corrected[i]=Lamtp_Central;
+			OctetCompLamth_corrected[i]*=GlobalLamthCorrectionTerm;
+			OctetCompLamph_corrected[i]*=GlobalLamphCorrectionTerm;
+			OctetCompLamtp_corrected[i]*=GlobalLamtpCorrectionTerm;
 		}
 
 	}

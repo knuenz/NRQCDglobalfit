@@ -5,12 +5,6 @@
  *      Author: valentinknuenz
  */
 
-/*
- * ConvertModelInput.cc
- *
- *  Created on: Jun 18, 2013
- *      Author: valentinknuenz
- */
 
 #include "../interface/NRQCDglobalfitObject.h"
 #include "../src/NRQCDglobalfitObject.cc"
@@ -52,12 +46,15 @@ int main(int argc, char** argv) {
   	Char_t *ModelID = "Default";
   	Char_t *DataID = "Default";
   	Char_t *DataModelCombID = "Default";
+  	Char_t *ModelSystScaleID = "Default";
+
 	Char_t *storagedir = "Default"; //Storage Directory
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("DataID") != std::string::npos) {char* DataIDchar = argv[i]; char* DataIDchar2 = strtok (DataIDchar, "="); DataID = DataIDchar2; cout<<"DataID = "<<DataID<<endl;}
 		if(std::string(argv[i]).find("DataModelCombID") != std::string::npos) {char* DataModelCombIDchar = argv[i]; char* DataModelCombIDchar2 = strtok (DataModelCombIDchar, "="); DataModelCombID = DataModelCombIDchar2; cout<<"DataModelCombID = "<<DataModelCombID<<endl;}
+		if(std::string(argv[i]).find("ModelSystScaleID") != std::string::npos) {char* ModelSystScaleIDchar = argv[i]; char* ModelSystScaleIDchar2 = strtok (ModelSystScaleIDchar, "="); ModelSystScaleID = ModelSystScaleIDchar2; cout<<"ModelSystScaleID = "<<ModelSystScaleID<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
   	}
 
@@ -75,6 +72,7 @@ int main(int argc, char** argv) {
 	char datadirname[200];
 	char modeldirname[200];
 	char datamodeldirname[200];
+	char modelsystematicscalesdirname[200];
 	sprintf(modeldirname,"%s/ModelID", storagedir);
 	gSystem->mkdir(modeldirname);
 	sprintf(modeldirname,"%s/%s",modeldirname,ModelID);
@@ -87,6 +85,10 @@ int main(int argc, char** argv) {
 	gSystem->mkdir(datamodeldirname);
 	sprintf(datamodeldirname,"%s/%s",datamodeldirname,DataModelCombID);
 	gSystem->mkdir(datamodeldirname);
+	sprintf(modelsystematicscalesdirname,"%s/ModelSystScaleID", storagedir);
+	gSystem->mkdir(modelsystematicscalesdirname);
+	sprintf(modelsystematicscalesdirname,"%s/%s",modelsystematicscalesdirname,ModelSystScaleID);
+	gSystem->mkdir(modelsystematicscalesdirname);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,6 +103,7 @@ int main(int argc, char** argv) {
 
   	sprintf(inname,"%s/ModelIngredients.root",modeldirname);
 	TFile* ModelIngredientsFile = new TFile(inname, "READ");
+
 
 
 
@@ -192,7 +195,7 @@ int main(int argc, char** argv) {
 								vector<vector<double> >setModel_OctetCompLamtp_globalSystPos[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 								vector<vector<double> >setModel_OctetCompLamtp_globalSystNeg[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 
-								//cout<<"iMother "<<iMother<<endl;
+								cout<<"iMother "<<iMother<<endl;
 								int nColorChannels_state;
 								bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
 								if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
@@ -200,7 +203,7 @@ int main(int argc, char** argv) {
 								for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
 
 									bool ContributionExists=false;
-									//cout<<"iColorChannel "<<iColorChannel<<endl;
+									cout<<"iColorChannel "<<iColorChannel<<endl;
 
 									//Calculation of short distance coefficients for each feed-down component + direct production
 									double Buffer_ShortDistanceCoef[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -408,14 +411,14 @@ int main(int argc, char** argv) {
 									for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 									    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 									    	if(!doesDataExist[iRap][iP]) continue;
-									    	//cout<<"iRap "<<iRap<<endl;
-									    	//cout<<"iP "<<iP<<endl;
+									    	cout<<"iRap "<<iRap<<endl;
+									    	cout<<"iP "<<iP<<endl;
 
 									    	//cout<<"here?"<<endl;
 
+									vector<double> lamVecSumCascades;
 									if(ContributionExists){
 
-										vector<double> lamVecSumCascades;
 										vector<double> BuffVec=lamVecTransformedCascadesContributions[iRap][iP];
 										int nContributions=BuffVec.size();
 										double ContributionIntegral=0;
@@ -456,19 +459,231 @@ int main(int argc, char** argv) {
 									vector<double> setModel_Buff_OctetCompLamtp_globalSystPos;
 									vector<double> setModel_Buff_OctetCompLamtp_globalSystNeg;
 
-									//cout<<"here?"<<endl;
-									for (int iModelSystematicScale=0; iModelSystematicScale<NRQCDvars::nModelSystematicScales; iModelSystematicScale++){
-										//cout<<"iModelSystematicScale?"<<iModelSystematicScale<<endl;
 
-										setModel_Buff_ShortDistanceCoef_globalSystPos.push_back(Dummy_SDC);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamth_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamph_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamtp_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_ShortDistanceCoef_globalSystNeg.push_back(Dummy_SDC);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamth_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamph_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamtp_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										//cout<<"here?"<<endl;
+
+									// Get here the ModelSystematicsScales-TGraph-files of SDC, Lamth, Lamph, Lamtp
+									// Get TGraphs pos and neg for state iState, and for the specific iColorChannel (we are inside the loop)
+									// -> in the iModelSystematicScale loop: get Pos and Neg value (use TGraph_iColorChannel for iModelScale, for each iMeasuID)
+									// Do this by integration over pT range of measurement and /=deltapT
+
+									// Open TGraph files containing information about the ModelSystematicScales
+
+									//cout<<"open files and get graphs"<<endl;
+									TFile* ModelSystematicsFile;
+									char ModelSystematicScaleName[200];
+
+									TGraph* ModelSystematicScale_SDC_Pos;
+									TGraph* ModelSystematicScale_SDC_Neg;
+									TGraph* ModelSystematicScale_Lamth_Pos;
+									TGraph* ModelSystematicScale_Lamth_Neg;
+									TGraph* ModelSystematicScale_Lamph_Pos;
+									TGraph* ModelSystematicScale_Lamph_Neg;
+									TGraph* ModelSystematicScale_Lamtp_Pos;
+									TGraph* ModelSystematicScale_Lamtp_Neg;
+
+									if(ContributionExists){
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 0);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_SDC_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_SDC_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 1);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamth_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamth_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 2);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamph_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamph_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 3);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamtp_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamtp_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										//cout<<"...finished"<<endl;
+
+
+									}
+
+									double setModel_SDC_globalSystPos_val=Dummy_SDC;
+									double setModel_SDC_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamth_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamth_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamph_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamph_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamtp_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamtp_globalSystNeg_val=Dummy_SDC;
+
+
+									for (int iModelSystematicScale=0; iModelSystematicScale<NRQCDvars::nModelSystematicScales; iModelSystematicScale++){
+										//cout<<"iModelSystematicScale = "<<iModelSystematicScale<<endl;
+
+										if(ContributionExists){
+
+											if(iModelSystematicScale==iColorChannel){
+
+												double buffx, buffy;
+												double Data_pTMin=DataObject[iRap][iP]->getpTMin();
+												double Data_pTMax=DataObject[iRap][iP]->getpTMax();
+												int nTGbins;
+
+												nTGbins=0;
+												setModel_SDC_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_SDC_Pos->GetN();iTGbin++){
+													ModelSystematicScale_SDC_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_SDC_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_SDC_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_SDC_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_SDC_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_SDC_Neg->GetN();iTGbin++){
+													ModelSystematicScale_SDC_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_SDC_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_SDC_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_SDC_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamth_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamth_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamth_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamth_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamth_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamth_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamth_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamth_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamth_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamth_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamth_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamth_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamph_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamph_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamph_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamph_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamph_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamph_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamph_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamph_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamph_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamph_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamph_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamph_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamtp_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamtp_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamtp_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamtp_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamtp_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamtp_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamtp_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamtp_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamtp_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamtp_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamtp_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamtp_globalSystNeg_val=0;
+
+
+												//Here the setModel_-_globalSyst-_val's are converted from differences into lower and upper 'absolute' values around the 'best' model
+												setModel_SDC_globalSystPos_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystPos_val;
+												setModel_SDC_globalSystNeg_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystNeg_val;
+												setModel_Lamth_globalSystPos_val=lamVecSumCascades[0]+setModel_Lamth_globalSystPos_val;
+												setModel_Lamth_globalSystNeg_val=lamVecSumCascades[0]+setModel_Lamth_globalSystNeg_val;
+												setModel_Lamph_globalSystPos_val=lamVecSumCascades[1]+setModel_Lamph_globalSystPos_val;
+												setModel_Lamph_globalSystNeg_val=lamVecSumCascades[1]+setModel_Lamph_globalSystNeg_val;
+												setModel_Lamtp_globalSystPos_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystPos_val;
+												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystNeg_val;
+
+												//cout<<"Buffer_ShortDistanceCoef "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+												//cout<<"setModel_SDC_globalSystPos_val "<<setModel_SDC_globalSystPos_val<<endl;
+												//cout<<"setModel_SDC_globalSystNeg_val "<<setModel_SDC_globalSystNeg_val<<endl;
+												//cout<<"lamVecSumCascades[0] "<<lamVecSumCascades[0]<<endl;
+												//cout<<"setModel_Lamth_globalSystPos_val "<<setModel_Lamth_globalSystPos_val<<endl;
+												//cout<<"setModel_Lamth_globalSystNeg_val "<<setModel_Lamth_globalSystNeg_val<<endl;
+
+											}
+											else{
+												setModel_SDC_globalSystPos_val=Buffer_ShortDistanceCoef[iRap][iP];
+												setModel_SDC_globalSystNeg_val=Buffer_ShortDistanceCoef[iRap][iP];
+												setModel_Lamth_globalSystPos_val=lamVecSumCascades[0];
+												setModel_Lamth_globalSystNeg_val=lamVecSumCascades[0];
+												setModel_Lamph_globalSystPos_val=lamVecSumCascades[1];
+												setModel_Lamph_globalSystNeg_val=lamVecSumCascades[1];
+												setModel_Lamtp_globalSystPos_val=lamVecSumCascades[2];
+												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2];
+											}
+										}
+
+
+
+
+										setModel_Buff_ShortDistanceCoef_globalSystPos.push_back(setModel_SDC_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamth_globalSystPos.push_back(setModel_Lamth_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamph_globalSystPos.push_back(setModel_Lamph_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamtp_globalSystPos.push_back(setModel_Lamtp_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_ShortDistanceCoef_globalSystNeg.push_back(setModel_SDC_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamth_globalSystNeg.push_back(setModel_Lamth_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamph_globalSystNeg.push_back(setModel_Lamph_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamtp_globalSystNeg.push_back(setModel_Lamtp_globalSystNeg_val);//Not used so far, but implemented -> dummy value
 
 									}
 									if(NRQCDvars::nModelSystematicScales==0){//fill with dummy values, because >> << operators can not cope with non-existing dcubes
