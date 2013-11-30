@@ -27,6 +27,7 @@
 #include "TRandom3.h"
 #include "TSystem.h"
 #include "TBranch.h"
+#include "TBox.h"
 #include "TLatex.h"
 #include "TLine.h"
 #include "TLegend.h"
@@ -41,7 +42,7 @@
 using namespace NRQCDvars;
 
 
-void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar);
+void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], /*TGraphAsymmErrors *model_Graph_ColorChannels[3][500],*/ TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar, TGraphAsymmErrors *model_Graph_ColorChannels_Bands[3][500], TGraph *model_Graph_low_Bands[3], TGraph *model_Graph_high_Bands[3], TGraphAsymmErrors *model_Graph_Bands[3], TGraph *model_CS_THunc[3], TGraphAsymmErrors *model_CS_THuncBand);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
 
@@ -526,11 +527,29 @@ int main(int argc, char** argv) {
 				    dvector model_centralval;
 				    dvector model_errlow_centralval;
 				    dvector model_errhigh_centralval;
+				    dvector model_errlow_centralval_1Sig;
+				    dvector model_errhigh_centralval_1Sig;
+				    dvector model_errlow_centralval_2Sig;
+				    dvector model_errhigh_centralval_2Sig;
+				    dvector model_errlow_centralval_3Sig;
+				    dvector model_errhigh_centralval_3Sig;
 
 				    dvector model_inclusive_FeedDown;
 
 				    dmatrix model_directProduction; //(nColorChannels, iP)
 				    dmatrix model_FeedDown; //(StatesCont, iP)
+
+				    dmatrix model_directProduction_Bands;
+				    dmatrix model_directProduction_Bands_errlow_1sig;
+				    dmatrix model_directProduction_Bands_errhigh_1sig;
+				    dmatrix model_directProduction_Bands_errlow_2sig;
+				    dmatrix model_directProduction_Bands_errhigh_2sig;
+				    dmatrix model_directProduction_Bands_errlow_3sig;
+				    dmatrix model_directProduction_Bands_errhigh_3sig;
+
+				    dmatrix model_directProduction_THunc_CS;
+
+					//PAPER: implement the restriction of the PPD to SDC*LDME > 0... (difficult for P, as it changes sign -> what to do? -> Pietro mail)
 
 				    //TODO: code unbinned models
 				    //TODO: code submodels -> color channels and feed-down
@@ -567,6 +586,7 @@ int main(int argc, char** argv) {
 							bool LoopThroughPPD=false;
 							if(MinimizerMH) LoopThroughPPD=true;
 
+							//if(iMeasurementID==0) LoopThroughPPD=false;
 							//LoopThroughPPD=false;
 
 						    if(!LoopThroughPPD){
@@ -600,14 +620,41 @@ int main(int argc, char** argv) {
 								errModelPrediction=ObjectLikelihoodVec[1];
 								model_errlow_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
 
+								model_errlow_centralval_1Sig.push_back(fabs(ModelPrediction-errModelPrediction)*1.);
+								model_errlow_centralval_2Sig.push_back(fabs(ModelPrediction-errModelPrediction)*2.);
+								model_errlow_centralval_3Sig.push_back(fabs(ModelPrediction-errModelPrediction)*3.);
+
 								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op_plus, Np_BR_MPV, Np_US_MPV, false, Dummy_directProductionCube, Dummy_promptProductionMatrix, Dummy_polCorrFactor);
 								errModelPrediction=ObjectLikelihoodVec[1];
 								model_errhigh_centralval.push_back(fabs(ModelPrediction-errModelPrediction));
+
+								model_errhigh_centralval_1Sig.push_back(fabs(ModelPrediction-errModelPrediction)*1.);
+								model_errhigh_centralval_2Sig.push_back(fabs(ModelPrediction-errModelPrediction)*2.);
+								model_errhigh_centralval_3Sig.push_back(fabs(ModelPrediction-errModelPrediction)*3.);
+
+
+								dvector model_directProduction_THunc_CSVec;
+
+								for(int iTHunc=0;iTHunc<3;iTHunc++){
+
+									if(iTHunc==0) model_directProduction_THunc_CSVec.push_back(ModelPrediction*.9);
+									if(iTHunc==1) model_directProduction_THunc_CSVec.push_back(ModelPrediction*1.1);
+									if(iTHunc==2) model_directProduction_THunc_CSVec.push_back(ModelPrediction*1.2);
+
+								}
+
+								model_directProduction_THunc_CS.push_back(model_directProduction_THunc_CSVec);
+
+
+								//PAPER: also here add to the vectors (to be initialized) the 1, 2, 3 sigma errors of the color channel predictions (as in the 'Loop'-case)
+
+
 
 						    }
 
 						    else {
 
+						    	cout<<"LOOP"<<endl;
 								dcube MH_directProductionCube;
 								dmatrix MH_promptProductionMatrix;
 
@@ -676,6 +723,22 @@ int main(int argc, char** argv) {
 						      	ModelPredictionTree = new TTree("ModelPredictionTree", "ModelPredictionTree");
 								ModelPredictionTree->Branch("ModelPrediction",     &ModelPrediction,     "ModelPrediction/D");
 								ModelPredictionTree->Branch("polCorrFactor",     &polCorrFactor,     "polCorrFactor/D");
+
+								char branch_name_D[200];
+								double CCprediction[NRQCDvars::nColorChannels];
+
+								int nColorChannels_state;
+								bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+								if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+								else nColorChannels_state=NRQCDvars::nColorChannels_P;
+								for (int j=0; j<nColorChannels_state; j++){
+
+									sprintf (branch_name,"state%d_CC%d",iState,j);
+									sprintf (branch_name_D,"%s/D",branch_name);
+									if(FreeParam_Fractions_States.at(iState)==1)  ModelPredictionTree->Branch(branch_name,     &CCprediction[j],     branch_name_D);
+
+								}
+
 
 
 								dmatrix Op;
@@ -762,17 +825,59 @@ int main(int argc, char** argv) {
 										Np_US[1][j]=PPD_Np_US[1][j];
 									}
 
-									//dcube directProductionCube;
-									//dmatrix promptProductionMatrix;
-									ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, true, MH_directProductionCube, MH_promptProductionMatrix, polCorrFactor);
+									dcube directProductionCube_lonely;
+									dmatrix directProductionMatrix_lonely;
+									ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Op, Np_BR, Np_US, true, directProductionCube_lonely, MH_promptProductionMatrix, polCorrFactor);
 									ModelPrediction=ObjectLikelihoodVec[1];
-									//cout<<"ModelPrediction "<<ModelPrediction<<endl;
+
+									//cout<<"Np_US: "<<endl;
+									//cout<<Np_US<<endl;
+
+									//if(iMeasurementID==0){
+										//cout<<"directProductionMatrix_lonely: "<<endl;
+										//dvector directProductionVector = DataModelObject[iRap][iP]->getDirectProduction(DataModelObject[iRap][iP]->getState(), Op, Np_BR, Np_US, true, directProductionMatrix_lonely);
+										//cout<<directProductionMatrix_lonely<<endl;
+										//cout<<"directProductionVector: "<<endl;
+										//cout<<directProductionVector<<endl;
+
+									    dvector model_directProductionVec_lonely;
+									    dmatrix Buff_model_directProductionMatrix_lonely=directProductionCube_lonely.at(0);
+
+										//cout<<"Buff_model_directProductionMatrix_lonely"<<endl;
+										//cout<<Buff_model_directProductionMatrix_lonely<<endl;
+
+									    model_directProductionVec_lonely=Buff_model_directProductionMatrix_lonely.at(iMeasurementID);
+									    //model_directProduction_lonely.push_back(model_directProductionVec_lonely);
+										//cout<<"model_directProductionVec_lonely: "<<endl;
+										//cout<<model_directProductionVec_lonely<<endl;
+
+
+										//for (int i=0; i<NRQCDvars::nStates; i++){
+											int nColorChannels_state;
+											bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+											if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+											else nColorChannels_state=NRQCDvars::nColorChannels_P;
+											for (int j=0; j<nColorChannels_state; j++){
+
+												CCprediction[j]=model_directProductionVec_lonely[j];
+												//continue;
+												//if(iMeasurementID==1 && j==0) cout<<"CCprediction[0] "<<CCprediction[j]<<endl;
+
+											}
+										//}
+
+									//}
+
 									ModelPredictionTree->Fill();
+
+									//PAPER: Add the color channel 'prediction'-values to the ModelPredictionTree
 
 
 								}
 
 								//ModelPredictionTree->Print();
+
+								//PAPER: add here the histos of the individual color channels, get FindMPV for 1, 2, 3 sigmas
 
 								int nBins_h=100;
 								const int nHists=2;
@@ -811,6 +916,13 @@ int main(int argc, char** argv) {
 								cout<<"buff_errlow "<<buff_errlow<<endl;
 								cout<<"buff_errhigh "<<buff_errhigh<<endl;
 
+								double buff_errlow_Bands[3];
+								double buff_errhigh_Bands[3];
+
+								FindMPV(h_ModelPrediction[0], buff_MPV, buff_errlow_Bands[0], buff_errhigh_Bands[0], MPValgo, 1);
+								FindMPV(h_ModelPrediction[0], buff_MPV, buff_errlow_Bands[1], buff_errhigh_Bands[1], MPValgo, 2);
+								FindMPV(h_ModelPrediction[0], buff_MPV, buff_errlow_Bands[2], buff_errhigh_Bands[2], MPValgo, 3);
+
 								if(iExperiment==0 && iMeasurementID==0 && iRap==0 && iP==3){
 									h_ModelPrediction[0]->SaveAs("tmp_Modelpred.root");
 									h_ModelPrediction[1]->SaveAs("tmp_polcorrpred.root");
@@ -825,14 +937,15 @@ int main(int argc, char** argv) {
 								ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
 								ModelPrediction=ObjectLikelihoodVec[1];
 
-								cout<<"directProductionCube"<<endl;
+								cout<<"MPV directProductionCube"<<endl;
 								cout<<directProductionCube<<endl;
-								cout<<"promptProductionMatrix"<<endl;
+								cout<<"MPV promptProductionMatrix"<<endl;
 								cout<<promptProductionMatrix<<endl;
-								cout<<"polCorrFactor"<<endl;
+								cout<<"MPV polCorrFactor"<<endl;
 								cout<<polCorrFactor<<endl;
 
-								bool useHistModeAsCentralModel=false;
+								//PAPER: probably use MPV as central model, given that we now display the bands, and not the central values anymore
+								bool useHistModeAsCentralModel=true;
 
 								if(useHistModeAsCentralModel){
 									model_centralval.push_back(buff_MPV);
@@ -843,6 +956,12 @@ int main(int argc, char** argv) {
 									cout<<"model_errhigh_centralval "<<fabs(buff_errhigh)<<endl;
 									FindMPV(h_ModelPrediction[1], buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
 									polCorrFactorVec.push_back(buff_MPV);
+									model_errlow_centralval_1Sig.push_back(fabs(buff_errlow_Bands[0]));
+									model_errhigh_centralval_1Sig.push_back(fabs(buff_errhigh_Bands[0]));
+									model_errlow_centralval_2Sig.push_back(fabs(buff_errlow_Bands[1]));
+									model_errhigh_centralval_2Sig.push_back(fabs(buff_errhigh_Bands[1]));
+									model_errlow_centralval_3Sig.push_back(fabs(buff_errlow_Bands[2]));
+									model_errhigh_centralval_3Sig.push_back(fabs(buff_errhigh_Bands[2]));
 
 								}
 								else{
@@ -852,11 +971,125 @@ int main(int argc, char** argv) {
 									model_errlow_centralval.push_back(fabs(buff_errlow));
 									model_errhigh_centralval.push_back(fabs(buff_errhigh));
 									polCorrFactorVec.push_back(polCorrFactor);
+									model_errlow_centralval_1Sig.push_back(fabs(buff_errlow_Bands[0]));
+									model_errhigh_centralval_1Sig.push_back(fabs(buff_errhigh_Bands[0]));
+									model_errlow_centralval_2Sig.push_back(fabs(buff_errlow_Bands[1]));
+									model_errhigh_centralval_2Sig.push_back(fabs(buff_errhigh_Bands[1]));
+									model_errlow_centralval_3Sig.push_back(fabs(buff_errlow_Bands[2]));
+									model_errhigh_centralval_3Sig.push_back(fabs(buff_errhigh_Bands[2]));
 
 									cout<<"model_centralval "<<ModelPrediction<<endl;
 									cout<<"model_errlow_centralval "<<fabs(buff_errlow)<<endl;
 									cout<<"model_errhigh_centralval "<<fabs(buff_errhigh)<<endl;
 								}
+
+
+
+								cout<<"iMeasurementID "<<iMeasurementID<<endl;
+								cout<<"iP "<<iP<<endl;
+
+								//if(iMeasurementID==0){
+									if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+									else nColorChannels_state=NRQCDvars::nColorChannels_P;
+
+
+									double evalTHunc[3]={-1., 0., 1.};
+									dvector model_directProduction_THunc_CSVec;
+
+									for(int iTHunc=0;iTHunc<3;iTHunc++){
+
+										for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
+											Np_US[0][j]=0.;
+										}
+										for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
+											Np_US[1][j]=evalTHunc[iTHunc];
+										}
+
+										dcube model_directProduction_THunc_CS_lonely;
+										dmatrix model_directProduction_THunc_CSMatrix_lonely;
+										ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR, Np_US, true, model_directProduction_THunc_CS_lonely, model_directProduction_THunc_CSMatrix_lonely, polCorrFactor);
+										dvector model_directProduction_THunc_CSVec_lonely;
+										dmatrix Buff_model_directProductionCSMatrix_lonely=model_directProduction_THunc_CS_lonely.at(0);
+										model_directProduction_THunc_CSVec_lonely=Buff_model_directProductionCSMatrix_lonely.at(iMeasurementID);
+
+										int CC=0;
+										model_directProduction_THunc_CSVec.push_back(model_directProduction_THunc_CSVec_lonely[CC]);
+
+											cout<<"THunc"<<iTHunc<<" dddd: "<<model_directProduction_THunc_CSVec_lonely[CC]<<endl;
+									}
+
+									model_directProduction_THunc_CS.push_back(model_directProduction_THunc_CSVec);
+
+
+
+
+
+									dvector model_directProduction_BandsVec;
+								    dvector model_directProduction_BandsVec_errlow_1sig;
+								    dvector model_directProduction_BandsVec_errhigh_1sig;
+								    dvector model_directProduction_BandsVec_errlow_2sig;
+								    dvector model_directProduction_BandsVec_errhigh_2sig;
+								    dvector model_directProduction_BandsVec_errlow_3sig;
+								    dvector model_directProduction_BandsVec_errhigh_3sig;
+
+									for (int j=0; j<nColorChannels_state; j++){
+
+										sprintf (branch_name,"state%d_CC%d",iState,j);
+
+										int nBins_h_CC=100;
+										char hist_name_CC[200];
+										char projectchar_CC[200];
+										char selectchar_CC[200];
+										TH1D* h_ModelPrediction_CC;
+										double h_ModelPrediction_min_CC;
+										double h_ModelPrediction_max_CC;
+
+										double expandMinMaxBy=0.01;
+										double buff_MPV;
+										double buff_errlow;
+										double buff_errhigh;
+
+										h_ModelPrediction_min_CC=ModelPredictionTree->GetMinimum(branch_name)-expandMinMaxBy*ModelPredictionTree->GetMinimum(branch_name);
+										h_ModelPrediction_max_CC=ModelPredictionTree->GetMaximum(branch_name)+expandMinMaxBy*ModelPredictionTree->GetMaximum(branch_name);
+										sprintf(hist_name_CC,"h_ModelPrediction_CC");
+										h_ModelPrediction_CC = new TH1D( hist_name_CC, hist_name_CC, nBins_h_CC, h_ModelPrediction_min_CC, h_ModelPrediction_max_CC );
+										sprintf(projectchar_CC,"%s>>h_ModelPrediction_CC",branch_name);
+										ModelPredictionTree->Draw(projectchar_CC);
+
+										FindMPV(h_ModelPrediction_CC, buff_MPV, buff_errlow, buff_errhigh, MPValgo, 1);
+										cout<<"ColorChannelsCalc buff_MPV "<<buff_MPV<<endl;
+										cout<<"ColorChannelsCalc buff_errlow "<<buff_errlow<<endl;
+										cout<<"ColorChannelsCalc buff_errhigh "<<buff_errhigh<<endl;
+										model_directProduction_BandsVec.push_back(buff_MPV);
+										model_directProduction_BandsVec_errlow_1sig.push_back(buff_errlow);
+										model_directProduction_BandsVec_errhigh_1sig.push_back(buff_errhigh);
+										FindMPV(h_ModelPrediction_CC, buff_MPV, buff_errlow, buff_errhigh, MPValgo, 2);
+										model_directProduction_BandsVec_errlow_2sig.push_back(buff_errlow);
+										model_directProduction_BandsVec_errhigh_2sig.push_back(buff_errhigh);
+										FindMPV(h_ModelPrediction_CC, buff_MPV, buff_errlow, buff_errhigh, MPValgo, 3);
+										model_directProduction_BandsVec_errlow_3sig.push_back(buff_errlow);
+										model_directProduction_BandsVec_errhigh_3sig.push_back(buff_errhigh);
+
+
+
+
+
+									}
+
+									cout<<"ColorChannelsCalc model_directProduction_BandsVec"<<endl;
+									cout<<model_directProduction_BandsVec<<endl;
+									cout<<"ColorChannelsCalc model_directProduction_Bands_errlow_1sig"<<endl;
+									cout<<model_directProduction_Bands_errlow_1sig<<endl;
+
+									model_directProduction_Bands.push_back(model_directProduction_BandsVec);
+									model_directProduction_Bands_errlow_1sig.push_back(model_directProduction_BandsVec_errlow_1sig);
+									model_directProduction_Bands_errhigh_1sig.push_back(model_directProduction_BandsVec_errhigh_1sig);
+									model_directProduction_Bands_errlow_2sig.push_back(model_directProduction_BandsVec_errlow_2sig);
+									model_directProduction_Bands_errhigh_2sig.push_back(model_directProduction_BandsVec_errhigh_2sig);
+									model_directProduction_Bands_errlow_3sig.push_back(model_directProduction_BandsVec_errlow_3sig);
+									model_directProduction_Bands_errhigh_3sig.push_back(model_directProduction_BandsVec_errhigh_3sig);
+
+								//}
 
 
 								ModelPredictionTree->Write();
@@ -869,6 +1102,8 @@ int main(int argc, char** argv) {
 								//cout<<"end loop"<<endl;
 
 						    }
+
+							//PAPER: store here the MPV and errors of the color channels in objects still to create
 
 				    		data_centralval.push_back(DataModelObject[iRap][iP]->getCentralValue());//correct data to match predicted polariztion
 				    		data_errlow_centralval.push_back(DataModelObject[iRap][iP]->getErrTotNeg());
@@ -954,6 +1189,99 @@ int main(int argc, char** argv) {
 						    model_directProductionVec=Buff_model_directProductionMatrix.at(iMeasurementID);
 						    model_directProduction.push_back(model_directProductionVec);
 
+							//cout<<"model_directProductionVec: "<<endl;
+							//cout<<model_directProductionVec<<endl;
+
+							if(!LoopThroughPPD){
+								int nColorChannels_state;
+								bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+								if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+								else nColorChannels_state=NRQCDvars::nColorChannels_P;
+
+								dvector model_directProduction_BandsVec;
+							    dvector model_directProduction_BandsVec_errlow_1sig;
+							    dvector model_directProduction_BandsVec_errhigh_1sig;
+							    dvector model_directProduction_BandsVec_errlow_2sig;
+							    dvector model_directProduction_BandsVec_errhigh_2sig;
+							    dvector model_directProduction_BandsVec_errlow_3sig;
+							    dvector model_directProduction_BandsVec_errhigh_3sig;
+
+								int nSigmaBand;
+								double buff_errlow, buff_errhigh;
+								for (int j=0; j<nColorChannels_state; j++){
+
+									model_directProduction_BandsVec.push_back(model_directProductionVec[j]);
+
+									nSigmaBand=1; if(iMeasurementID>0) nSigmaBand=0.;
+									model_directProduction_BandsVec_errlow_1sig.push_back( nSigmaBand*Oi_errlow[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j] );
+									model_directProduction_BandsVec_errhigh_1sig.push_back(nSigmaBand*Oi_errhigh[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j]);
+									nSigmaBand=2; if(iMeasurementID>0) nSigmaBand=0.;
+									model_directProduction_BandsVec_errlow_2sig.push_back( nSigmaBand*Oi_errlow[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j] );
+									model_directProduction_BandsVec_errhigh_2sig.push_back(nSigmaBand*Oi_errhigh[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j]);
+									nSigmaBand=3; if(iMeasurementID>0) nSigmaBand=0.;
+									model_directProduction_BandsVec_errlow_3sig.push_back( nSigmaBand*Oi_errlow[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j] );
+									model_directProduction_BandsVec_errhigh_3sig.push_back(nSigmaBand*Oi_errhigh[iState][j]/Oi_MPV[iState][j]*model_directProductionVec[j]);
+
+								}
+
+								cout<<"model_directProduction_BandsVec"<<endl;
+								cout<<model_directProduction_BandsVec<<endl;
+
+								model_directProduction_Bands.push_back(model_directProduction_BandsVec);
+								model_directProduction_Bands_errlow_1sig.push_back(model_directProduction_BandsVec_errlow_1sig);
+								model_directProduction_Bands_errhigh_1sig.push_back(model_directProduction_BandsVec_errhigh_1sig);
+								model_directProduction_Bands_errlow_2sig.push_back(model_directProduction_BandsVec_errlow_2sig);
+								model_directProduction_Bands_errhigh_2sig.push_back(model_directProduction_BandsVec_errhigh_2sig);
+								model_directProduction_Bands_errlow_3sig.push_back(model_directProduction_BandsVec_errlow_3sig);
+								model_directProduction_Bands_errhigh_3sig.push_back(model_directProduction_BandsVec_errhigh_3sig);
+
+							}
+
+							//if(iMeasurementID>0){
+							//	int nColorChannels_state;
+							//	bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+							//	if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+							//	else nColorChannels_state=NRQCDvars::nColorChannels_P;
+                            //
+							//	dvector model_directProduction_BandsVec;
+							//    dvector model_directProduction_BandsVec_errlow_1sig;
+							//    dvector model_directProduction_BandsVec_errhigh_1sig;
+							//    dvector model_directProduction_BandsVec_errlow_2sig;
+							//    dvector model_directProduction_BandsVec_errhigh_2sig;
+							//    dvector model_directProduction_BandsVec_errlow_3sig;
+							//    dvector model_directProduction_BandsVec_errhigh_3sig;
+                            //
+							//	int nSigmaBand;
+							//	double DummyPush=0.999;
+							//	for (int j=0; j<nColorChannels_state; j++){
+                            //
+							//		model_directProduction_BandsVec.push_back(DummyPush);
+                            //
+							//		model_directProduction_BandsVec_errlow_1sig.push_back( DummyPush );
+							//		model_directProduction_BandsVec_errhigh_1sig.push_back(DummyPush);
+							//		model_directProduction_BandsVec_errlow_2sig.push_back( DummyPush );
+							//		model_directProduction_BandsVec_errhigh_2sig.push_back(DummyPush);
+							//		model_directProduction_BandsVec_errlow_3sig.push_back( DummyPush );
+							//		model_directProduction_BandsVec_errhigh_3sig.push_back(DummyPush);
+                            //
+							//	}
+                            //
+							//	//cout<<"model_directProduction_BandsVec"<<endl;
+							//	//cout<<model_directProduction_BandsVec<<endl;
+                            //
+							//	model_directProduction_Bands.push_back(model_directProduction_BandsVec);
+							//	model_directProduction_Bands_errlow_1sig.push_back(model_directProduction_BandsVec_errlow_1sig);
+							//	model_directProduction_Bands_errhigh_1sig.push_back(model_directProduction_BandsVec_errhigh_1sig);
+							//	model_directProduction_Bands_errlow_2sig.push_back(model_directProduction_BandsVec_errlow_2sig);
+							//	model_directProduction_Bands_errhigh_2sig.push_back(model_directProduction_BandsVec_errhigh_2sig);
+							//	model_directProduction_Bands_errlow_3sig.push_back(model_directProduction_BandsVec_errlow_3sig);
+							//	model_directProduction_Bands_errhigh_3sig.push_back(model_directProduction_BandsVec_errhigh_3sig);
+                            //
+							//}
+
+							//cout<<"model_directProduction_Bands"<<endl;
+							//cout<<model_directProduction_Bands<<endl;
+
 							//TODO: after ifs: calc ObjetLikelihood with 'central' inputs, to be used for component calculations
 							ObjectLikelihoodVec=DataModelObject[iRap][iP]->getObjectLikelihood(Oi_MPV, Np_BR_MPV, Np_US_MPV, true, directProductionCube, promptProductionMatrix, polCorrFactor);
 
@@ -962,6 +1290,16 @@ int main(int argc, char** argv) {
 
 
 				    }
+
+				    //cout<<"model_directProduction_THunc_CS"<<endl;
+				    //cout<<model_directProduction_THunc_CS<<endl;
+
+					const int StatesCont_c=StatesCont;
+					int nColorChannels_state;
+					bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+					if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+					else nColorChannels_state=NRQCDvars::nColorChannels_P;
+					const int ColorChannels_c=nColorChannels_state;
 
 
 				    if(nPtBinsSel>0){
@@ -982,7 +1320,33 @@ int main(int argc, char** argv) {
 						double d_model_errlow_absolute_centralval[nPtBinsSel_];
 						double d_model_errhigh_absolute_centralval[nPtBinsSel_];
 
+						double d_model_errlow_centralval_1Sig[nPtBinsSel_];
+						double d_model_errhigh_centralval_1Sig[nPtBinsSel_];
+						double d_model_errlow_absolute_centralval_1Sig[nPtBinsSel_];
+						double d_model_errhigh_absolute_centralval_1Sig[nPtBinsSel_];
+						double d_model_errlow_centralval_2Sig[nPtBinsSel_];
+						double d_model_errhigh_centralval_2Sig[nPtBinsSel_];
+						double d_model_errlow_absolute_centralval_2Sig[nPtBinsSel_];
+						double d_model_errhigh_absolute_centralval_2Sig[nPtBinsSel_];
+						double d_model_errlow_centralval_3Sig[nPtBinsSel_];
+						double d_model_errhigh_centralval_3Sig[nPtBinsSel_];
+						double d_model_errlow_absolute_centralval_3Sig[nPtBinsSel_];
+						double d_model_errhigh_absolute_centralval_3Sig[nPtBinsSel_];
+
+						double d_model_CS_THunc_p1[nPtBinsSel_];
+						double d_model_CS_THunc_m1[nPtBinsSel_];
+						double d_model_CS_THunc_central[nPtBinsSel_];
+
+						double d_model_CS_THunc_delta_p1_m1_diffhalf[nPtBinsSel_];
+						double d_model_CS_THunc_delta_p1_m1_mean[nPtBinsSel_];
+
 						for(int iP = 0; iP < nPtBinsSel; iP++){
+
+							bool correctForPol=true;
+
+							//if(iP<3) correctForPol=false;
+
+							if(!correctForPol) polCorrFactorVec[iP]=1.;
 
 							d_data_centralval[iP] =         	data_centralval[iP];
 							d_data_errlow_centralval[iP] =  	data_errlow_centralval[iP];
@@ -997,6 +1361,28 @@ int main(int argc, char** argv) {
 							d_model_errlow_absolute_centralval[iP] = 	(model_centralval[iP]-model_errlow_centralval[iP]);
 							d_model_errhigh_absolute_centralval[iP] =	(model_centralval[iP]+model_errhigh_centralval[iP]);
 
+							d_model_errlow_centralval_1Sig[iP] = 	model_errlow_centralval_1Sig[iP];
+							d_model_errhigh_centralval_1Sig[iP] =	model_errhigh_centralval_1Sig[iP];
+							d_model_errlow_absolute_centralval_1Sig[iP] = 	(model_centralval[iP]-model_errlow_centralval_1Sig[iP]);
+							d_model_errhigh_absolute_centralval_1Sig[iP] =	(model_centralval[iP]+model_errhigh_centralval_1Sig[iP]);
+
+							d_model_errlow_centralval_2Sig[iP] = 	model_errlow_centralval_2Sig[iP];
+							d_model_errhigh_centralval_2Sig[iP] =	model_errhigh_centralval_2Sig[iP];
+							d_model_errlow_absolute_centralval_2Sig[iP] = 	(model_centralval[iP]-model_errlow_centralval_2Sig[iP]);
+							d_model_errhigh_absolute_centralval_2Sig[iP] =	(model_centralval[iP]+model_errhigh_centralval_2Sig[iP]);
+
+							d_model_errlow_centralval_3Sig[iP] = 	model_errlow_centralval_3Sig[iP];
+							d_model_errhigh_centralval_3Sig[iP] =	model_errhigh_centralval_3Sig[iP];
+							d_model_errlow_absolute_centralval_3Sig[iP] = 	(model_centralval[iP]-model_errlow_centralval_3Sig[iP]);
+							d_model_errhigh_absolute_centralval_3Sig[iP] =	(model_centralval[iP]+model_errhigh_centralval_3Sig[iP]);
+
+							d_model_CS_THunc_m1[iP]=model_directProduction_THunc_CS[iP][0];
+							d_model_CS_THunc_central[iP]=model_directProduction_THunc_CS[iP][1];
+							d_model_CS_THunc_p1[iP]=model_directProduction_THunc_CS[iP][2];
+
+							d_model_CS_THunc_delta_p1_m1_diffhalf[iP]=TMath::Abs(model_directProduction_THunc_CS[iP][2]-model_directProduction_THunc_CS[iP][0])/2.;
+							d_model_CS_THunc_delta_p1_m1_mean[iP]=(model_directProduction_THunc_CS[iP][0]+model_directProduction_THunc_CS[iP][2])/2.;
+
 							if(iMeasurementID==0){
 								d_data_centralval[iP] *=         	polCorrFactorVec[iP];//polCorrect the data (according to polarization prediction of model)
 								d_data_errlow_centralval[iP] *=  	polCorrFactorVec[iP];
@@ -1006,6 +1392,38 @@ int main(int argc, char** argv) {
 								d_model_errhigh_centralval[iP] *=	polCorrFactorVec[iP];
 								d_model_errlow_absolute_centralval[iP] *= 	polCorrFactorVec[iP];
 								d_model_errhigh_absolute_centralval[iP] *=	polCorrFactorVec[iP];
+
+								d_model_errlow_centralval_1Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_centralval_1Sig[iP] *=	polCorrFactorVec[iP];
+								d_model_errlow_absolute_centralval_1Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_absolute_centralval_1Sig[iP] *=	polCorrFactorVec[iP];
+
+								d_model_errlow_centralval_2Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_centralval_2Sig[iP] *=	polCorrFactorVec[iP];
+								d_model_errlow_absolute_centralval_2Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_absolute_centralval_2Sig[iP] *=	polCorrFactorVec[iP];
+
+								d_model_errlow_centralval_3Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_centralval_3Sig[iP] *=	polCorrFactorVec[iP];
+								d_model_errlow_absolute_centralval_3Sig[iP] *= 	polCorrFactorVec[iP];
+								d_model_errhigh_absolute_centralval_3Sig[iP] *=	polCorrFactorVec[iP];
+
+								d_model_CS_THunc_m1[iP] *=	polCorrFactorVec[iP];
+								d_model_CS_THunc_central[iP] *=	polCorrFactorVec[iP];
+								d_model_CS_THunc_p1[iP] *=	polCorrFactorVec[iP];
+
+								for(int i=0;i<ColorChannels_c;i++){
+									model_directProduction_Bands[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errlow_1sig[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errlow_2sig[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errlow_3sig[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errhigh_1sig[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errhigh_2sig[iP][i] *=	polCorrFactorVec[iP];
+									model_directProduction_Bands_errhigh_3sig[iP][i] *=	polCorrFactorVec[iP];
+								}
+								for(int i=0;i<StatesCont_c;i++){
+									model_FeedDown[iP][i] *=	polCorrFactorVec[iP];
+								}
 
 							}
 
@@ -1017,17 +1435,33 @@ int main(int argc, char** argv) {
 						TGraph *model_Graph_high = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errhigh_absolute_centralval);
 						TGraph *data_Graph_nopolcorr = new TGraph(nPtBinsSel,d_data_pTmean,d_data_centralval_nopolcorr);
 
+						TGraph *model_Graph_low_Bands[3];
+						TGraph *model_Graph_high_Bands[3];
+
+						model_Graph_low_Bands[0] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errlow_absolute_centralval_1Sig);
+						model_Graph_high_Bands[0] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errhigh_absolute_centralval_1Sig);
+						model_Graph_low_Bands[1] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errlow_absolute_centralval_2Sig);
+						model_Graph_high_Bands[1] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errhigh_absolute_centralval_2Sig);
+						model_Graph_low_Bands[2] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errlow_absolute_centralval_3Sig);
+						model_Graph_high_Bands[2] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_errhigh_absolute_centralval_3Sig);
+
+						TGraphAsymmErrors *model_Graph_Bands[3];
+						model_Graph_Bands[0] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval,d_data_errlow_pT,d_data_errhigh_pT,d_model_errlow_centralval_1Sig,d_model_errhigh_centralval_1Sig);
+						model_Graph_Bands[1] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval,d_data_errlow_pT,d_data_errhigh_pT,d_model_errlow_centralval_2Sig,d_model_errhigh_centralval_2Sig);
+						model_Graph_Bands[2] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval,d_data_errlow_pT,d_data_errhigh_pT,d_model_errlow_centralval_3Sig,d_model_errhigh_centralval_3Sig);
+
+						TGraph *model_CS_THunc[3];
+						model_CS_THunc[0] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_CS_THunc_m1);
+						model_CS_THunc[1] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_CS_THunc_central);
+						model_CS_THunc[2] = new TGraph(nPtBinsSel,d_data_pTmean,d_model_CS_THunc_p1);
+
+						TGraphAsymmErrors *model_CS_THuncBand = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_CS_THunc_delta_p1_m1_mean,d_data_errlow_pT,d_data_errhigh_pT,d_model_CS_THunc_delta_p1_m1_diffhalf,d_model_CS_THunc_delta_p1_m1_diffhalf);
+
 						model_Graph->Print();
 						model_Graph_low->Print();
 						model_Graph_high->Print();
 
 						//Make TGraphs for model contributions
-						const int StatesCont_c=StatesCont;
-						int nColorChannels_state;
-						bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
-						if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
-						else nColorChannels_state=NRQCDvars::nColorChannels_P;
-						const int ColorChannels_c=nColorChannels_state;
 
 						TGraph *model_Graph_FeedDowns[StatesCont_c];//fist element: inclusive FeedDown
 
@@ -1043,6 +1477,7 @@ int main(int argc, char** argv) {
 						}
 
 
+						//PAPER: decide here if you want to use the MPV of the color channels, or the prediction from the Op_MPVs, add uncertainties (TGraphAsymmErrors)
 						TGraph *model_Graph_ColorChannels[ColorChannels_c];
 
 						for(int i=0;i<ColorChannels_c;i++){
@@ -1056,6 +1491,42 @@ int main(int argc, char** argv) {
 						}
 
 
+						TGraphAsymmErrors *model_Graph_ColorChannels_Bands[3][500];//[ColorChannels_c];
+						double d_model_centralval_Bands[nPtBinsSel_];
+						double d_model_errlow_Bands[nPtBinsSel_];
+						double d_model_errhigh_Bands[nPtBinsSel_];
+
+						cout<<"model_directProduction_Bands"<<endl;
+						cout<<model_directProduction_Bands<<endl;
+
+						for(int iSig=0;iSig<3;iSig++){
+							for(int i=0;i<ColorChannels_c;i++){
+								for(int iP = 0; iP < nPtBinsSel; iP++){
+									d_model_centralval_Bands[iP] =  model_directProduction_Bands[iP][i];
+									if(iSig==0) d_model_errlow_Bands[iP] =   model_directProduction_Bands_errlow_1sig[iP][i];
+									if(iSig==1) d_model_errlow_Bands[iP] =   model_directProduction_Bands_errlow_2sig[iP][i];
+									if(iSig==2) d_model_errlow_Bands[iP] =   model_directProduction_Bands_errlow_3sig[iP][i];
+									if(iSig==0) d_model_errhigh_Bands[iP] =  model_directProduction_Bands_errhigh_1sig[iP][i];
+									if(iSig==1) d_model_errhigh_Bands[iP] =  model_directProduction_Bands_errhigh_2sig[iP][i];
+									if(iSig==2) d_model_errhigh_Bands[iP] =  model_directProduction_Bands_errhigh_3sig[iP][i];
+								}
+								model_Graph_ColorChannels_Bands[iSig][i] = new TGraphAsymmErrors(nPtBinsSel,d_data_pTmean,d_model_centralval_Bands,d_data_errlow_pT,d_data_errhigh_pT,d_model_errlow_Bands,d_model_errhigh_Bands);
+								cout<<"model_Graph_ColorChannels_Bands CC: "<<i<<", CL:"<<iSig+1<<endl;
+								model_Graph_ColorChannels_Bands[iSig][i]->Print();
+								if(iSig==0&&i==0&&iMeasurementID==0) cout<<"CHECK_IT_OUT"<<endl;
+							}
+						}
+
+/*					//PAPER...:
+ 				    dmatrix model_directProduction_Bands;
+				    dmatrix model_directProduction_Bands_errlow_1sig;
+				    dmatrix model_directProduction_Bands_errhigh_1sig;
+				    dmatrix model_directProduction_Bands_errlow_2sig;
+				    dmatrix model_directProduction_Bands_errhigh_2sig;
+				    dmatrix model_directProduction_Bands_errlow_3sig;
+				    dmatrix model_directProduction_Bands_errhigh_3sig;
+
+ */
 						bool plotInclusiveFeedDown=true;
 						if(StatesCont_c<3) plotInclusiveFeedDown=false;
 						bool plotIndividualFeedDown=true;
@@ -1075,7 +1546,7 @@ int main(int argc, char** argv) {
 							longrapchar=false;
 						}
 
-						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, data_Graph_nopolcorr, StatesContributing_, chi2Min, chi2Prob, ndf, HPbool, pTMinModel, longrapchar);
+						plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, data_Graph_nopolcorr, StatesContributing_, chi2Min, chi2Prob, ndf, HPbool, pTMinModel, longrapchar, model_Graph_ColorChannels_Bands, model_Graph_low_Bands, model_Graph_high_Bands, model_Graph_Bands, model_CS_THunc, model_CS_THuncBand);
 
 				}
 
@@ -1104,7 +1575,7 @@ int main(int argc, char** argv) {
 
 
 
-void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar){
+void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], /*TGraphAsymmErrors *model_Graph_ColorChannels[3][500],*/ TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, bool longrapchar, TGraphAsymmErrors *model_Graph_ColorChannels_Bands[3][500], TGraph *model_Graph_low_Bands[3], TGraph *model_Graph_high_Bands[3], TGraphAsymmErrors *model_Graph_Bands[3], TGraph *model_CS_THunc[3], TGraphAsymmErrors *model_CS_THuncBand){
 	gROOT->Reset();
 	gStyle->SetOptStat(11);
 	gStyle->SetOptFit(101);
@@ -1116,6 +1587,38 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	gStyle->SetPadTopMargin(0.02);
 
 	bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+
+	//0
+	//bool plotColorChannelBands[4]={true, true, true,     false};
+	//bool plotColorChannel[4]={true, true, true,     false};
+	//bool plotTotalModelBands=true;
+
+	//1
+	//bool plotColorChannelBands[4]={true, false, false,     false};
+	//bool plotTotalModelBands=true;
+
+	//2
+	//bool plotColorChannelBands[4]={false, true, false,     false};
+	//bool plotTotalModelBands=false;
+
+	//3
+	//bool plotColorChannelBands[4]={false, false, true,     false};
+	//bool plotTotalModelBands=false;
+
+	//000
+	bool plotColorChannelBands[4]={false, true, true,     false};
+	bool plotColorChannel[4]={true, true, true,     false};
+	bool plotTotalModelBands=false;
+	bool plotTotalModel=true;
+	bool plotCSTHuncLines=true;
+	bool plotCSTHuncBand=false;
+
+	///////////////////////
+
+	const int nTHunc=3;
+	bool plotSigmaBands[3]={true, true, true};
+	int ColorChannelSequence[4]={0, 2, 1,     999};
+	bool plotCSTHuncLine[nTHunc]={true, true, true};
 
 	TCanvas *plotCanvas = new TCanvas("plotCanvas","plotCanvas",1200,800);
 	plotCanvas->SetFillColor(kWhite);
@@ -1162,6 +1665,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	axishist->GetXaxis()->SetTitleOffset(1.1);
 
 
+	bool logY=true;
 
 	int colorData=1;
 	int colorModel=600;
@@ -1176,29 +1680,63 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	int linestyleCC_neg[6]={4, 5, 7, 9, 10, 6};
 	int linestyleFD=3;
 	int MarkerStyle[6]={21, 24, 25, 26, 27, 28};//{632, 418, 616, 800, 0, 0};
-	double linewidthCC=1;
+	double linewidthCC=2;
 	double linewidthFD=1;
+
+	int styleModel[3]={2, 4, 3};
+
+	//int FillStyle_sig[6]={1001, 1001, 1001, 1, 1, 1};
+	int FillStyle_sig[6]={1001, 1001, 1001, 1, 1, 1};
+	int LineStyle_Central[6]={1, 1, 1, 1, 1, 1};
+	int LineColor_Central[6]={923, 416+2,632+2, 1, 1, 1};
+	int LineColor_nSig[3][6]={
+			{16, 416-3,632+0, 1, 1, 1},
+			{17, 416-7,632-7, 1, 1, 1},
+			{18, 416-10,632-10, 1, 1, 1}
+	};
+
+	int TotalModel_FillStyle_sig=1001;
+	int TotalModel_LineStyle_Central=1;
+	int TotalModel_LineColor_Central=600+0;
+	int TotalModel_LineColor_nSig[3]={600-7, 600-9, 600-10};
+
+	//TotalModel_LineColor_Central=14;
+	//TotalModel_LineColor_nSig[0]=16;
+	//TotalModel_LineColor_nSig[1]=17;
+	//TotalModel_LineColor_nSig[2]=18;
+
+
+	int MarkerStyleExp[3]={20, 30, 25};
+	int MarkerStylePolRap[2]={20, 24};
+	double MarkerSizeExp[3]={1.5, 1.8, 1.5};
+
+	double LineStyle_THunc[nTHunc]={2, 4, 3};
+	double LineColor_THunc[nTHunc]={923, 923, 923};
+	double linewidthTHunc=1;
+
+	int FillStyle_THunc=1001;
+	int FillColor_THunc=18;
 
 
 	if(HPbool){
 
 		colorData=1;
-		colorModel=1;
+		colorModel=600;
 		linewidthModel=2;
 		linewidthModelErrors=1;
-		linewidthCC=1;
+		linewidthCC=2;
 
 
-		colorCC[0]=921;
+		colorCC[0]=923;
 		colorCC[1]=418;
-		colorCC[2]=632;
-		colorCC[3]=435;
+		colorCC[2]=634;
+		colorCC[3]=1;
 		colorCC[4]=1;
 		colorCC[5]=1;
 
-		colorCC_neg[0]=921;
+		colorCC_neg[0]=923;
 		colorCC_neg[1]=418;
-		colorCC_neg[2]=632;
+		colorCC_neg[2]=634;
 		colorCC_neg[3]=435;
 		colorCC_neg[4]=1;
 		colorCC_neg[5]=1;
@@ -1219,10 +1757,14 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	}
 
 
-	data_Graph->SetMarkerStyle(20);
-	data_Graph->SetMarkerSize(1.5);
+	data_Graph->SetMarkerStyle(MarkerStyleExp[iExperiment]);
+	data_Graph->SetMarkerSize(MarkerSizeExp[iExperiment]);
 	data_Graph->SetMarkerColor(colorData);
 	data_Graph->SetLineColor(colorData);
+
+	if(iMeasurementID>0){
+		data_Graph->SetMarkerStyle(MarkerStylePolRap[iRap]);
+	}
 
 	data_Graph_nopolcorr->SetMarkerStyle(24);
 	data_Graph_nopolcorr->SetMarkerSize(1.);
@@ -1240,14 +1782,61 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 
 	model_Graph_low->SetLineColor(colorModel);
-	model_Graph_low->SetLineStyle(3);
+	model_Graph_low->SetLineStyle(styleModel[0]);
 	model_Graph_low->SetLineWidth(linewidthModelErrors);
 	model_Graph_low->SetFillColor(colorModel);
 
 	model_Graph_high->SetLineColor(colorModel);
-	model_Graph_high->SetLineStyle(3);
+	model_Graph_high->SetLineStyle(styleModel[0]);
 	model_Graph_high->SetLineWidth(linewidthModelErrors);
 	model_Graph_high->SetFillColor(colorModel);
+
+	for(int iSig=0;iSig<3;iSig++){
+		model_Graph_low_Bands[iSig]->SetLineColor(colorModel);
+		model_Graph_low_Bands[iSig]->SetLineStyle(styleModel[iSig]);
+		model_Graph_low_Bands[iSig]->SetLineWidth(linewidthModelErrors);
+		model_Graph_low_Bands[iSig]->SetFillColor(colorModel);
+		model_Graph_high_Bands[iSig]->SetLineColor(colorModel);
+		model_Graph_high_Bands[iSig]->SetLineStyle(styleModel[iSig]);
+		model_Graph_high_Bands[iSig]->SetLineWidth(linewidthModelErrors);
+		model_Graph_high_Bands[iSig]->SetFillColor(colorModel);
+	}
+
+	model_Graph->SetLineColor(TotalModel_LineColor_Central);
+	model_Graph->SetLineStyle(TotalModel_LineStyle_Central);
+	model_Graph->SetLineWidth(linewidthModel);
+	model_Graph->SetFillColor(TotalModel_LineColor_Central);
+
+	for(int iSig=0;iSig<3;iSig++){
+		model_Graph_Bands[iSig]->SetFillStyle(TotalModel_FillStyle_sig);
+		model_Graph_Bands[iSig]->SetFillColor(TotalModel_LineColor_nSig[iSig]);
+		model_Graph_Bands[iSig]->SetLineColor(TotalModel_LineColor_nSig[iSig]);
+	}
+
+	for(int iColorChannelSequence=0;iColorChannelSequence<ColorChannels_c;iColorChannelSequence++){
+		int i=ColorChannelSequence[iColorChannelSequence];
+		for(int iSig=0;iSig<3;iSig++){
+
+			model_Graph_ColorChannels[i]->SetLineStyle(LineStyle_Central[i]);
+			model_Graph_ColorChannels[i]->SetLineColor(LineColor_Central[i]);
+			model_Graph_ColorChannels[i]->SetLineWidth(linewidthCC);
+
+			model_Graph_ColorChannels_Bands[iSig][i]->SetFillStyle(FillStyle_sig[i]);
+			model_Graph_ColorChannels_Bands[iSig][i]->SetFillColor(LineColor_nSig[iSig][i]);
+			model_Graph_ColorChannels_Bands[iSig][i]->SetLineColor(LineColor_nSig[iSig][i]);
+
+		}
+	}
+
+	for(int iTHunc=0;iTHunc<nTHunc;iTHunc++){
+		model_CS_THunc[iTHunc]->SetLineStyle(LineStyle_THunc[iTHunc]);
+		model_CS_THunc[iTHunc]->SetLineColor(LineColor_THunc[iTHunc]);
+		model_CS_THunc[iTHunc]->SetLineWidth(linewidthTHunc);
+	}
+
+	model_CS_THuncBand->SetFillStyle(FillStyle_THunc);
+	model_CS_THuncBand->SetFillColor(FillColor_THunc);
+	model_CS_THuncBand->SetLineColor(FillColor_THunc);
 
 	cout<<"pTMinModel = "<<pTMinModel<<endl;
 	cout<<"model_Graph->GetN() = "<<model_Graph->GetN()<<endl;
@@ -1282,23 +1871,33 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 			model_Graph_low->GetPoint(jTG, buffx, buffy);
 			if(buffx<pTMinModel){
 				model_Graph_low->RemovePoint(jTG);
+				model_Graph_high->RemovePoint(jTG);
+				for(int iSig=0;iSig<3;iSig++){
+					model_Graph_low_Bands[iSig]->RemovePoint(jTG);
+					model_Graph_high_Bands[iSig]->RemovePoint(jTG);
+					model_Graph_Bands[iSig]->RemovePoint(jTG);
+				}
 				jTG--;
 			}
 
 			jTG++;
 		}
-		nGraph=model_Graph_high->GetN();
+		nGraph=model_CS_THunc[0]->GetN();
 		jTG=0;
 		for(int j=0;j<nGraph;j++){
 			double buffx, buffy;
-			model_Graph_high->GetPoint(jTG, buffx, buffy);
+			model_CS_THunc[0]->GetPoint(jTG, buffx, buffy);
 			if(buffx<pTMinModel){
-				model_Graph_high->RemovePoint(jTG);
+				for(int iTHunc=0;iTHunc<nTHunc;iTHunc++){
+					model_CS_THunc[iTHunc]->RemovePoint(jTG);
+				}
+				model_CS_THuncBand->RemovePoint(jTG);
 				jTG--;
 			}
 
 			jTG++;
 		}
+
 	}
 
 
@@ -1339,39 +1938,6 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 		}
 	}
 
-	if(PlotModel){
-		model_Graph->Draw("lsame");
-		if(singlePointModel){
-			double buffModel_pT, buffModel_res;
-			model_Graph->GetPoint(0, buffModel_pT, buffModel_res);
-			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
-			modelReplacement->SetLineColor(colorModel);
-			modelReplacement->SetLineStyle(1);
-			modelReplacement->SetLineWidth(linewidthModel);
-			modelReplacement->Draw( "same" );
-		}
-		model_Graph_low->Draw("lsame");
-		if(singlePointModel){
-			double buffModel_pT, buffModel_res;
-			model_Graph_low->GetPoint(0, buffModel_pT, buffModel_res);
-			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
-			modelReplacement->SetLineColor(model_Graph_low->GetLineColor());
-			modelReplacement->SetLineStyle(model_Graph_low->GetLineStyle());
-			modelReplacement->SetLineWidth(model_Graph_low->GetLineWidth());
-			modelReplacement->Draw( "same" );
-		}
-		model_Graph_high->Draw("lsame");
-		if(singlePointModel){
-			double buffModel_pT, buffModel_res;
-			model_Graph_high->GetPoint(0, buffModel_pT, buffModel_res);
-			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
-			modelReplacement->SetLineColor(model_Graph_high->GetLineColor());
-			modelReplacement->SetLineStyle(model_Graph_high->GetLineStyle());
-			modelReplacement->SetLineWidth(model_Graph_high->GetLineWidth());
-			modelReplacement->Draw( "same" );
-		}
-	}
-	data_Graph->Draw("psame");
 
 	if(iMeasurementID==0) if(!HPbool) data_Graph_nopolcorr->Draw("psame");
 
@@ -1400,15 +1966,20 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 	TGraph* model_Graph_ColorChannels_neg[ColorChannels_c];
 	TGraph* model_Graph_ColorChannels_pos[ColorChannels_c];
+	TGraphAsymmErrors* model_Graph_ColorChannels_Bands_neg[3][ColorChannels_c];
+	TGraphAsymmErrors* model_Graph_ColorChannels_Bands_pos[3][ColorChannels_c];
 
+	bool PlotNegChannels[ColorChannels_c];
+	bool PlotPosChannels[ColorChannels_c];
 	if(plotDirectColorChannels&&PlotModel){
 		//cout<<"ColorChannels_c "<<ColorChannels_c<<endl;
-		bool PlotNegChannels[ColorChannels_c];
-		bool PlotPosChannels[ColorChannels_c];
-		for(int i=0;i<ColorChannels_c;i++){
+		for(int iColorChannelSequence=0;iColorChannelSequence<ColorChannels_c;iColorChannelSequence++){
+			int i=ColorChannelSequence[iColorChannelSequence];
 			PlotNegChannels[i]=false;
 			PlotPosChannels[i]=false;
 			if(iMeasurementID!=0) PlotPosChannels[i]=true;
+
+			//PAPER: change plotting of color channels: 3 error bands (could be tricky: pos/neg contributions)
 
 			//model_Graph_ColorChannels[i]->Print();
 			model_Graph_ColorChannels[i]->SetLineColor(colorCC[i]);
@@ -1429,6 +2000,20 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					model_Graph_ColorChannels[i]->GetPoint(jTG, buffx, buffy);
 					if(buffx<pTMinModel){
 						model_Graph_ColorChannels[i]->RemovePoint(jTG);
+						jTG--;
+					}
+
+					jTG++;
+				}
+				nGraph=model_Graph_ColorChannels_Bands[0][i]->GetN();
+				jTG=0;
+				for(int j=0;j<nGraph;j++){
+					double buffx, buffy;
+					model_Graph_ColorChannels_Bands[0][i]->GetPoint(jTG, buffx, buffy);
+					if(buffx<pTMinModel){
+						for(int iSig=0;iSig<3;iSig++){
+							model_Graph_ColorChannels_Bands[iSig][i]->RemovePoint(jTG);
+						}
 						jTG--;
 					}
 
@@ -1458,13 +2043,42 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					set_buffy[j]=buffy;
 				}
 				model_Graph_ColorChannels_pos[i] = new TGraph(model_Graph_ColorChannels[i]->GetN(), set_buffx, set_buffy);
-				model_Graph_ColorChannels_pos[i]->SetLineColor(colorCC[i]);
+				model_Graph_ColorChannels_pos[i]->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
 				model_Graph_ColorChannels_pos[i]->SetLineStyle(linestyleCC[i]);
 				model_Graph_ColorChannels_pos[i]->SetLineWidth(linewidthCC);
 				model_Graph_ColorChannels_neg[i] = new TGraph(model_Graph_ColorChannels[i]->GetN(), set_buffx, set_buffy);
-				model_Graph_ColorChannels_neg[i]->SetLineColor(colorCC_neg[i]);
+				model_Graph_ColorChannels_neg[i]->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
 				model_Graph_ColorChannels_neg[i]->SetLineStyle(linestyleCC_neg[i]);
 				model_Graph_ColorChannels_neg[i]->SetLineWidth(linewidthCC);
+
+
+				for(int iSig=0;iSig<3;iSig++){
+					double set_buffx_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+					double set_buffy_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+					double set_bufferrlowx_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+					double set_bufferrlowy_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+					double set_bufferrhighx_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+					double set_bufferrhighy_Bands[model_Graph_ColorChannels_Bands[iSig][i]->GetN()];
+
+					for(int j=0;j<model_Graph_ColorChannels[i]->GetN();j++){
+						double buffx, buffy;
+						model_Graph_ColorChannels_Bands[iSig][i]->GetPoint(j, buffx, buffy);
+						set_buffx[j]=buffx;
+						set_buffy[j]=buffy;
+						set_bufferrhighx_Bands[j]=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorXhigh(j);
+						set_bufferrhighy_Bands[j]=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorYhigh(j);
+						set_bufferrlowx_Bands[j]=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorXlow(j);
+						set_bufferrlowy_Bands[j]=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorYlow(j);
+					}
+					model_Graph_ColorChannels_Bands_pos[iSig][i] = new TGraphAsymmErrors(model_Graph_ColorChannels[i]->GetN(), set_buffx, set_buffy, set_bufferrlowx_Bands, set_bufferrhighx_Bands, set_bufferrlowy_Bands, set_bufferrhighy_Bands);
+					model_Graph_ColorChannels_Bands_pos[iSig][i]->SetFillStyle(model_Graph_ColorChannels_Bands[iSig][i]->GetFillStyle());
+					model_Graph_ColorChannels_Bands_pos[iSig][i]->SetFillColor(model_Graph_ColorChannels_Bands[iSig][i]->GetFillColor());
+					model_Graph_ColorChannels_Bands_pos[iSig][i]->SetLineColor(model_Graph_ColorChannels_Bands[iSig][i]->GetLineColor());
+					model_Graph_ColorChannels_Bands_neg[iSig][i] = new TGraphAsymmErrors(model_Graph_ColorChannels[i]->GetN(), set_buffx, set_buffy, set_bufferrlowx_Bands, set_bufferrhighx_Bands, set_bufferrlowy_Bands, set_bufferrhighy_Bands);
+					model_Graph_ColorChannels_Bands_neg[iSig][i]->SetFillStyle(model_Graph_ColorChannels_Bands[iSig][i]->GetFillStyle());
+					model_Graph_ColorChannels_Bands_neg[iSig][i]->SetFillColor(model_Graph_ColorChannels_Bands[iSig][i]->GetFillColor());
+					model_Graph_ColorChannels_Bands_neg[iSig][i]->SetLineColor(model_Graph_ColorChannels_Bands[iSig][i]->GetLineColor());
+				}
 
 				bool isContributionPositive[model_Graph_ColorChannels[i]->GetN()];
 				for(int j=0;j<model_Graph_ColorChannels[i]->GetN();j++){
@@ -1477,6 +2091,9 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					double buffx, buffy;
 					model_Graph_ColorChannels[i]->GetPoint(j, buffx, buffy);
 					model_Graph_ColorChannels_neg[i]->SetPoint(j,buffx, -buffy);
+					for(int iSig=0;iSig<3;iSig++){
+						model_Graph_ColorChannels_Bands_neg[iSig][i]->SetPoint(j,buffx, -buffy);
+					}
 				}
 				int removedPoint_pos=0;
 				int removedPoint_neg=0;
@@ -1485,11 +2102,17 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					if(isContributionPositive[j]){
 						cout<<"remove neg point j-removedPoint_neg "<<j-removedPoint_neg<<endl;
 						model_Graph_ColorChannels_neg[i]->RemovePoint(j-removedPoint_neg);
+						for(int iSig=0;iSig<3;iSig++){
+							model_Graph_ColorChannels_Bands_neg[iSig][i]->RemovePoint(j-removedPoint_neg);
+						}
 						removedPoint_neg++;
 					}
 					else{
 						cout<<"remove pos point j-removedPoint_pos "<<j-removedPoint_pos<<endl;
 						model_Graph_ColorChannels_pos[i]->RemovePoint(j-removedPoint_pos);
+						for(int iSig=0;iSig<3;iSig++){
+							model_Graph_ColorChannels_Bands_pos[iSig][i]->RemovePoint(j-removedPoint_pos);
+						}
 						removedPoint_pos++;
 					}
 				}
@@ -1500,7 +2123,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 
 			if(!PlotNegChannels[i]){
-				model_Graph_ColorChannels[i]->Draw("lsame");
+				if(plotColorChannel[i]) model_Graph_ColorChannels[i]->Draw("lsame");
 				if(singlePointModel){
 					double buffModel_pT, buffModel_res;
 					model_Graph_ColorChannels[i]->GetPoint(0, buffModel_pT, buffModel_res);
@@ -1508,7 +2131,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					modelReplacement->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
 					modelReplacement->SetLineStyle(model_Graph_ColorChannels[i]->GetLineStyle());
 					modelReplacement->SetLineWidth(model_Graph_ColorChannels[i]->GetLineWidth());
-					modelReplacement->Draw( "same" );
+					if(plotColorChannel[i]) modelReplacement->Draw( "same" );
 				}
 
 				cout<<"model_Graph_ColorChannels["<<i<<"]:"<<endl;
@@ -1526,18 +2149,74 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 				//	else legend->AddEntry(model_Graph_ColorChannels[i],Form("%s", ColorChannelNameTexP[i]),"p");
 				//}
 
+					//if(iMeasurementID==0){
+						for(int iSig=2;iSig>-1;iSig--){
+							//if(iSig==0&&i==0) cout<<"CHECK_IT_OUT_AGAIN"<<endl;
+							model_Graph_ColorChannels_Bands[iSig][i]->Print();
+							if(plotColorChannelBands[i] && plotSigmaBands[iSig]) model_Graph_ColorChannels_Bands[iSig][i]->Draw("3same");
+						}
+						if(plotColorChannel[i]) model_Graph_ColorChannels[i]->Draw("lsame");
+						if(singlePointModel){
+							double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+							for(int iSig=2;iSig>-1;iSig--){
+								model_Graph_ColorChannels_Bands[iSig][i]->GetPoint(0, buffModel_pT, buffModel_res);
+								buffModel_reserrhigh=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorYhigh(0);
+								buffModel_reserrlow=model_Graph_ColorChannels_Bands[iSig][i]->GetErrorYlow(0);
+								double y_min_box, y_max_box;
+								y_min_box=buffModel_res-buffModel_reserrlow;
+								y_max_box=buffModel_res+buffModel_reserrhigh;
+								if(y_min_box<y_min) y_min_box=y_min;
+								if(y_max_box>y_max) y_max_box=y_max;
+								TBox* modelReplacementbox = new TBox( buff_pT-buff_errpT_low, y_min_box, buff_pT+buff_errpT_high, y_max_box);
+								modelReplacementbox->SetFillStyle(model_Graph_ColorChannels_Bands[iSig][i]->GetFillStyle());
+								modelReplacementbox->SetFillColor(model_Graph_ColorChannels_Bands[iSig][i]->GetFillColor());
+								modelReplacementbox->SetLineColor(model_Graph_ColorChannels_Bands[iSig][i]->GetLineColor());
+								modelReplacementbox->SetLineWidth(0.);
+								if(plotColorChannelBands[i] && plotSigmaBands[iSig]) modelReplacementbox->Draw( "same" );
+
+							}
+							TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+							modelReplacement->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
+							modelReplacement->SetLineStyle(model_Graph_ColorChannels[i]->GetLineStyle());
+							modelReplacement->SetLineWidth(model_Graph_ColorChannels[i]->GetLineWidth());
+							if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+
+						}
+
+					//}
+
 			}
 			if(PlotNegChannels[i]){
 				if(PlotPosChannels[i]){
-					model_Graph_ColorChannels_pos[i]->Draw("lsame");
+					for(int iSig=2;iSig>-1;iSig--){
+						if(plotColorChannelBands[i] && plotSigmaBands[iSig]) model_Graph_ColorChannels_Bands_pos[iSig][i]->Draw("3same");
+					}
+					if(plotColorChannel[i]) model_Graph_ColorChannels_pos[i]->Draw("lsame");
 					if(singlePointModel){
-						double buffModel_pT, buffModel_res;
-						model_Graph_ColorChannels_pos[i]->GetPoint(0, buffModel_pT, buffModel_res);
+						double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+						for(int iSig=2;iSig>-1;iSig--){
+							model_Graph_ColorChannels_Bands_pos[iSig][i]->GetPoint(0, buffModel_pT, buffModel_res);
+							buffModel_reserrhigh=model_Graph_ColorChannels_Bands_pos[iSig][i]->GetErrorYhigh(0);
+							buffModel_reserrlow=model_Graph_ColorChannels_Bands_pos[iSig][i]->GetErrorYlow(0);
+							double y_min_box, y_max_box;
+							y_min_box=buffModel_res-buffModel_reserrlow;
+							y_max_box=buffModel_res+buffModel_reserrhigh;
+							if(y_min_box<y_min) y_min_box=y_min;
+							if(y_max_box>y_max) y_max_box=y_max;
+							TBox* modelReplacementbox = new TBox( buff_pT-buff_errpT_low, y_min_box, buff_pT+buff_errpT_high, y_max_box);
+							modelReplacementbox->SetFillStyle(model_Graph_ColorChannels_Bands_pos[iSig][i]->GetFillStyle());
+							modelReplacementbox->SetFillColor(model_Graph_ColorChannels_Bands_pos[iSig][i]->GetFillColor());
+							modelReplacementbox->SetLineColor(model_Graph_ColorChannels_Bands_pos[iSig][i]->GetLineColor());
+							modelReplacementbox->SetLineWidth(0.);
+							if(plotColorChannelBands[i] && plotSigmaBands[iSig]) modelReplacementbox->Draw( "same" );
+
+						}
 						TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
 						modelReplacement->SetLineColor(model_Graph_ColorChannels_pos[i]->GetLineColor());
 						modelReplacement->SetLineStyle(model_Graph_ColorChannels_pos[i]->GetLineStyle());
 						modelReplacement->SetLineWidth(model_Graph_ColorChannels_pos[i]->GetLineWidth());
-						modelReplacement->Draw( "same" );
+						if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+
 					}
 
 					cout<<"model_Graph_ColorChannels_pos["<<i<<"]:"<<endl;
@@ -1556,15 +2235,35 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					//}
 
 					}
-				model_Graph_ColorChannels_neg[i]->Draw("lsame");
+				for(int iSig=2;iSig>-1;iSig--){
+					if(plotColorChannelBands[i] && plotSigmaBands[iSig]) model_Graph_ColorChannels_Bands_neg[iSig][i]->Draw("3same");
+				}
+				if(plotColorChannel[i]) model_Graph_ColorChannels_neg[i]->Draw("lsame");
 				if(singlePointModel){
-					double buffModel_pT, buffModel_res;
-					model_Graph_ColorChannels_neg[i]->GetPoint(0, buffModel_pT, buffModel_res);
+					double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+					for(int iSig=2;iSig>-1;iSig--){
+						model_Graph_ColorChannels_Bands_neg[iSig][i]->GetPoint(0, buffModel_pT, buffModel_res);
+						buffModel_reserrhigh=model_Graph_ColorChannels_Bands_neg[iSig][i]->GetErrorYhigh(0);
+						buffModel_reserrlow=model_Graph_ColorChannels_Bands_neg[iSig][i]->GetErrorYlow(0);
+						double y_min_box, y_max_box;
+						y_min_box=buffModel_res-buffModel_reserrlow;
+						y_max_box=buffModel_res+buffModel_reserrhigh;
+						if(y_min_box<y_min) y_min_box=y_min;
+						if(y_max_box>y_max) y_max_box=y_max;
+						TBox* modelReplacementbox = new TBox( buff_pT-buff_errpT_low, y_min_box, buff_pT+buff_errpT_high, y_max_box);
+						modelReplacementbox->SetFillStyle(model_Graph_ColorChannels_Bands_neg[iSig][i]->GetFillStyle());
+						modelReplacementbox->SetFillColor(model_Graph_ColorChannels_Bands_neg[iSig][i]->GetFillColor());
+						modelReplacementbox->SetLineColor(model_Graph_ColorChannels_Bands_neg[iSig][i]->GetLineColor());
+						modelReplacementbox->SetLineWidth(0.);
+						if(plotColorChannelBands[i] && plotSigmaBands[iSig]) modelReplacementbox->Draw( "same" );
+
+					}
 					TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
 					modelReplacement->SetLineColor(model_Graph_ColorChannels_neg[i]->GetLineColor());
 					modelReplacement->SetLineStyle(model_Graph_ColorChannels_neg[i]->GetLineStyle());
 					modelReplacement->SetLineWidth(model_Graph_ColorChannels_neg[i]->GetLineWidth());
-					modelReplacement->Draw( "same" );
+					if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+
 				}
 				cout<<"model_Graph_ColorChannels_neg["<<i<<"]:"<<endl;
 				model_Graph_ColorChannels_neg[i]->Print();
@@ -1574,6 +2273,12 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 				else legend->AddEntry(model_Graph_ColorChannels_neg[i],Form("%s (neg.)", ColorChannelNameTexP[i]),"l");
 
 			}
+
+
+
+
+
+
 
 		}
 	}
@@ -1602,6 +2307,161 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 		legend->AddEntry(model_Graph_FeedDowns[0],"Inclusive feed-down","l");
 	}
 
+	if(PlotModel){
+		for(int iSig=2;iSig>-1;iSig--){
+			if(plotTotalModelBands && plotSigmaBands[iSig]) model_Graph_Bands[iSig]->Draw("3same");
+			if(singlePointModel){
+				double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+				for(int iSig=2;iSig>-1;iSig--){
+					model_Graph_Bands[iSig]->GetPoint(0, buffModel_pT, buffModel_res);
+					buffModel_reserrhigh=model_Graph_Bands[iSig]->GetErrorYhigh(0);
+					buffModel_reserrlow=model_Graph_Bands[iSig]->GetErrorYlow(0);
+					double y_min_box, y_max_box;
+					y_min_box=buffModel_res-buffModel_reserrlow;
+					y_max_box=buffModel_res+buffModel_reserrhigh;
+					if(y_min_box<y_min) y_min_box=y_min;
+					if(y_max_box>y_max) y_max_box=y_max;
+					TBox* modelReplacementbox = new TBox( buff_pT-buff_errpT_low, y_min_box, buff_pT+buff_errpT_high, y_max_box);
+					modelReplacementbox->SetFillStyle(model_Graph_Bands[iSig]->GetFillStyle());
+					modelReplacementbox->SetFillColor(model_Graph_Bands[iSig]->GetFillColor());
+					modelReplacementbox->SetLineColor(model_Graph_Bands[iSig]->GetLineColor());
+					modelReplacementbox->SetLineWidth(0.);
+					if(plotTotalModelBands && plotSigmaBands[iSig]) modelReplacementbox->Draw( "same" );
+
+				}
+			}
+		}
+		if(plotTotalModel) model_Graph->Draw("lsame");
+		if(singlePointModel){
+			double buffModel_pT, buffModel_res;
+			model_Graph->GetPoint(0, buffModel_pT, buffModel_res);
+			TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+			modelReplacement->SetLineColor(colorModel);
+			modelReplacement->SetLineStyle(1);
+			modelReplacement->SetLineWidth(linewidthModel);
+			if(plotTotalModel) modelReplacement->Draw( "same" );
+		}
+/*		for(int iSig=0;iSig<3;iSig++){
+			model_Graph_low_Bands[iSig]->Draw("lsame");
+			if(singlePointModel){
+				double buffModel_pT, buffModel_res;
+				model_Graph_low_Bands[iSig]->GetPoint(0, buffModel_pT, buffModel_res);
+				TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+				modelReplacement->SetLineColor(model_Graph_low_Bands[iSig]->GetLineColor());
+				modelReplacement->SetLineStyle(model_Graph_low_Bands[iSig]->GetLineStyle());
+				modelReplacement->SetLineWidth(model_Graph_low_Bands[iSig]->GetLineWidth());
+				modelReplacement->Draw( "same" );
+			}
+		}
+		for(int iSig=0;iSig<3;iSig++){
+			model_Graph_high_Bands[iSig]->Draw("lsame");
+			if(singlePointModel){
+				double buffModel_pT, buffModel_res;
+				model_Graph_high_Bands[iSig]->GetPoint(0, buffModel_pT, buffModel_res);
+				TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+				modelReplacement->SetLineColor(model_Graph_high_Bands[iSig]->GetLineColor());
+				modelReplacement->SetLineStyle(model_Graph_high_Bands[iSig]->GetLineStyle());
+				modelReplacement->SetLineWidth(model_Graph_high_Bands[iSig]->GetLineWidth());
+				modelReplacement->Draw( "same" );
+			}
+		}
+*/
+	}
+
+	if(plotCSTHuncBand){
+		model_CS_THuncBand->Draw("3same");
+		if(singlePointModel){
+			double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+			model_CS_THuncBand->GetPoint(0, buffModel_pT, buffModel_res);
+			buffModel_reserrhigh=model_CS_THuncBand->GetErrorYhigh(0);
+			buffModel_reserrlow=model_CS_THuncBand->GetErrorYlow(0);
+			double y_min_box, y_max_box;
+			y_min_box=buffModel_res-buffModel_reserrlow;
+			y_max_box=buffModel_res+buffModel_reserrhigh;
+			if(y_min_box<y_min) y_min_box=y_min;
+			if(y_max_box>y_max) y_max_box=y_max;
+			TBox* modelReplacementbox = new TBox( buff_pT-buff_errpT_low, y_min_box, buff_pT+buff_errpT_high, y_max_box);
+			modelReplacementbox->SetFillStyle(model_CS_THuncBand->GetFillStyle());
+			modelReplacementbox->SetFillColor(model_CS_THuncBand->GetFillColor());
+			modelReplacementbox->SetLineColor(model_CS_THuncBand->GetLineColor());
+			modelReplacementbox->SetLineWidth(0.);
+			modelReplacementbox->Draw( "same" );
+
+		}
+
+	}
+
+	if(plotCSTHuncLines){
+
+		for(int iTHunc=0;iTHunc<nTHunc;iTHunc++){
+			model_CS_THunc[iTHunc]->SetLineStyle(LineStyle_THunc[iTHunc]);
+			model_CS_THunc[iTHunc]->SetLineColor(LineColor_THunc[iTHunc]);
+			model_CS_THunc[iTHunc]->SetLineWidth(linewidthTHunc);
+
+			if(plotCSTHuncLine[iTHunc]) model_CS_THunc[iTHunc]->Draw("lsame");
+			if(singlePointModel){
+				double buffModel_pT, buffModel_res;
+				model_CS_THunc[iTHunc]->GetPoint(0, buffModel_pT, buffModel_res);
+				TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+				modelReplacement->SetLineColor(model_CS_THunc[iTHunc]->GetLineColor());
+				modelReplacement->SetLineStyle(model_CS_THunc[iTHunc]->GetLineStyle());
+				modelReplacement->SetLineWidth(model_CS_THunc[iTHunc]->GetLineWidth());
+				if(plotCSTHuncLine[iTHunc]) modelReplacement->Draw( "same" );
+
+			}
+
+		}
+
+
+
+	}
+
+	if(plotDirectColorChannels&&PlotModel){
+	//Replot central color channels, to assure that they are on top of the total model bands... (!!!)
+		for(int iColorChannelSequence=0;iColorChannelSequence<ColorChannels_c;iColorChannelSequence++){
+			int i=ColorChannelSequence[iColorChannelSequence];
+			if(!PlotNegChannels[i]){
+				if(plotColorChannel[i]) model_Graph_ColorChannels[i]->Draw("lsame");
+				if(singlePointModel){
+					double buffModel_pT, buffModel_res;
+					model_Graph_ColorChannels[i]->GetPoint(0, buffModel_pT, buffModel_res);
+					TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+					modelReplacement->SetLineColor(model_Graph_ColorChannels[i]->GetLineColor());
+					modelReplacement->SetLineStyle(model_Graph_ColorChannels[i]->GetLineStyle());
+					modelReplacement->SetLineWidth(model_Graph_ColorChannels[i]->GetLineWidth());
+					if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+				}
+			}
+			if(PlotNegChannels[i]){
+				if(PlotPosChannels[i]){
+					if(plotColorChannel[i]) model_Graph_ColorChannels_pos[i]->Draw("lsame");
+					if(singlePointModel){
+						double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+						TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+						modelReplacement->SetLineColor(model_Graph_ColorChannels_pos[i]->GetLineColor());
+						modelReplacement->SetLineStyle(model_Graph_ColorChannels_pos[i]->GetLineStyle());
+						modelReplacement->SetLineWidth(model_Graph_ColorChannels_pos[i]->GetLineWidth());
+						if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+
+					}
+				}
+				model_Graph_ColorChannels_neg[i]->Draw("lsame");
+				if(singlePointModel){
+					double buffModel_pT, buffModel_res, buffModel_reserrlow, buffModel_reserrhigh;
+					TLine* modelReplacement = new TLine( buff_pT-buff_errpT_low, buffModel_res, buff_pT+buff_errpT_high, buffModel_res);
+					modelReplacement->SetLineColor(model_Graph_ColorChannels_neg[i]->GetLineColor());
+					modelReplacement->SetLineStyle(model_Graph_ColorChannels_neg[i]->GetLineStyle());
+					modelReplacement->SetLineWidth(model_Graph_ColorChannels_neg[i]->GetLineWidth());
+					if(plotColorChannel[i]) modelReplacement->Draw( "same" );
+
+				}
+			}
+		}
+	}
+
+	data_Graph->Draw("psame");
+
+	axishist->Draw("AXISsame");
 
 	if(PlotModel) legend->Draw("same");
 
@@ -1617,7 +2477,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	top=0.25;
 	if(chi2Min>1e-2 && chi2Min<998) latex->DrawLatex(left,top, Form("P(#chi^{2}, ndf) = %1.2G", chi2Prob));
 
-	if(iMeasurementID==0) plotCanvas->SetLogy(true);
+	if(logY) if(iMeasurementID==0) plotCanvas->SetLogy(true);
 
 	left=0.725; top=0.895;
 	if(longrapchar) left=0.68125;
@@ -1645,7 +2505,10 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 	char savename[1000];
 	sprintf(savename,"%s/Figures/DataModelComp_%s_%s_%s_rap%d.pdf",jobdirname, ExpName[iExperiment], StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
-	cout<<"saved here: "<<savename<<endl;
+	cout<<"saved here...: "<<savename<<endl;
+	plotCanvas->SaveAs(savename);
+	sprintf(savename,"%s/Figures/PNG_DataModelComp_%s_%s_%s_rap%d.png",jobdirname, ExpName[iExperiment], StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+	cout<<"... and saved here: "<<savename<<endl;
 	plotCanvas->SaveAs(savename);
 
 

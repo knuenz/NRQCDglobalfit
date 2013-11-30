@@ -666,7 +666,7 @@ int main(int argc, char** argv) {
 
 			bool plot2DLDMEComb[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
 			TH2D* h_2DLDME[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
-			int nBins2D=35;
+			int nBins2D=200;
 			double f1Min, f1Max, f2Min, f2Max;
 			char branch_name_f1[200];
 			char branch_name_f2[200];

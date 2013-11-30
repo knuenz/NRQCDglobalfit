@@ -117,7 +117,7 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 			double GlobalSystCorrectionFactor=1+(sigma_Pos-sigma_Neg)/(2.*sigma_Central)*RandomUS+((sigma_Pos+sigma_Neg)/(2.*sigma_Central)-1)*RandomUS*RandomUS;
 			//cout<<"RandomUS "<<RandomUS<<endl;
 			//cout<<"GlobalSystCorrectionFactor "<<GlobalSystCorrectionFactor<<endl;
-			ShortDistanceCoef_corrected[i]*=GlobalSystCorrectionFactor;
+			if(i==j) ShortDistanceCoef_corrected[i]*=GlobalSystCorrectionFactor;
 		}
 		//cout<<"ShortDistanceCoef_corrected["<<i<<"] "<<ShortDistanceCoef_corrected[i]<<endl;
 	}
@@ -173,13 +173,32 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 			double Lamtp_Neg=OctetCompLamtp_globalSystNeg[i][j];
 			double RandomUS=Np_US[1][j];
 
+			//cout<<"i "<<i<<endl;
+				//cout<<"j "<<j<<endl;
+
+			//if(i==j && j==0) {
+			//cout<<"Lamth_Pos "<<Lamth_Pos<<endl;
+			//cout<<"Lamth_Neg "<<Lamth_Neg<<endl;
+			//}
+
+			//Old lamth correction - did not work
 			double GlobalLamthCorrectionTerm=1+(Lamth_Pos-Lamth_Neg)/(2.)*RandomUS+((Lamth_Pos+Lamth_Neg)/(2.)-Lamth_Central)*RandomUS*RandomUS;
 			double GlobalLamphCorrectionTerm=1+(Lamph_Pos-Lamph_Neg)/(2.)*RandomUS+((Lamph_Pos+Lamph_Neg)/(2.)-Lamph_Central)*RandomUS*RandomUS;
 			double GlobalLamtpCorrectionTerm=1+(Lamtp_Pos-Lamtp_Neg)/(2.)*RandomUS+((Lamtp_Pos+Lamtp_Neg)/(2.)-Lamtp_Central)*RandomUS*RandomUS;
 
-			OctetCompLamth_corrected[i]*=GlobalLamthCorrectionTerm;
-			OctetCompLamph_corrected[i]*=GlobalLamphCorrectionTerm;
-			OctetCompLamtp_corrected[i]*=GlobalLamtpCorrectionTerm;
+			//OctetCompLamth_corrected[i]*=GlobalLamthCorrectionTerm;
+			//OctetCompLamph_corrected[i]*=GlobalLamphCorrectionTerm;
+			//OctetCompLamtp_corrected[i]*=GlobalLamtpCorrectionTerm;
+
+			//New lamth correction: lam'=kx+d, assuming symmetric LampPos and LamNeg
+			if(i==j) OctetCompLamth_corrected[i] = (Lamth_Pos-Lamth_Neg)/(2.) * RandomUS - (Lamth_Pos-Lamth_Neg)/(2.)+Lamth_Pos;
+			if(i==j) OctetCompLamph_corrected[i] = (Lamph_Pos-Lamph_Neg)/(2.) * RandomUS - (Lamph_Pos-Lamph_Neg)/(2.)+Lamph_Pos;
+			if(i==j) OctetCompLamtp_corrected[i] = (Lamtp_Pos-Lamtp_Neg)/(2.) * RandomUS - (Lamtp_Pos-Lamtp_Neg)/(2.)+Lamtp_Pos;
+
+			//if(i==j && j==0) {
+			//cout<<"Lamth_Central "<<Lamth_Central<<endl;
+			//cout<<"OctetCompLamth_corrected "<<OctetCompLamth_corrected[i]<<endl;
+			//}
 		}
 
 	}
@@ -234,10 +253,13 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 
 	if(returnMPDetails){
 		directProductionMatrix.push_back(DirectCrossSectCont);
-		directProductionMatrix.push_back(OctetCompLamth_);
-		directProductionMatrix.push_back(OctetCompLamph_);
-		directProductionMatrix.push_back(OctetCompLamtp_);
+		directProductionMatrix.push_back(OctetCompLamth_corrected);
+		directProductionMatrix.push_back(OctetCompLamph_corrected);
+		directProductionMatrix.push_back(OctetCompLamtp_corrected);
 	}
+
+	//cout<<"OctetCompLamth_corrected[0]"<<endl;
+	//cout<<OctetCompLamth_corrected[0]<<endl;
 
 	return DirectProductionVec;
 }

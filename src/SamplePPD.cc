@@ -242,6 +242,10 @@ int main(int argc, char** argv) {
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
+				    	pTMin=1000;//CHANGE_BACK
+				    	if(iState==3) pTMin=13;//CHANGE_BACK
+				    	if(iState==10) pTMin=35;//CHANGE_BACK
+
 				    	//if(iMeasurementID!=0) continue;
 				    	if(iMeasurementID>1) continue;
 
@@ -2196,6 +2200,10 @@ int main(int argc, char** argv) {
 					//cout << "Sum f[1]-f[n] "<< SumFractions <<endl;
 					Fractions.at(i)=Fractions_P;
 				}
+
+				//if(i==10) Fractions.at(i)=Fractions.at(3);//CHANGE_BACK
+				//CHANGE_BACK=combined fit (same LDMEs for ups3S and psi2S)
+
 			}
 
 			Candidates=Fractions;
@@ -2206,6 +2214,9 @@ int main(int argc, char** argv) {
 
 			transformFractionsToOps(Op, Candidates, consts_star_var);
 
+			//Op.at(10)=Op.at(3);//CHANGE_BACK
+
+			//Op.at(10).at(0)=1.;//CHANGE_BACK
 
 			//cout<<Op;
 			//
@@ -2379,6 +2390,7 @@ int main(int argc, char** argv) {
 		chi2Min*=-2.;
 		ndf=nDataPoints-nOps;
 		reduced_chi2Min=chi2Min/double(ndf);
+		//ndf-=2;//CHANGE_BACK
 
 	}
 

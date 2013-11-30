@@ -9,17 +9,23 @@ DataID=October9_DataForPtFits #September27_Psi2SUps3Sonly
 #OriginalModelID=GWWZmodel
 OriginalModelID=BKmodel70
 ### store here the ModelIngredients.root file and consts_star file
-ModelID=October31_UNCORR_BKmodel70_OriginalAllStates_pTstar_over_m6_UpsAssumption #HP original
-#ModelID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption #HP scaled
+#ModelID=October31_UNCORR_BKmodel70_OriginalAllStates_pTstar_over_m6_UpsAssumption #HP original
+ModelID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption #HP scaled
 
 ### store here the NRQCD objects combining data and model predictions
 ModelSystScaleID=NLOmLO
 
-DataModelCombID=August24_Psi2Sonly_BKmodel_NoAbsDef_NoLamphLamtp
-#DataModelCombID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption_AddTheoryUncertainty_AddNonModelDataPointsForPlots
+#DataModelCombID=August24_Psi2Sonly_BKmodel_NoAbsDef_NoLamphLamtp
+DataModelCombID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption_AddTheoryUncertainty_AddNonModelDataPointsForPlots_NEW_THuncert
 
 ### store here the output TTree of the likelihood sampling, and all Figures of the results:
-for JobID in November1_HPsequence_3_cs_pol_pTmin9_psi2S_wo3PJ;do
+#for JobID in October31_HPsequence_5_cs_pol_pTmin35_scaling_THuncert_ups3S_wo3PJ_NEW_THuncert_polCORR;do
+for JobID in October31_HPsequence_5_cs_pol_pTmin13_scaling_THuncert_psi2S_wo3PJ_NEW_THuncert_polCORR;do
+#for JobID in November1_HPsequence_3_cs_pol_pTmin9_psi2S_wo3PJ;do
+#for JobID in November4_HPsequence_6_cs_pol_pTovMmin3p5_psi2Sups3S_THuncertainty_wo3PJ;do
+
+#for JobID in pTMinPlots;do
+
 #for JobID in BKtruth;do
 
 run_ConvertDataInput=0
@@ -41,6 +47,10 @@ run_PlotCompareDataModel=1
 #individual macros:::
 run_FitPtDists=0
 run_PlotPPD=0
+run_PlotPPDderivative=0
+run_PlotPPD_vs_pTmin=0
+
+reCompile=0
 
 ##################################
 ########## SETTINGS ##############
@@ -76,7 +86,7 @@ MPValgo=4 		#1...mean,2...gauss,3...gauss-loop with chi2<2, 4...(new)...mode
 ##################################
 # To be added in SamplePPD and the plotting
 
-pTMin=9
+pTMin=13
 pTMax=100
 rapMin=-10
 rapMax=10
@@ -90,7 +100,10 @@ useOnlyState=3 #switch off by setting it to an int > N_STATES
 ############# CODE ###############
 ##################################
 
+if [ ${reCompile} -eq 1 ]
+then
 touch src/*
+fi
 make
 
 cp ConvertDataInput ConvertDataInput_${DataID}
@@ -106,6 +119,8 @@ cp SamplePPD SamplePPD_${JobID}
 cp InterpretPPD InterpretPPD_${JobID}
 cp PlotCompareDataModel PlotCompareDataModel_${JobID}
 cp PlotPPD PlotPPD_${JobID}
+cp PlotPPDderivative PlotPPDderivative_${JobID}
+cp PlotPPD_vs_pTmin PlotPPD_vs_pTmin_${JobID}
 
 if [ ${run_ConvertDataInput} -eq 1 ]
 then
@@ -169,6 +184,22 @@ then
 ./PlotPPD_${JobID} ${JobID}=JobID ${storagedir}=storagedir
 mkdir Figures/PlotPPD/
 mkdir Figures/PlotPPD/${JobID}
+fi
+
+if [ ${run_PlotPPDderivative} -eq 1 ]
+then
+echo 'run PlotPPDderivative'
+./PlotPPDderivative_${JobID} ${JobID}=JobID ${storagedir}=storagedir ${useOnlyState}useOnlyState ${MPValgo}MPValgo ${nSigma}nSigma
+mkdir Figures/PlotPPDderivative/
+mkdir Figures/PlotPPDderivative/${JobID}
+fi
+
+if [ ${run_PlotPPD_vs_pTmin} -eq 1 ]
+then
+echo 'run PlotPPD_vs_pTmin'
+./PlotPPD_vs_pTmin_${JobID} ${JobID}=JobID ${storagedir}=storagedir ${useOnlyState}useOnlyState ${MPValgo}MPValgo ${nSigma}nSigma
+mkdir Figures/PlotPPD_vs_pTmin/
+mkdir Figures/PlotPPD_vs_pTmin/${JobID}
 fi
 
 

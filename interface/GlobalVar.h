@@ -42,7 +42,7 @@ Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
-const int nModelSystematicScales = 0;
+const int nModelSystematicScales = 4;
 const int nDataSystematicScales = nExperiments;
 
 //const int nColorChannels_S=4;//includes CS
@@ -65,9 +65,9 @@ const int nColorChannels = std::max(nColorChannels_S, nColorChannels_P);
 
 double FeedDownBranchingRatio[nStates][nStates]={
 		//one row for each state; elements: BR of BR(x->y), [iDaughter][iMother]
-		{0,   34.1,   19.4,   58.7,     0,   0,     0,      0,       0,     0,   0,   0,   0},   // 1...Jpsi
-		{0,   0,      0,      9.2,      0,   0,     0,      0,       0,     0,   0,   0,   0},   // 2...chic1
-		{0,   0,      0,      8.69,     0,   0,     0,      0,       0,     0,   0,   0,   0},   // 3...chic2
+		{0,   34.8,   19.8,   60.3,     0,   0,     0,      0,       0,     0,   0,   0,   0},   // 1...Jpsi
+		{0,   0,      0,      9.3,      0,   0,     0,      0,       0,     0,   0,   0,   0},   // 2...chic1
+		{0,   0,      0,      8.76,     0,   0,     0,      0,       0,     0,   0,   0,   0},   // 3...chic2
 		{0,   0,      0,      0,        0,   0,     0,      0,       0,     0,   0,   0,   0},   // 4...Psi'
 
 
@@ -85,9 +85,9 @@ double FeedDownBranchingRatio[nStates][nStates]={
 
 double errFeedDownBranchingRatio[nStates][nStates]={
 		//one row for each state; elements: BR of BR(x->y)
-		{0,   1.5,   0.8,   0.8,        0,   0,   0,   0,   0,   0,   0,   0,   0},   // 1...Jpsi
+		{0,   1.5,   0.8,   0.7,        0,   0,   0,   0,   0,   0,   0,   0,   0},   // 1...Jpsi
 		{0,   0,     0,     0.4,        0,   0,   0,   0,   0,   0,   0,   0,   0},   // 2...chic1
-		{0,   0,     0,     0.35,       0,   0,   0,   0,   0,   0,   0,   0,   0},   // 3...chic2
+		{0,   0,     0,     0.34,       0,   0,   0,   0,   0,   0,   0,   0,   0},   // 3...chic2
 		{0,   0,     0,     0,          0,   0,   0,   0,   0,   0,   0,   0,   0},   // 4...Psi'
 
 
