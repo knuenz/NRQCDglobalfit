@@ -49,6 +49,15 @@ Important variables:
 -Including or not including the singlet can happen by changing the ColorSingletME
 -Including the theoretical uncertainties by changing nModelSystematicScales (0... no theoretical uncertainties, 3... include theoretical uncertainties (3: for the three color channels CS, 1S0, 3S1))
 
+
+c) runNRQCDglobalfit.sh
+For each execution of this script, the code is recompiled automatically.
+But, if you only change an interface/.h file, the code is not recompiled.
+To change this behavior, you can set reCompile=1.
+In this case, all code is touched, and everything is recompiled (takes a bit longer...)
+
+
+
 ::::::::::::::::::::::::::::::::::::::::
 3) Convert data inputs too needed format
 ::::::::::::::::::::::::::::::::::::::::
