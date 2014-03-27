@@ -223,19 +223,19 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 			 break;
 		case NRQCDvars::CMS2011:
 				 switch( nState ){
-			 case NRQCDvars::PSI_2S://2011, 5fb
-			 	 fIn = fopen("HEPDATA/CrossSections/promptPsi2S_05Feb2014_mergedRapBins.txt", "read");
-		         if( !fIn ){
-		        	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
-		         }
-			 	 nRapBins=1;
-			 	 maxPTPoints[0] = 18;
-			 	 npTBins[0] = 18;
-			 	 isMeasurementAvailable=true;
-			 	 LumiUncertaintyGivenOverall=true;
-			 	 RelativeLumiUncertainty=0.022;
-			 	 break;
-
+//			 case NRQCDvars::PSI_2S://2011, 5fb
+//			 	 fIn = fopen("HEPDATA/CrossSections/promptPsi2S_05Feb2014_mergedRapBins.txt", "read");
+//		         if( !fIn ){
+//		        	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
+//		         }
+//			 	 nRapBins=1;
+//			 	 maxPTPoints[0] = 18;
+//			 	 npTBins[0] = 18;
+//			 	 isMeasurementAvailable=true;
+//			 	 LumiUncertaintyGivenOverall=true;
+//			 	 RelativeLumiUncertainty=0.022;
+//			 	 break;
+//
 //			 case NRQCDvars::UPS_1S:
 //				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups1S_2011_AN.txt", "read");
 //	             if( !fIn ){
@@ -260,29 +260,29 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 //				 LumiUncertaintyGivenOverall=true;
 //				 RelativeLumiUncertainty=0.022;
 //				 break;
-//			 case NRQCDvars::UPS_3S://2011, 5fb
-//				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_2011_AN.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
-//	             }
-//				 nRapBins=1;
-//				 maxPTPoints[0] = 22;
-//				 npTBins[0] = 22;
-//				 isMeasurementAvailable=true;
-//				 LumiUncertaintyGivenOverall=true;
-//				 RelativeLumiUncertainty=0.022;
-//				 break;
 			 case NRQCDvars::UPS_3S://2011, 5fb
-				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_Preliminary_BPH12006_merged_rap.txt", "read");
+				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_2011_AN.txt", "read");
 	             if( !fIn ){
 	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
 	             }
-				 nRapBins=1; maxPTPoints[0] = 22; npTBins[0] = 22;
-				 //maxPTPoints[1] = 22; npTBins[1] = 22;
+				 nRapBins=1;
+				 maxPTPoints[0] = 22;
+				 npTBins[0] = 22;
 				 isMeasurementAvailable=true;
 				 LumiUncertaintyGivenOverall=true;
 				 RelativeLumiUncertainty=0.022;
 				 break;
+//			 case NRQCDvars::UPS_3S://2011, 5fb
+//				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_Preliminary_BPH12006_merged_rap.txt", "read");
+//	             if( !fIn ){
+//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
+//	             }
+//				 nRapBins=1; maxPTPoints[0] = 22; npTBins[0] = 22;
+//				 //maxPTPoints[1] = 22; npTBins[1] = 22;
+//				 isMeasurementAvailable=true;
+//				 LumiUncertaintyGivenOverall=true;
+//				 RelativeLumiUncertainty=0.022;
+//				 break;
 			 default:
 				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
 				 break;
