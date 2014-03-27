@@ -50,7 +50,7 @@
 #include "TLegend.h"
 #include "TStyle.h"
 #include "TLatex.h"
-
+#include "THStack.h"
 
 using namespace NRQCDvars;
 
@@ -59,6 +59,7 @@ inline double contourHeight2D ( TH2D *h, double confidenceLevel );
 void FindMPV(TH1* PosteriorDist , double& MPV , double& MPVerrorLow, double& MPVerrorHigh, int MPValgo, int nSigma);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 void PlotPosterior(char xAxisTitle[200], char filename[200], TH1* histo, double MPV, double MPVerrLow, double MPVerrHigh, int nSigma);
+void PlotPosteriorBands(char xAxisTitle[200], char filename[200], TH1* histo, double MPV, double MPVerrLow[3], double MPVerrHigh[3]);
 double func_pT_ratio_NLO(double* x, double* par);
 
 
@@ -88,7 +89,7 @@ int main(int argc, char** argv) {
 
 
 
-  	nSigma=2;
+  	//nSigma=2;
 
   	gROOT->SetBatch();
 
@@ -178,11 +179,17 @@ int main(int argc, char** argv) {
 	////////////////////////////////////////
 
 
+  	bool plotPJspecificPlots=false;
+
+
 			char branch_name[200];
 			char branch_name_O1[200];
 			char branch_name_O2[200];
 			char hist_var_name_f1[200];
 			char hist_var_name_f2[200];
+			char branch_name_f1[200];
+			char branch_name_f2[200];
+			char branch_name_f3[200];
 
 
 			int i=useOnlyState;
@@ -195,9 +202,19 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_O1,"state%d_Op%d",i,j);
 			sprintf(branch_name_O2,"state%d_Op%d",i,k);
 
+			sprintf(branch_name_f1,"state%d_f%d",i,1);
+			sprintf(branch_name_f2,"state%d_f%d",i,2);
+			if(plotPJspecificPlots) sprintf(branch_name_f3,"state%d_f%d",i,3);
+			else sprintf(branch_name_f3,"state%d_f%d",i,2);//dummy, not to seg-fault
+
 			double O1;
 			double O2;
+			double f1;
+			double f2;
+			double f3;
 			double OpRatio;
+			double fS1plusfPJ;
+			double fS1plusfPJoverfS0;
 
 	      	int BurnInInt;
 			sprintf (branch_name,"BurnInInt");
@@ -210,12 +227,18 @@ int main(int argc, char** argv) {
 			outputTreeAllSamplings->SetBranchAddress( branch_name_O1,  &O1 );
 			outputTreeAllSamplings->SetBranchAddress( branch_name_O2,  &O2 );
 
+			outputTreeAllSamplings->SetBranchAddress( branch_name_f1,  &f1 );
+			outputTreeAllSamplings->SetBranchAddress( branch_name_f2,  &f2 );
+			outputTreeAllSamplings->SetBranchAddress( branch_name_f3,  &f3 );
+
 			sprintf(outname,"%s/RatioTree.root", jobdirname);
 	    	TFile *DummyFile = new TFile(outname, "RECREATE");
 
 	      	TTree*  RatioTree;
 	      	RatioTree = new TTree("RatioTree", "RatioTree");
 	      	RatioTree->Branch("OpRatio",     &OpRatio,     "OpRatio/D");
+	      	RatioTree->Branch("fS1plusfPJ",     &fS1plusfPJ,     "fS1plusfPJ/D");
+	      	RatioTree->Branch("fS1plusfPJoverfS0",     &fS1plusfPJoverfS0,     "fS1plusfPJoverfS0/D");
 
 			int n_events = int( outputTreeAllSamplings->GetEntries() );
 			cout<<n_events<<" events: Looping through nTuple of PPD"<<endl;
@@ -230,6 +253,8 @@ int main(int argc, char** argv) {
 				//if(O1<0 || O2<0) continue;
 
 				OpRatio=O1/O2;
+				fS1plusfPJ=f2+f3;
+				fS1plusfPJoverfS0=(f2+f3)/f1;
 				RatioTree->Fill();
 
 
@@ -239,6 +264,8 @@ int main(int argc, char** argv) {
 
 
 			int nBins_h=200;
+			if(useOnlyState==3) nBins_h=200;
+			if(useOnlyState==10) nBins_h=70;
 			char hist_name[200];
 			char projectchar[200];
 			char selectchar[200];
@@ -251,8 +278,14 @@ int main(int argc, char** argv) {
 		  	double buff_errlow;
 		  	double buff_errhigh;
 
-		  	h_Ratio_min=RatioTree->GetMinimum("OpRatio")-expandMinMaxBy*RatioTree->GetMinimum("OpRatio");
-		  	h_Ratio_max=RatioTree->GetMaximum("OpRatio")+expandMinMaxBy*RatioTree->GetMaximum("OpRatio");
+		  	h_Ratio_min=RatioTree->GetMinimum("OpRatio")-expandMinMaxBy*TMath::Abs(RatioTree->GetMinimum("OpRatio"));
+		  	h_Ratio_max=RatioTree->GetMaximum("OpRatio")+expandMinMaxBy*TMath::Abs(RatioTree->GetMaximum("OpRatio"));
+
+		  	h_Ratio_min=-0.029999;
+		  	h_Ratio_max=+0.09999;
+
+		  	double delta_x=h_Ratio_max-h_Ratio_min;
+		  	double binWidth=delta_x/double(nBins_h);
 
 		  	double minmax_min=-5e-2;
 		  	double minmax_max=3e-1;
@@ -265,7 +298,12 @@ int main(int argc, char** argv) {
 			RatioTree->Draw(projectchar);
 
 
-			FindMPV(h_Ratio, buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+			double buff_errlow_nsig[3];
+			double buff_errhigh_nsig[3];
+
+			FindMPV(h_Ratio, buff_MPV, buff_errlow_nsig[1], buff_errhigh_nsig[1], MPValgo, 1);
+			FindMPV(h_Ratio, buff_MPV, buff_errlow_nsig[2], buff_errhigh_nsig[2], MPValgo, 2);
+			FindMPV(h_Ratio, buff_MPV, buff_errlow_nsig[3], buff_errhigh_nsig[3], MPValgo, 3);
 
 			h_Ratio->Print("all");
 
@@ -279,8 +317,10 @@ int main(int argc, char** argv) {
 			char hist_var_name[200];
 			sprintf(hist_var_name,"O(%s) / O(%s)", ColorChannelNameTexS[j], ColorChannelNameTexS[k]);
 			h_Ratio -> SetXTitle(hist_var_name);
+			h_Ratio->Scale(1./(h_Ratio->GetEntries()*binWidth));
+			h_Ratio->SetMaximum(124.999);
 
-			PlotPosterior(hist_var_name, filename, h_Ratio, buff_MPV, buff_errlow, buff_errhigh, nSigma);
+			PlotPosteriorBands(hist_var_name, filename, h_Ratio, buff_MPV, buff_errlow_nsig, buff_errhigh_nsig);
 
 			double buff_MPV_lowborder, buff_MPV_highborder;
 			double buff_MPV_inv, buff_MPV_inv_lowborder, buff_MPV_inv_highborder;
@@ -303,6 +343,82 @@ int main(int argc, char** argv) {
 
 
 
+
+
+			if(plotPJspecificPlots){
+
+
+
+
+		  	h_Ratio_min=RatioTree->GetMinimum("fS1plusfPJ")-expandMinMaxBy*TMath::Abs(RatioTree->GetMinimum("fS1plusfPJ"));
+		  	h_Ratio_max=RatioTree->GetMaximum("fS1plusfPJ")+expandMinMaxBy*TMath::Abs(RatioTree->GetMaximum("fS1plusfPJ"));
+
+		  //	h_Ratio_min=-0.029999;
+		  //	h_Ratio_max=+0.09999;
+
+		  	delta_x=h_Ratio_max-h_Ratio_min;
+		  	binWidth=delta_x/double(nBins_h);
+
+		  	sprintf(hist_name,"h_Ratio");
+		  	h_Ratio = new TH1D( hist_name, hist_name, nBins_h,h_Ratio_min, h_Ratio_max );
+			sprintf(projectchar,"fS1plusfPJ>>%s",hist_name);
+			RatioTree->Draw(projectchar);
+
+
+			FindMPV(h_Ratio, buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+
+			h_Ratio->Print("all");
+
+			sprintf(filename,"Figures/PlotPPDderivative/%s",JobID);
+			gSystem->mkdir(filename);
+			sprintf(filename,"%s/PPD_LDME_ratio_state%d_fS1plusfPJ.pdf",filename, i, j, k);
+
+			cout<<filename<<endl;
+
+			sprintf(hist_var_name,"f(%s) + f(%s)", ColorChannelNameTexS[2], ColorChannelNameTexS[3]);
+			h_Ratio -> SetXTitle(hist_var_name);
+			h_Ratio->Scale(1./(h_Ratio->GetEntries()*binWidth));
+			//h_Ratio->SetMaximum(124.999);
+
+			PlotPosterior(hist_var_name, filename, h_Ratio, buff_MPV, buff_errlow, buff_errhigh, nSigma);
+
+
+
+
+		  	h_Ratio_min=RatioTree->GetMinimum("fS1plusfPJoverfS0")-expandMinMaxBy*TMath::Abs(RatioTree->GetMinimum("fS1plusfPJoverfS0"));
+		  	h_Ratio_max=RatioTree->GetMaximum("fS1plusfPJoverfS0")+expandMinMaxBy*TMath::Abs(RatioTree->GetMaximum("fS1plusfPJoverfS0"));
+
+		  //	h_Ratio_min=-0.029999;
+		  //	h_Ratio_max=+0.09999;
+
+		  	delta_x=h_Ratio_max-h_Ratio_min;
+		  	binWidth=delta_x/double(nBins_h);
+
+		  	sprintf(hist_name,"h_Ratio");
+		  	h_Ratio = new TH1D( hist_name, hist_name, nBins_h,h_Ratio_min, h_Ratio_max );
+			sprintf(projectchar,"fS1plusfPJoverfS0>>%s",hist_name);
+			RatioTree->Draw(projectchar);
+
+
+			FindMPV(h_Ratio, buff_MPV, buff_errlow, buff_errhigh, MPValgo, nSigma);
+
+			h_Ratio->Print("all");
+
+			sprintf(filename,"Figures/PlotPPDderivative/%s",JobID);
+			gSystem->mkdir(filename);
+			sprintf(filename,"%s/PPD_LDME_ratio_state%d_fS1plusfPJoverfS0.pdf",filename, i, j, k);
+
+			cout<<filename<<endl;
+
+			sprintf(hist_var_name,"(f(%s) + f(%s)) / f(%s)", ColorChannelNameTexS[2], ColorChannelNameTexS[3], ColorChannelNameTexS[1]);
+			h_Ratio -> SetXTitle(hist_var_name);
+			h_Ratio->Scale(1./(h_Ratio->GetEntries()*binWidth));
+			//h_Ratio->SetMaximum(124.999);
+
+			PlotPosterior(hist_var_name, filename, h_Ratio, buff_MPV, buff_errlow, buff_errhigh, nSigma);
+
+
+			}
 
 
 			gROOT->Reset();
@@ -347,8 +463,12 @@ int main(int argc, char** argv) {
 				xVarmaxPred*=NRQCDvars::mass[i];
 			}
 
-			xVarminPred=10;
-			xVarmaxPred=120;
+
+			//xVarminPred=10;
+			//xVarmaxPred=100;
+
+			xVarminPred=20;
+			xVarmaxPred=260;
 
 			//if(!functionOfPT){
 			//	xVarminPred=1;
@@ -512,8 +632,8 @@ int main(int argc, char** argv) {
 				double h_Lamth_max;
 
 
-			  	h_Lamth_min=LamthTree->GetMinimum("LamthPred")-expandMinMaxBy*LamthTree->GetMinimum("LamthPred");
-			  	h_Lamth_max=LamthTree->GetMaximum("LamthPred")+expandMinMaxBy*LamthTree->GetMaximum("LamthPred");
+			  	h_Lamth_min=LamthTree->GetMinimum("LamthPred")-expandMinMaxBy*TMath::Abs(LamthTree->GetMinimum("LamthPred"));
+			  	h_Lamth_max=LamthTree->GetMaximum("LamthPred")+expandMinMaxBy*TMath::Abs(LamthTree->GetMaximum("LamthPred"));
 
 			  	double minmax_min=-1.;
 			  	double minmax_max=1.;
@@ -541,6 +661,7 @@ int main(int argc, char** argv) {
 				sprintf(hist_var_name,"#lambda_{#vartheta}^{HX}");
 				h_Lamth->SetXTitle(hist_var_name);
 				h_Lamth->SetTitle("");
+				h_Lamth->Scale(1./h_Lamth->GetEntries());
 
 				PlotPosterior(hist_var_name, filename, h_Lamth, buff_MPV, buff_errlow, buff_errhigh, nSigma);
 
@@ -1285,8 +1406,30 @@ void PlotPosterior(char xAxisTitle[200], char filename[200], TH1* histo, double 
 	histo->SetYTitle("Posterior Probability");
 	histo->SetXTitle(xAxisTitle);
 	histo->GetYaxis()->SetTitleOffset(1.5);
-	histo->Draw();
+	histo->Draw("c");
+	TH1F* histoFill=(TH1F*)histo->Clone();
 
+	histoFill->SetFillStyle(1001);
+	histoFill->SetFillColor(kOrange);
+	histoFill->SetLineColor(kOrange);
+
+	TH1F* histo1sig=(TH1F*)histo->Clone();
+	for(int i=0;i<histo1sig->GetNbinsX();i++){
+		if(histo1sig->GetBinCenter(i)<MPV-MPVerrLow || histo1sig->GetBinCenter(i)>MPV+MPVerrHigh)
+			histo1sig->SetBinContent(i,0.);
+	}
+	histo1sig->SetFillStyle(1001);
+	histo1sig->SetFillColor(kRed);
+	histo1sig->SetLineColor(kRed);
+
+	THStack *hStack = new THStack("hMass_Stack", "");
+	hStack->Add(histoFill);
+	hStack->Draw("csame");
+	THStack *hStack2 = new THStack("hMass_Stack2", "");
+	hStack2->Add(histo1sig);
+	hStack2->Draw("csame");
+
+	histo->Draw("csame");
 
 	int maxbin_PosteriorDist = histo->GetMaximumBin();
 	double maxval = histo->GetBinContent(maxbin_PosteriorDist);
@@ -1347,3 +1490,90 @@ double func_pT_ratio_NLO(double* x, double* par) {
 
 }
 
+
+void PlotPosteriorBands(char xAxisTitle[200], char filename[200], TH1* histo, double MPV, double MPVerrLow[3], double MPVerrHigh[3]){
+
+gStyle->SetPalette(1,0);
+gStyle->SetPadBottomMargin(0.12);
+gStyle->SetPadLeftMargin(0.13);
+gStyle->SetPadRightMargin(0.15);
+
+gStyle->SetTickLength(-0.02, "xyz");
+gStyle->SetLabelOffset(0.02, "x");
+gStyle->SetLabelOffset(0.02, "y");
+gStyle->SetTitleOffset(1.3, "x");
+gStyle->SetTitleOffset(1.4, "y");
+gStyle->SetTitleFillColor(kWhite);
+
+TLegend* plotLegend=new TLegend(0.775,0.8,0.95,0.9);
+plotLegend->SetFillColor(kWhite);
+plotLegend->SetTextFont(72);
+plotLegend->SetTextSize(0.0175);
+plotLegend->SetBorderSize(1);
+
+TCanvas *plotCanvas = new TCanvas("plotCanvas","plotCanvas",1000,800);
+
+plotCanvas->SetFillColor(kWhite);
+//	plotCanvas->SetGrid();
+plotCanvas->GetFrame()->SetFillColor(kWhite);
+plotCanvas->GetFrame()->SetBorderSize(0);
+plotCanvas->SetRightMargin(0.05) ;
+
+int colorline=600;
+int color1Sig=600-7;
+int color2Sig=600-9;
+int color3Sig=600-10;
+
+histo->SetStats(kFALSE);
+histo->SetLineColor(colorline);
+histo->SetYTitle("Posterior Probability");
+histo->SetXTitle(xAxisTitle);
+histo->GetYaxis()->SetTitleOffset(1.5);
+histo->Draw("c");
+TH1F* histoFill=(TH1F*)histo->Clone();
+
+histoFill->SetFillStyle(1001);
+histoFill->SetFillColor(kOrange);
+histoFill->SetLineColor(kOrange);
+
+TH1F* histo1sig=(TH1F*)histo->Clone();
+TH1F* histo2sig=(TH1F*)histo->Clone();
+TH1F* histo3sig=(TH1F*)histo->Clone();
+double negVal=0.000001;
+for(int i=0;i<histo->GetNbinsX();i++){
+	if(histo->GetBinCenter(i)<MPV-MPVerrLow[1] || histo->GetBinCenter(i)>MPV+MPVerrHigh[1])
+		histo1sig->SetBinContent(i,histo->GetMaximum()*(-1.*negVal));
+	if(histo->GetBinCenter(i)<MPV-MPVerrLow[2] || histo->GetBinCenter(i)>MPV+MPVerrHigh[2])
+		histo2sig->SetBinContent(i,histo->GetMaximum()*(-1.*negVal));
+	if(histo->GetBinCenter(i)<MPV-MPVerrLow[3] || histo->GetBinCenter(i)>MPV+MPVerrHigh[3])
+		histo3sig->SetBinContent(i,histo->GetMaximum()*(-1.*negVal));
+}
+histo1sig->SetFillStyle(1001);
+histo1sig->SetFillColor(color1Sig);
+histo1sig->SetLineColor(color1Sig);
+histo2sig->SetFillStyle(1001);
+histo2sig->SetFillColor(color2Sig);
+histo2sig->SetLineColor(color2Sig);
+histo3sig->SetFillStyle(1001);
+histo3sig->SetFillColor(color3Sig);
+histo3sig->SetLineColor(color3Sig);
+
+THStack *hStack3sig = new THStack("hStack3sig", "");
+hStack3sig->Add(histo3sig);
+hStack3sig->Draw("csame");
+THStack *hStack2sig = new THStack("hStack2sig", "");
+hStack2sig->Add(histo2sig);
+hStack2sig->Draw("csame");
+THStack *hStack1sig = new THStack("hStack1sig", "");
+hStack1sig->Add(histo1sig);
+hStack1sig->Draw("csame");
+
+histo->Draw("csame");
+
+plotLegend->Draw();
+plotCanvas->SaveAs(filename);
+plotCanvas->Close();
+
+delete plotCanvas;
+
+}

@@ -44,18 +44,21 @@ vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> D
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 vector<double> GeneralPolarizationTransformation(vector<double> lamVecOriginal, double t1, double t2, double t3);
 void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_star);
+Double_t paramMassRapParabola(Double_t *x, Double_t *par);
 
 int main(int argc, char** argv) {
 
   	Char_t *ModelID = "Default";
   	Char_t *DataID = "Default";
   	Char_t *DataModelCombID = "Default";
+  	Char_t *ModelSystScaleID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("DataID") != std::string::npos) {char* DataIDchar = argv[i]; char* DataIDchar2 = strtok (DataIDchar, "="); DataID = DataIDchar2; cout<<"DataID = "<<DataID<<endl;}
 		if(std::string(argv[i]).find("DataModelCombID") != std::string::npos) {char* DataModelCombIDchar = argv[i]; char* DataModelCombIDchar2 = strtok (DataModelCombIDchar, "="); DataModelCombID = DataModelCombIDchar2; cout<<"DataModelCombID = "<<DataModelCombID<<endl;}
+		if(std::string(argv[i]).find("ModelSystScaleID") != std::string::npos) {char* ModelSystScaleIDchar = argv[i]; char* ModelSystScaleIDchar2 = strtok (ModelSystScaleIDchar, "="); ModelSystScaleID = ModelSystScaleIDchar2; cout<<"ModelSystScaleID = "<<ModelSystScaleID<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
   	}
 
@@ -73,6 +76,7 @@ int main(int argc, char** argv) {
 	char datadirname[200];
 	char modeldirname[200];
 	char datamodeldirname[200];
+	char modelsystematicscalesdirname[200];
 	sprintf(modeldirname,"%s/ModelID", storagedir);
 	gSystem->mkdir(modeldirname);
 	sprintf(modeldirname,"%s/%s",modeldirname,ModelID);
@@ -85,6 +89,10 @@ int main(int argc, char** argv) {
 	gSystem->mkdir(datamodeldirname);
 	sprintf(datamodeldirname,"%s/%s",datamodeldirname,DataModelCombID);
 	gSystem->mkdir(datamodeldirname);
+	sprintf(modelsystematicscalesdirname,"%s/ModelSystScaleID", storagedir);
+	gSystem->mkdir(modelsystematicscalesdirname);
+	sprintf(modelsystematicscalesdirname,"%s/%s",modelsystematicscalesdirname,ModelSystScaleID);
+	gSystem->mkdir(modelsystematicscalesdirname);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +126,7 @@ int main(int argc, char** argv) {
 
 				    	DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]=true;
 
-				    	if(iState>toyData::Toy_nStates-1 || iMeasurementID>toyData::Toy_nMeasurementIDs-1 || iExperiment>toyData::Toy_nExperiments-1 || iRap>toyData::Toy_nRapBins-1 || iP>toyData::Toy_nPtBins-1){
+				    	if(!toyData::Toy_StatesToGenerate[iState] || iState>toyData::Toy_nStates-1 || iMeasurementID>toyData::Toy_nMeasurementIDs-1 || iExperiment>toyData::Toy_nExperiments-1 || iRap>toyData::Toy_nRapBins-1 || iP>toyData::Toy_nPtBins-1){
 				    		DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]=false;
 					    	continue;
 				    	}
@@ -143,8 +151,8 @@ int main(int argc, char** argv) {
 				    	double setData_yMin=toyData::rapRange[iRap];
 				    	double setData_yMax=toyData::rapRange[iRap+1];
 				    	double setData_yMean=(setData_yMin+setData_yMax)/2.;
-				    	double setData_pTMin=toyData::pTRange[iRap][iP];
-				    	double setData_pTMax=toyData::pTRange[iRap][iP+1];
+				    	double setData_pTMin=toyData::pTRange[iState][iP];
+				    	double setData_pTMax=toyData::pTRange[iState][iP+1];
 				    	double setData_pTMean=(setData_pTMin+setData_pTMax)/2.;
 				    	vector<double> setData_PolCorrParams (2); setData_PolCorrParams[0]=Dummy_CentralValue; setData_PolCorrParams[1]=Dummy_CentralValue;
 				    	int setData_MeasurementID=iMeasurementID;
@@ -174,7 +182,8 @@ int main(int argc, char** argv) {
   	sprintf(inname,"%s/ModelIngredients.root",modeldirname);
 	TFile* ModelIngredientsFile = new TFile(inname, "READ");
 
-
+	double estimatedModelMeanPt[NRQCDvars::nStates][NRQCDvars::nMeasurementIDs][NRQCDvars::nExperiments][NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins][NRQCDvars::nColorChannels];
+	TH1F *histPtDist[NRQCDvars::nStates][NRQCDvars::nMeasurementIDs][NRQCDvars::nExperiments][NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins][NRQCDvars::nColorChannels];
 
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
@@ -315,12 +324,15 @@ int main(int argc, char** argv) {
 													h_cos2ph[iRap][iP] = new TH1D( histname, "", int((l_max-l_min)/l_step_1D), l_min, l_max );
 											    	sprintf(histname,"h_sin2thcosph_iRap%d_iP%d",iRap,iP);
 													h_sin2thcosph[iRap][iP] = new TH1D( histname, "", int((l_max-l_min)/l_step_1D), l_min, l_max );
+											    	sprintf(histname,"h_meanPt_iRap%d_iP%d_state%d_meas%d_exp%d_color%d",iRap,iP, iState, iMeasurementID, iExperiment, iColorChannel);
+													histPtDist[iState][iMeasurementID][iExperiment][iRap][iP][iColorChannel] = new TH1F( histname, "", 100, ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(), ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax() );
 											    }
 											}
 
 											int n_events = int( nTupleModel_Transformed->GetEntries() );
 											cout<<n_events<<" events: Looping through nTuple of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
+											//n_events=10000;
 											//n_events=n_events/10;//TODO remove
 
 											// loop over  events in the model ntuple
@@ -357,8 +369,25 @@ int main(int argc, char** argv) {
 												h_cos2ph[rap_index][pT_index]->Fill(TMath::Cos(2*model_phi_mother*TMath::Pi()/180), weight_mother);
 												h_sin2thcosph[rap_index][pT_index]->Fill(TMath::Sin(2*TMath::ACos(model_costh_mother))*TMath::Cos(model_phi_mother*TMath::Pi()/180), weight_mother);
 
-											}
+												histPtDist[iState][iMeasurementID][iExperiment][rap_index][pT_index][iColorChannel]->Fill(model_pT_mother, weight_mother);
 
+											}
+											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
+											    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
+											    	if(!doesDataExist[iRap][iP]){
+											    		continue;
+											    	}
+											    	if(Buffer_ShortDistanceCoef[iRap][iP]<1e-50){
+											    		doesDataExist[iRap][iP]=false;
+											    		DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP]=false;
+														cout<<"Data for iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iRap="<<iRap<<", iP="<<iP<<" outside of model range -> do not use this toy data point"<<endl;
+											    		//DoesDummyDataExist[iState][iMeasurementID][iExperiment][iRap][iP-1]=false;
+											    		//doesDataExist[iRap][iP-1]=false;
+														//cout<<"...also deleting iP="<<iP-1<<" -> do not use this toy data point"<<endl;
+											    	}
+											    	cout<<"iRap"<<iRap<<", iP"<<iP<<", SDC="<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+											    }
+											}
 											//cout<<"Calculating SDC and vecLam of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
 											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
@@ -372,6 +401,8 @@ int main(int argc, char** argv) {
 											    	double deltay=ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax()-ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin();
 											    	if(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getisAbsRap()) deltay*=2;
 											    	Buffer_ShortDistanceCoef[iRap][iP]/=deltaPt*deltay;
+
+											    	estimatedModelMeanPt[iState][iMeasurementID][iExperiment][iRap][iP][iColorChannel]=histPtDist[iState][iMeasurementID][iExperiment][iRap][iP][iColorChannel]->GetMean();
 
 											vector<double> lamVecRaw(3,0);
 											double costh2=h_costh2[iRap][iP]->GetMean();
@@ -435,14 +466,64 @@ int main(int argc, char** argv) {
 
 									    	//cout<<"here?"<<endl;
 
+								    double Lamth_scalePtransform=1.;
+								    double Lamph_scalePtransform=1.;
+								    double Lamtp_scalePtransform=1.;
+
+								    vector<double> lamVecSumCascades;
 									if(ContributionExists){
-										//cout<<"inhere?"<<endl;
-										//cout<<"writing actual polarization and SDC for decay chains "<<iMother<<" -> "<<iState<<endl;
-										//cout<<"setModel_ShortDistanceCoef "<<setModel_ShortDistanceCoef[iRap][iP]<<endl;
-										//cout<<"setModel_OctetCompLamth "<<setModel_OctetCompLamth[iRap][iP]<<endl;
-										//cout<<"setModel_OctetCompLamph "<<setModel_OctetCompLamph[iRap][iP]<<endl;
-										vector<double> lamVecSumCascades = addPolarizations(lamVecTransformedCascades[iRap][iP], lamVecTransformedCascadesContributions[iRap][iP]);
+
+										vector<double> BuffVec=lamVecTransformedCascadesContributions[iRap][iP];
+										int nContributions=BuffVec.size();
+										double ContributionIntegral=0;
+										for(int i=0; i<nContributions; i++){
+											ContributionIntegral+=BuffVec[i];
+										}
+										if(ContributionIntegral==0) {doesDataExist[iRap][iP]=false; continue;}
+										else lamVecSumCascades = addPolarizations(lamVecTransformedCascades[iRap][iP], lamVecTransformedCascadesContributions[iRap][iP]);
 										//// These are the only values that need to be set to fully define the model:
+
+
+
+										if(!isSstate){
+
+											Lamth_scalePtransform=lamVecSumCascades[0];
+											//cout<<"Lamth_before_Ptransformation "<<lamVecSumCascades[0]<<endl;
+
+											//Transform polarization if mother state is a chi, as the polarization of BK is given for S-waves -> ll
+											if(NRQCDvars::StateQuantumID[iMother]==NRQCDvars::quID_P1){
+												//chi_1:  vec{lambda}(psi->chi_1 gamma) = - vec{lambda}(psi->l+l-) / [2 + lambda_theta(psi->l+l-)]
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, -1., 2., 1.); //Transformation 1a)
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, -1., 2., 1.); //Transformation 3a)
+
+											}
+											else if(NRQCDvars::StateQuantumID[iMother]==NRQCDvars::quID_P2){
+												//chi_2:  vec{lambda}(psi->chi_2 gamma) = vec{lambda}(psi->l+l-) / [10 + 3 lambda_theta(psi->l+l-)]
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, 1., 10., 3.); //Transformation 1b)
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, 21., 6., -5.); //Transformation 3b)
+											}
+
+											if(Lamth_scalePtransform>1e-3) Lamth_scalePtransform=lamVecSumCascades[0]/Lamth_scalePtransform;
+											else Lamth_scalePtransform=1.;
+											//cout<<"Lamth_after_Ptransformation "<<lamVecSumCascades[0]<<endl;
+											//cout<<"Lamth_scalePtransform "<<Lamth_scalePtransform<<endl;
+
+										}
+
+										if(iColorChannel==1){
+											lamVecSumCascades[0]=0.;
+											lamVecSumCascades[1]=0.;
+											lamVecSumCascades[2]=0.;
+										}
+
+										//CS P-wave: SDC=1, pol=0
+										if(!isSstate && iColorChannel==0){
+											Buffer_ShortDistanceCoef[iRap][iP]=1.;
+											lamVecSumCascades[0]=0;
+											lamVecSumCascades[1]=0;
+											lamVecSumCascades[2]=0;
+										}
+
 										setModel_ShortDistanceCoef[iRap][iP].push_back(Buffer_ShortDistanceCoef[iRap][iP]);
 										setModel_OctetCompLamth[iRap][iP].push_back(lamVecSumCascades[0]);
 										setModel_OctetCompLamph[iRap][iP].push_back(lamVecSumCascades[1]);
@@ -474,19 +555,318 @@ int main(int argc, char** argv) {
 									vector<double> setModel_Buff_OctetCompLamtp_globalSystPos;
 									vector<double> setModel_Buff_OctetCompLamtp_globalSystNeg;
 
-									//cout<<"here?"<<endl;
-									for (int iModelSystematicScale=0; iModelSystematicScale<NRQCDvars::nModelSystematicScales; iModelSystematicScale++){
-										//cout<<"iModelSystematicScale?"<<iModelSystematicScale<<endl;
 
-										setModel_Buff_ShortDistanceCoef_globalSystPos.push_back(Dummy_SDC);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamth_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamph_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamtp_globalSystPos.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_ShortDistanceCoef_globalSystNeg.push_back(Dummy_SDC);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamth_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamph_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										setModel_Buff_OctetCompLamtp_globalSystNeg.push_back(Dummy_Lam);//Not used so far, but implemented -> dummy value
-										//cout<<"here?"<<endl;
+									// Get here the ModelSystematicsScales-TGraph-files of SDC, Lamth, Lamph, Lamtp
+									// Get TGraphs pos and neg for state iState, and for the specific iColorChannel (we are inside the loop)
+									// -> in the iModelSystematicScale loop: get Pos and Neg value (use TGraph_iColorChannel for iModelScale, for each iMeasuID)
+									// Do this by integration over pT range of measurement and /=deltapT
+
+									// Open TGraph files containing information about the ModelSystematicScales
+
+									//cout<<"open files and get graphs"<<endl;
+									TFile* ModelSystematicsFile;
+									char ModelSystematicScaleName[200];
+
+									TGraph* ModelSystematicScale_SDC_Pos;
+									TGraph* ModelSystematicScale_SDC_Neg;
+									TGraph* ModelSystematicScale_Lamth_Pos;
+									TGraph* ModelSystematicScale_Lamth_Neg;
+									TGraph* ModelSystematicScale_Lamph_Pos;
+									TGraph* ModelSystematicScale_Lamph_Neg;
+									TGraph* ModelSystematicScale_Lamtp_Pos;
+									TGraph* ModelSystematicScale_Lamtp_Neg;
+
+									if(ContributionExists){
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 0);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_SDC_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_SDC_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 1);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamth_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamth_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 2);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamph_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamph_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										sprintf(inname,"%s/TGraphs_ModelSystematicScale%d_iMeasurementID%d.root",modelsystematicscalesdirname, iColorChannel, 3);
+										ModelSystematicsFile = new TFile(inname, "READ");
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Pos",iMother);
+										ModelSystematicScale_Lamtp_Pos = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										sprintf(ModelSystematicScaleName,"ModelSystematicScale_iState%d_Neg",iMother);
+										ModelSystematicScale_Lamtp_Neg = (TGraph*) ModelSystematicsFile->Get(ModelSystematicScaleName);
+										ModelSystematicsFile->Close();
+
+										//cout<<"...finished"<<endl;
+
+
+									}
+
+									double setModel_SDC_globalSystPos_val=Dummy_SDC;
+									double setModel_SDC_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamth_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamth_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamph_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamph_globalSystNeg_val=Dummy_SDC;
+									double setModel_Lamtp_globalSystPos_val=Dummy_SDC;
+									double setModel_Lamtp_globalSystNeg_val=Dummy_SDC;
+
+
+									for (int iModelSystematicScale=0; iModelSystematicScale<NRQCDvars::nModelSystematicScales; iModelSystematicScale++){
+										//cout<<"iModelSystematicScale = "<<iModelSystematicScale<<endl;
+
+										if(ContributionExists){
+
+											if(iModelSystematicScale==iColorChannel){
+
+												double buffx, buffy;
+												double Data_pTMin=DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin();
+												double Data_pTMax=DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax();
+												double Data_yMin=DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMin();
+												double Data_yMax=DummyDataObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMax();
+												double Data_yMean=(Data_yMin+Data_yMax)/2.;
+
+												int nTGbins;
+
+												nTGbins=0;
+												setModel_SDC_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_SDC_Pos->GetN();iTGbin++){
+													ModelSystematicScale_SDC_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_SDC_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_SDC_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_SDC_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_SDC_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_SDC_Neg->GetN();iTGbin++){
+													ModelSystematicScale_SDC_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_SDC_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_SDC_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_SDC_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamth_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamth_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamth_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamth_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamth_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamth_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamth_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamth_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamth_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamth_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamth_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamth_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamph_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamph_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamph_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamph_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamph_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamph_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamph_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamph_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamph_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamph_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamph_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamph_globalSystNeg_val=0;
+
+												nTGbins=0;
+												setModel_Lamtp_globalSystPos_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamtp_Pos->GetN();iTGbin++){
+													ModelSystematicScale_Lamtp_Pos->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamtp_globalSystPos_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamtp_globalSystPos_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamtp_globalSystPos_val=0;
+												nTGbins=0;
+												setModel_Lamtp_globalSystNeg_val=0;
+												for(int iTGbin=0;iTGbin<ModelSystematicScale_Lamtp_Neg->GetN();iTGbin++){
+													ModelSystematicScale_Lamtp_Neg->GetPoint(iTGbin, buffx, buffy);
+													if(buffx>Data_pTMin&&buffx<Data_pTMax){
+														setModel_Lamtp_globalSystNeg_val+=buffy;
+														nTGbins++;
+													}
+
+												}
+												setModel_Lamtp_globalSystNeg_val/=nTGbins;
+												if(nTGbins<1) setModel_Lamtp_globalSystNeg_val=0;
+
+
+												//Evaluate normalization-correction here, and correct setModel_SDC_globalSystPos_val and setModel_SDC_globalSystNeg_val
+												//Correction: /1.2 (IntegratedRap) and *RapNorm (from function)
+
+
+												double a_fit;
+												double b_fit;
+												double c_fit;
+
+												if(iColorChannel==0){
+													a_fit = 1.00859;
+													b_fit = -0.0146688;
+													c_fit = -0.0465102;
+												}
+												if(iColorChannel==1){
+													a_fit = 1.00499;
+													b_fit = -0.00297872;
+													c_fit = -0.0454618;
+												}
+												if(iColorChannel==2){
+													a_fit = 1.00219;
+													b_fit = 0.00674901;
+													c_fit = -0.0468319;
+												}
+												if(iColorChannel==3){
+													a_fit = 0.9933;
+													b_fit = 0.0365688;
+													c_fit = -0.0474462;
+												}
+
+												TF1* fParabola;
+												char name[200];
+												sprintf(name, "fParabola");
+												fParabola = new TF1(name, paramMassRapParabola, 0, 5, 3);
+
+												fParabola->SetParameter(0,a_fit);
+												fParabola->SetParameter(1,b_fit);
+												fParabola->SetParameter(2,c_fit);
+
+												double RapScale=1./1.2;
+												RapScale*=fParabola->Eval(Data_yMean);
+
+												//Correct THuncert of SDCs by rapcorr factor (1.2 as calculated integrated in |y|<0.6 BK bin) * normalization factor (Rap-dependence: TH uncertainty root file integrated in rap, for rap0 (y=0.3), fit in ScakeBK, rap dependence hard-coded in CDM)
+												setModel_SDC_globalSystPos_val*=RapScale;
+												setModel_SDC_globalSystNeg_val*=RapScale;
+
+
+												//Correct TH uncertainty of polarization parameters, in case of P-waves, as the polarization of the BK S->ll has been transformed
+												if(!isSstate){
+
+
+													setModel_Lamth_globalSystPos_val*=Lamth_scalePtransform;
+													setModel_Lamth_globalSystNeg_val*=Lamth_scalePtransform;
+													setModel_Lamph_globalSystPos_val*=Lamph_scalePtransform;
+													setModel_Lamph_globalSystNeg_val*=Lamph_scalePtransform;
+													setModel_Lamtp_globalSystPos_val*=Lamtp_scalePtransform;
+													setModel_Lamtp_globalSystNeg_val*=Lamtp_scalePtransform;
+
+												}
+
+
+
+												//if P-state, we neglect the CS contribution
+												if(!isSstate && iColorChannel==0){
+													setModel_SDC_globalSystPos_val=0.;
+													setModel_SDC_globalSystNeg_val=0.;
+													setModel_Lamth_globalSystPos_val=0.;
+													setModel_Lamth_globalSystNeg_val=0.;
+													setModel_Lamph_globalSystPos_val=0.;
+													setModel_Lamph_globalSystNeg_val=0.;
+													setModel_Lamtp_globalSystPos_val=0.;
+													setModel_Lamtp_globalSystNeg_val=0.;
+												}
+
+												//Define 1S0 CO polarization = 0, to avoid wiggles in plots (we know it is exactly 0)
+												if(iColorChannel==1){
+													setModel_Lamth_globalSystPos_val=0.;
+													setModel_Lamth_globalSystNeg_val=0.;
+													setModel_Lamph_globalSystPos_val=0.;
+													setModel_Lamph_globalSystNeg_val=0.;
+													setModel_Lamtp_globalSystPos_val=0.;
+													setModel_Lamtp_globalSystNeg_val=0.;
+												}
+
+												//Here the setModel_-_globalSyst-_val's are converted from differences into lower and upper 'absolute' values around the 'best' model
+												setModel_SDC_globalSystPos_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystPos_val;
+												setModel_SDC_globalSystNeg_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystNeg_val;
+												setModel_Lamth_globalSystPos_val=lamVecSumCascades[0]+setModel_Lamth_globalSystPos_val;
+												setModel_Lamth_globalSystNeg_val=lamVecSumCascades[0]+setModel_Lamth_globalSystNeg_val;
+												setModel_Lamph_globalSystPos_val=lamVecSumCascades[1]+setModel_Lamph_globalSystPos_val;
+												setModel_Lamph_globalSystNeg_val=lamVecSumCascades[1]+setModel_Lamph_globalSystNeg_val;
+												setModel_Lamtp_globalSystPos_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystPos_val;
+												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystNeg_val;
+
+
+												//cout<<"Buffer_ShortDistanceCoef "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+												//cout<<"setModel_SDC_globalSystPos_val "<<setModel_SDC_globalSystPos_val<<endl;
+												//cout<<"setModel_SDC_globalSystNeg_val "<<setModel_SDC_globalSystNeg_val<<endl;
+												//cout<<"lamVecSumCascades[0] "<<lamVecSumCascades[0]<<endl;
+												//cout<<"setModel_Lamth_globalSystPos_val "<<setModel_Lamth_globalSystPos_val<<endl;
+												//cout<<"setModel_Lamth_globalSystNeg_val "<<setModel_Lamth_globalSystNeg_val<<endl;
+
+											}
+											else{
+												setModel_SDC_globalSystPos_val=Buffer_ShortDistanceCoef[iRap][iP];
+												setModel_SDC_globalSystNeg_val=Buffer_ShortDistanceCoef[iRap][iP];
+												setModel_Lamth_globalSystPos_val=lamVecSumCascades[0];
+												setModel_Lamth_globalSystNeg_val=lamVecSumCascades[0];
+												setModel_Lamph_globalSystPos_val=lamVecSumCascades[1];
+												setModel_Lamph_globalSystNeg_val=lamVecSumCascades[1];
+												setModel_Lamtp_globalSystPos_val=lamVecSumCascades[2];
+												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2];
+											}
+										}
+
+
+
+
+										setModel_Buff_ShortDistanceCoef_globalSystPos.push_back(setModel_SDC_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamth_globalSystPos.push_back(setModel_Lamth_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamph_globalSystPos.push_back(setModel_Lamph_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamtp_globalSystPos.push_back(setModel_Lamtp_globalSystPos_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_ShortDistanceCoef_globalSystNeg.push_back(setModel_SDC_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamth_globalSystNeg.push_back(setModel_Lamth_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamph_globalSystNeg.push_back(setModel_Lamph_globalSystNeg_val);//Not used so far, but implemented -> dummy value
+										setModel_Buff_OctetCompLamtp_globalSystNeg.push_back(setModel_Lamtp_globalSystNeg_val);//Not used so far, but implemented -> dummy value
 
 									}
 									if(NRQCDvars::nModelSystematicScales==0){//fill with dummy values, because >> << operators can not cope with non-existing dcubes
@@ -735,6 +1115,29 @@ int main(int argc, char** argv) {
 				    		dmatrix promptProductionMatrix;
 				    		double polCorrFactor;
 
+							//calculate model mean pT with truth LDME matrix
+							int nColorChannels_state;
+							bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
+							if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
+							else nColorChannels_state=NRQCDvars::nColorChannels_P;
+
+							double ColorCont[nColorChannels_state];
+							double ColorMeanPt[nColorChannels_state];
+							double ColorMeanPtCont[nColorChannels_state];
+							double AvColorCont=0;
+							double FullCont=0;
+
+							for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
+								dvector ShortDistanceCoefForMeanPt = ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getShortDistanceCoef(iState);
+								ColorCont[iColorChannel]=toyData::TRUTH_matrix_O[iState][iColorChannel]*ShortDistanceCoefForMeanPt[iColorChannel];
+								ColorMeanPt[iColorChannel]=estimatedModelMeanPt[iState][iMeasurementID][iExperiment][iRap][iP][iColorChannel];
+								ColorMeanPtCont[iColorChannel]=ColorMeanPt[iColorChannel]*ColorCont[iColorChannel];
+								AvColorCont+=ColorMeanPtCont[iColorChannel];
+								FullCont+=ColorCont[iColorChannel];
+							}
+
+							double ModelMeanPt = AvColorCont/FullCont;
+
 				    		if(iMeasurementID==0){
 								cout<<"Generating "<<MeasurementIDName[iMeasurementID]<<" toy-data results from model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<", iRap="<<iRap<<", iP="<<iP<<endl;
 
@@ -762,7 +1165,6 @@ int main(int argc, char** argv) {
 
 
 
-
 								ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->setData(ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getState(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getStateDenom(),
 										Toy_ModelPrediction_var,
@@ -779,7 +1181,7 @@ int main(int argc, char** argv) {
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMean(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax(),
-										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean(),
+										ModelMeanPt,
 										setData_PolCorrParams,
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getMeasurementID(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getExperiment(),
@@ -829,7 +1231,7 @@ int main(int argc, char** argv) {
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getyMean(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax(),
-										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean(),
+										ModelMeanPt,
 										setData_PolCorrParams,
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getMeasurementID(),
 										ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getExperiment(),
@@ -837,6 +1239,10 @@ int main(int argc, char** argv) {
 										true,
 										isAbsRap);
 							}
+
+				    		cout<<"getpTMin() "<<ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMin()<<endl;
+				    		cout<<"getpTMin() "<<ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMean()<<endl;
+				    		cout<<"getpTMax() "<<ModelObject[iState][iMeasurementID][iExperiment][iRap][iP]->getpTMax()<<endl;
 
 							//write updated NRQCDglobalfitObject containing data+model components to output file
 							sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
@@ -1083,4 +1489,9 @@ void transformFractionsToOps(dmatrix &Op, dmatrix &Fractions, dmatrix consts_sta
 		}
 		Op.at(i)=Op_state;
 	}
+}
+
+Double_t paramMassRapParabola(Double_t *x, Double_t *par){
+	Double_t result=par[0]+x[0]*par[1]+x[0]*x[0]*par[2];
+	return result;
 }

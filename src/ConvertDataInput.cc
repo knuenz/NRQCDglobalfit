@@ -120,29 +120,31 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	  Int_t maxPTPoints[nMaxRapBins];
 	  bool LumiUncertaintyGivenOverall=false;
 	  bool noPolUncertaintyGiven_setZero=false;
+	  bool PolUncertaintyGivenAsFullSigma_calcDiff=false;
 	  double RelativeLumiUncertainty=0.;
 
 	  // CrossSection Measurements:::
 
 	 if(MeasurementID==0){ // Modified by Joao
 		 switch( nExp ){
-		 case NRQCDvars::LHCb:
+		 case NRQCDvars::LHCb2010:
 			 switch( nState ){
-//			 case NRQCDvars::PSI_1S:
-//				 fIn = fopen("HEPDATA/CrossSections/LHCb_promptJpsi_EPJC71_2011_1645.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::LHCb << "not found" << endl;
-//	             }
-//				 nRapBins=5;
-//				 maxPTPoints[0] = 14; maxPTPoints[1] = 14; maxPTPoints[2] = 14; maxPTPoints[3] = 13; maxPTPoints[4] = 11;
-//				 npTBins[0] = 14; npTBins[1] = 14; npTBins[2] = 14;
-//				 npTBins[3] = 13; npTBins[4] = 11;
-//				 isMeasurementAvailable=true;
-//				 break;
-			 case NRQCDvars::PSI_2S:
+			 case NRQCDvars::PSI_1S: //2010, 6pb
+				 fIn = fopen("HEPDATA/CrossSections/LHCb_promptJpsi_EPJC71_2011_1645.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::LHCb2010 << "not found" << endl;
+	             }
+				 nRapBins=5;
+				 maxPTPoints[0] = 14; maxPTPoints[1] = 14; maxPTPoints[2] = 14; maxPTPoints[3] = 13; maxPTPoints[4] = 11;
+				 npTBins[0] = 14; npTBins[1] = 14; npTBins[2] = 14;
+				 npTBins[3] = 13; npTBins[4] = 11;
+				 isMeasurementAvailable=true;
+				 PolUncertaintyGivenAsFullSigma_calcDiff=true;
+				 break;
+			 case NRQCDvars::PSI_2S://2010, 36pb
 				 fIn = fopen("HEPDATA/CrossSections/LHCb_promptPsiPrime_EPJC72_2012_2100.txt", "read");
 	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::LHCb << "not found" << endl;
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::LHCb2010 << "not found" << endl;
 	             }
 				 nRapBins=1;
 				 maxPTPoints[0] = 12;
@@ -173,79 +175,110 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 //				 npTBins[3] = 12; npTBins[4] = 10;
 //				 isMeasurementAvailable=true;
 //				 break;
-//			 case NRQCDvars::UPS_3S:
-//				 fIn = fopen("HEPDATA/CrossSections/LHCb_Ups3S_EPJC72_2012_2025.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::LHCb << "not found" << endl;
-//	             }
-//				 nRapBins=5;
-//				 maxPTPoints[0] = 15; maxPTPoints[1] = 15; maxPTPoints[2] = 15; maxPTPoints[3] = 12; maxPTPoints[4] = 9;
-//				 npTBins[0] = 15; npTBins[1] = 15; npTBins[2] = 15;
-//				 npTBins[3] = 12; npTBins[4] = 9;
-//				 isMeasurementAvailable=true;
-//				 break;
+			 case NRQCDvars::UPS_3S://2010, 25pb
+				 fIn = fopen("HEPDATA/CrossSections/LHCb_Ups3S_EPJC72_2012_2025.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::LHCb2010 << "not found" << endl;
+	             }
+				 nRapBins=5;
+				 maxPTPoints[0] = 15; maxPTPoints[1] = 15; maxPTPoints[2] = 15; maxPTPoints[3] = 12; maxPTPoints[4] = 9;
+				 npTBins[0] = 15; npTBins[1] = 15; npTBins[2] = 15;
+				 npTBins[3] = 12; npTBins[4] = 9;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.035;
+				 break;
 			 default:
 				 cerr << "Error: Unknown state for LHCb. Execution stop!" << endl;
 				 break;
 			 }
 			 break;
-		 case NRQCDvars::CMS:
+		 case NRQCDvars::CMS2010:
 			 switch( nState ){
-			 case NRQCDvars::PSI_1S:
+			 case NRQCDvars::PSI_1S://2010, 37pb
 				 fIn = fopen("HEPDATA/CrossSections/CMS_promptJpsi_JHEP02_2012_011.txt", "read");
 	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CMS << "not found" << endl;
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::CMS2010 << "not found" << endl;
 	             }
 				 nRapBins=5;
 				 maxPTPoints[0] = 10; maxPTPoints[1] = 6; maxPTPoints[2] = 11; maxPTPoints[3] = 11; maxPTPoints[4] = 6;
 				 npTBins[0] = 10; npTBins[1] = 6; npTBins[2] = 11;
 				 npTBins[3] = 11; npTBins[4] = 6;
 				 isMeasurementAvailable=true;
-				 noPolUncertaintyGiven_setZero=true;
-				 //polarization uncertainty not yet implemented = 0
 				 break;
-			 case NRQCDvars::PSI_2S:
+			 case NRQCDvars::PSI_2S://2010, 37pb
 				 fIn = fopen("HEPDATA/CrossSections/CMS_psiPrime_JHEP02_2012_011.txt", "read");
 	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS << "not found" << endl;
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS2010 << "not found" << endl;
 	             }
 				 nRapBins=3;
 				 maxPTPoints[0] = 9; maxPTPoints[1] = 7; maxPTPoints[2] = 7;
 				 npTBins[0] = 9; npTBins[1] = 7; npTBins[2] = 7;
 				 isMeasurementAvailable=true;
 				 break;
-			 case NRQCDvars::UPS_1S:
-				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups1S_2011_AN.txt", "read");
-	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::UPS_1S << ", " << NRQCDvars::CMS << "not found" << endl;
-	             }
-				 nRapBins=1;
-				 maxPTPoints[0] = 22;
-				 npTBins[0] = 22;
-				 isMeasurementAvailable=true;
-				 LumiUncertaintyGivenOverall=true;
-				 RelativeLumiUncertainty=0.022;
+			 default:
+				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
 				 break;
-			 case NRQCDvars::UPS_2S:
-				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups2S_2011_AN.txt", "read");
+			 }
+			 break;
+		case NRQCDvars::CMS2011:
+				 switch( nState ){
+			 case NRQCDvars::PSI_2S://2011, 5fb
+			 	 fIn = fopen("HEPDATA/CrossSections/promptPsi2S_05Feb2014_mergedRapBins.txt", "read");
+		         if( !fIn ){
+		        	 cerr << "Error: State file for " << NRQCDvars::PSI_2S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
+		         }
+			 	 nRapBins=1;
+			 	 maxPTPoints[0] = 18;
+			 	 npTBins[0] = 18;
+			 	 isMeasurementAvailable=true;
+			 	 LumiUncertaintyGivenOverall=true;
+			 	 RelativeLumiUncertainty=0.022;
+			 	 break;
+
+//			 case NRQCDvars::UPS_1S:
+//				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups1S_2011_AN.txt", "read");
+//	             if( !fIn ){
+//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_1S << ", " << NRQCDvars::CMS << "not found" << endl;
+//	             }
+//				 nRapBins=1;
+//				 maxPTPoints[0] = 22;
+//				 npTBins[0] = 22;
+//				 isMeasurementAvailable=true;
+//				 LumiUncertaintyGivenOverall=true;
+//				 RelativeLumiUncertainty=0.022;
+//				 break;
+//			 case NRQCDvars::UPS_2S:
+//				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups2S_2011_AN.txt", "read");
+//	             if( !fIn ){
+//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_2S << ", " << NRQCDvars::CMS << "not found" << endl;
+//	             }
+//				 nRapBins=1;
+//				 maxPTPoints[0] = 22;
+//				 npTBins[0] = 22;
+//				 isMeasurementAvailable=true;
+//				 LumiUncertaintyGivenOverall=true;
+//				 RelativeLumiUncertainty=0.022;
+//				 break;
+//			 case NRQCDvars::UPS_3S://2011, 5fb
+//				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_2011_AN.txt", "read");
+//	             if( !fIn ){
+//	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
+//	             }
+//				 nRapBins=1;
+//				 maxPTPoints[0] = 22;
+//				 npTBins[0] = 22;
+//				 isMeasurementAvailable=true;
+//				 LumiUncertaintyGivenOverall=true;
+//				 RelativeLumiUncertainty=0.022;
+//				 break;
+			 case NRQCDvars::UPS_3S://2011, 5fb
+				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_Preliminary_BPH12006_merged_rap.txt", "read");
 	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::UPS_2S << ", " << NRQCDvars::CMS << "not found" << endl;
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS2011 << "not found" << endl;
 	             }
-				 nRapBins=1;
-				 maxPTPoints[0] = 22;
-				 npTBins[0] = 22;
-				 isMeasurementAvailable=true;
-				 LumiUncertaintyGivenOverall=true;
-				 RelativeLumiUncertainty=0.022;
-				 break;
-			 case NRQCDvars::UPS_3S:
-				 fIn = fopen("HEPDATA/CrossSections/CMS_Ups3S_2011_AN.txt", "read");
-	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::CMS << "not found" << endl;
-	             }
-				 nRapBins=1;
-				 maxPTPoints[0] = 22;
-				 npTBins[0] = 22;
+				 nRapBins=1; maxPTPoints[0] = 22; npTBins[0] = 22;
+				 //maxPTPoints[1] = 22; npTBins[1] = 22;
 				 isMeasurementAvailable=true;
 				 LumiUncertaintyGivenOverall=true;
 				 RelativeLumiUncertainty=0.022;
@@ -255,19 +288,52 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 				 break;
 			 }
 			 break;
-		 case NRQCDvars::ATLAS:
+		 case NRQCDvars::ATLAS2010:
 			 switch( nState ){
-//			 case NRQCDvars::PSI_1S:
-//				 fIn = fopen("HEPDATA/CrossSections/ATLAS_promptJpsi_NPB850_2011_387.txt", "read");
-//	             if( !fIn ){
-//	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::ATLAS << "not found" << endl;
-//	             }
-//				 nRapBins=4;
-//				 maxPTPoints[0] = 14; maxPTPoints[1] = 18; maxPTPoints[2] = 19; maxPTPoints[3] = 13;
-//				 npTBins[0] = 14; npTBins[1] = 18;
-//				 npTBins[2] = 19; npTBins[3] = 13;
-//				 isMeasurementAvailable=true;
-//				 break;
+			 case NRQCDvars::PSI_1S://2010, 2.3pb
+				 fIn = fopen("HEPDATA/CrossSections/ATLAS_promptJpsi_NPB850_2011_387.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::PSI_1S << ", " << NRQCDvars::ATLAS2010 << "not found" << endl;
+	             }
+				 nRapBins=4;
+				 maxPTPoints[0] = 14; maxPTPoints[1] = 18; maxPTPoints[2] = 19; maxPTPoints[3] = 13;
+				 npTBins[0] = 14; npTBins[1] = 18;
+				 npTBins[2] = 19; npTBins[3] = 13;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.034;
+				 break;
+			 default:
+				 cerr << "Error: Unknown state for CMS. Execution stop!" << endl;
+				 break;
+			 }
+			 break;
+		case NRQCDvars::ATLAS2011:
+				 switch( nState ){
+			 case NRQCDvars::CHIC1_1P://2011, 4.5fb
+				 fIn = fopen("HEPDATA/CrossSections/ATLAS_chic1_CONF-2013-095.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::CHIC1_1P << ", " << NRQCDvars::ATLAS2011 << "not found" << endl;
+	             }
+				 nRapBins=1;
+				 maxPTPoints[0] = 5;
+				 npTBins[0] = 5;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.018;
+				 break;
+			 case NRQCDvars::CHIC2_1P://2011, 4.5fb
+				 fIn = fopen("HEPDATA/CrossSections/ATLAS_chic2_CONF-2013-095.txt", "read");
+	             if( !fIn ){
+	            	 cerr << "Error: State file for " << NRQCDvars::CHIC1_1P << ", " << NRQCDvars::ATLAS2011 << "not found" << endl;
+	             }
+				 nRapBins=1;
+				 maxPTPoints[0] = 5;
+				 npTBins[0] = 5;
+				 isMeasurementAvailable=true;
+				 LumiUncertaintyGivenOverall=true;
+				 RelativeLumiUncertainty=0.018;
+				 break;
 //			 case NRQCDvars::UPS_1S:
 //				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups1S_arXiv1211_7255.txt", "read");
 //	             if( !fIn ){
@@ -288,10 +354,10 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 //				 npTBins[0] = 25; npTBins[1] = 24;
 //				 isMeasurementAvailable=true;
 //				 break;
-			 case NRQCDvars::UPS_3S:
+			 case NRQCDvars::UPS_3S://2011, 1.8fb
 				 fIn = fopen("HEPDATA/CrossSections/ATLAS_Ups3S_arXiv1211_7255.txt", "read");
 	             if( !fIn ){
-	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::ATLAS << "not found" << endl;
+	            	 cerr << "Error: State file for " << NRQCDvars::UPS_3S << ", " << NRQCDvars::ATLAS2011 << "not found" << endl;
 	             }
 				 nRapBins=2;
 				 maxPTPoints[0] = 25; maxPTPoints[1] = 25;
@@ -410,6 +476,11 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 				 errLumiPos[iP]=sigma[0][iP]*RelativeLumiUncertainty;
 				 errLumiNeg[iP]=errLumiPos[iP];
 			 }
+			 if(PolUncertaintyGivenAsFullSigma_calcDiff){
+				 errPolPos[iP]-=sigma[0][iP];
+				 errPolNeg[iP]-=sigma[0][iP];
+			 }
+
 	      }
 	      else{
 			 if(!LumiUncertaintyGivenOverall){
@@ -433,6 +504,20 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 			 errPolPos[iP]=0;
 			 errPolNeg[iP]=0;
 	      }
+
+/*
+
+	POL uncertainties:
+
+	Psi2S:::
+	LHCb2010, CMS2010 Ã
+	Ups3S:::
+	LHCb2010, CMS2011, ATLAS2011 Ã
+	Chis:::
+	ATLAS2011 Ã
+
+*/
+
 
 
 	      //printf("iRap %d, iP %d, pTMin %1.3f, pTMax %1.3f, sigma %1.3f, polPos %1.3f, polNeg %1.3f\n",
@@ -458,58 +543,89 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 
 	      switch( nState ){
 	      case NRQCDvars::PSI_1S:
-			if(nExp == NRQCDvars::CMS){
+			if(nExp == NRQCDvars::CMS2010){
 				scaleFac = 0.0593; //BR Jpsi->mumu
 			}
-			else if(nExp == NRQCDvars::CDF){
-				scaleFac = 2*0.6; //correct for the rap-interval
+			else if(nExp == NRQCDvars::ATLAS2010){
+				scaleFac = 0.0593; //BR Jpsi->mumu
 			}
+			//else if(nExp == NRQCDvars::CDF){
+			//	scaleFac = 2*0.6; //correct for the rap-interval
+			//}
 			break;
 	      case NRQCDvars::PSI_2S://TODO: use more precise psi2S->ee?
-			if(nExp == NRQCDvars::CMS){
-			  scaleFac = 0.0077; //to compare with LHCb we need to correct for the BR
-			  //err_scaleFac=0.0009;
-			  err_scaleFac=0;
-			}
-			else if(nExp == NRQCDvars::LHCb){
+				if(nExp == NRQCDvars::CMS2010){
+				  scaleFac = 0.0077; //BR psi2S->mumu
+				  //err_scaleFac=0.0009;
+				  err_scaleFac=0;
+				}
+				if(nExp == NRQCDvars::CMS2011){
+				  scaleFac = 0.0077; //BR psi2S->mumu
+				  scaleFac*= 1e3; //pb --> nb
+				  //err_scaleFac=0.0009;
+				  err_scaleFac=0;
+				}
+			else if(nExp == NRQCDvars::LHCb2010){
 			  scaleFac = (4.5 - 2.); //data not normalized to deltaY
 			}
-			else if(nExp == NRQCDvars::CDF){
-			  scaleFac = 0.0077 * 2*0.6 * 1000; //correct for mumu BR (for comparison to LHCb) and the rap-interval
-			  //err_scaleFac=0.0009 * 2*0.6 * 1000;
-			  err_scaleFac=0;
-			}
+			//else if(nExp == NRQCDvars::CDF){
+			//  scaleFac = 0.0077 * 2*0.6 * 1000; //correct for mumu BR (for comparison to LHCb) and the rap-interval
+			//  //err_scaleFac=0.0009 * 2*0.6 * 1000;
+			//  err_scaleFac=0;
+			//}
 			break;
-	      case NRQCDvars::UPS_1S:
-			if(nExp == NRQCDvars::CMS){
-				scaleFac = 1e6; //fb --> nb
-				scaleFac*= 0.0248; //sigma*BR -> sigma
+	      case NRQCDvars::CHIC1_1P:
+			if(nExp == NRQCDvars::ATLAS2011){
+				scaleFac = 0.348*0.0593; //BR(chi_c1->J/psi)*BR(J/psi->mumu)
+				scaleFac*= 1e3; //pb --> nb
 				scaleFac*= deltaRap; //results given integrated in rapidity
 			}
 			break;
-	      case NRQCDvars::UPS_2S:
-			if(nExp == NRQCDvars::CMS){
-				scaleFac = 1e6; //fb --> nb
-				scaleFac*= 0.0193; //sigma*BR -> sigma
+	      case NRQCDvars::CHIC2_1P:
+			if(nExp == NRQCDvars::ATLAS2011){
+				scaleFac = 0.198*0.0593; //BR(chi_c1->J/psi)*BR(J/psi->mumu)
+				scaleFac*= 1e3; //pb --> nb
 				scaleFac*= deltaRap; //results given integrated in rapidity
 			}
 			break;
+//	      case NRQCDvars::UPS_1S:
+//			if(nExp == NRQCDvars::CMS){
+//				scaleFac = 1e6; //fb --> nb
+//				scaleFac*= 0.0248; //sigma*BR -> sigma
+//				scaleFac*= deltaRap; //results given integrated in rapidity
+//			}
+//			break;
+//	      case NRQCDvars::UPS_2S:
+//			if(nExp == NRQCDvars::CMS){
+//				scaleFac = 1e6; //fb --> nb
+//				scaleFac*= 0.0193; //sigma*BR -> sigma
+//				scaleFac*= deltaRap; //results given integrated in rapidity
+//			}
+//			break;
 	      case NRQCDvars::UPS_3S:
-			if(nExp == NRQCDvars::CMS){
-				scaleFac = 1e6; //fb --> nb
-				scaleFac*= 0.0218; //sigma*BR -> sigma
-				scaleFac*= deltaRap; //results given integrated in rapidity
-			}
+				if(nExp == NRQCDvars::CMS2011){
+					scaleFac = 1e6; //fb --> nb
+					scaleFac*= 0.0218; //sigma*BR -> sigma
+					scaleFac*= deltaRap; //results given integrated in rapidity
+				}
+				else if(nExp == NRQCDvars::LHCb2010){
+					scaleFac = 1e3; //pb --> nb
+					scaleFac*= 0.0218; //sigma*BR -> sigma
+				}
+		    	else if(nExp == NRQCDvars::ATLAS2011){
+		    	  scaleFac = 1e6; //fb --> nb
+		    	  scaleFac*= 0.0218; //sigma*BR -> sigma
+		    	}
 			break;
 	      }
-	      if(nState == NRQCDvars::UPS_1S || nState == NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S){
-	    	  if(nExp == NRQCDvars::LHCb)
-	    		  scaleFac = 1000.; //pb --> nb
-	    	  else if(nExp == NRQCDvars::ATLAS){
-	    		  scaleFac = 1e6; //fb --> nb
-	    		  scaleFac*= 0.0218; //sigma*BR -> sigma
-	    	  }
-	      }
+	      //if(nState == NRQCDvars::UPS_1S || nState == NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S){
+	    //	  if(nExp == NRQCDvars::LHCb)
+	    //		  scaleFac = 1000.; //pb --> nb
+	    //	  else if(nExp == NRQCDvars::ATLAS){
+	    //		  scaleFac = 1e6; //fb --> nb
+	    //		  scaleFac*= 0.0218; //sigma*BR -> sigma
+	    //	  }
+	      //}
 	      sigma[0][iP] /= scaleFac;
 	      errStatPos[0][iP] /= scaleFac;
 	      errSystPos[0][iP] /= scaleFac;
@@ -538,7 +654,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 
 
 	      //prepare the other polarization scenarios:
-	      if(nState == NRQCDvars::PSI_1S || nState == NRQCDvars::PSI_2S || nExp == NRQCDvars::LHCb || nExp == NRQCDvars::ATLAS || nExp == NRQCDvars::CDF){//gives absolute uncertainties
+	      if(nState == NRQCDvars::PSI_1S || nState == NRQCDvars::PSI_2S || nExp == NRQCDvars::LHCb2010 || nExp == NRQCDvars::ATLAS2010 || nExp == NRQCDvars::ATLAS2011 || nExp == NRQCDvars::CMS2010){//gives absolute uncertainties
 		sigma[1][iP] = sigma[0][iP] - fabs(errPolNeg[iP]); //Long(HX)
 		sigma[2][iP] = sigma[0][iP] + fabs(errPolPos[iP]); //Transv(HX)
 		relChangeNeg = sigma[1][iP] / sigma[0][iP];//Long
@@ -546,7 +662,7 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 		// printf("long. pol leads to a %1.3f changed polarization, while transv. pol leads to a %1.3f changed polarization\n",
 		//        relChangeNeg, relChangePos);
 	      }
-	      else if((nState == NRQCDvars::UPS_1S || nState ==  NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S) && (nExp == NRQCDvars::CMS)){//gives relative uncertainties
+	      else if((nState == NRQCDvars::UPS_1S || nState ==  NRQCDvars::UPS_2S || nState == NRQCDvars::UPS_3S) && (nExp == NRQCDvars::CMS2011)){//gives relative uncertainties
 		relChangePos = errPolPos[iP] * 0.01 + 1.;//Trans; transform the rel uncertainty [%] into a scaling factor
 		relChangeNeg = errPolNeg[iP] * 0.01 + 1.;//Long; transform the rel uncertainty [%] into a scaling factor
 
@@ -790,22 +906,22 @@ void LoadData(Int_t nState, Int_t MeasurementID, Int_t nExp, Char_t *DataID, Cha
 	 Int_t *npTBins_toIgnoreAtBeginOfFile = newCVector< Int_t > (nMaxRapBins);
 	 TFile *fINroot;
 
-	 if(MeasurementID>0 && MeasurementID<4){
+	 if(MeasurementID>0 && MeasurementID<2){
 
 		 char inname[1000];
 		  	//sprintf(inname,"%s/ModelIngredients.root",modeldirname);
 
 			 switch( nExp ){
-			 case NRQCDvars::CMS:
+			 case NRQCDvars::CMS2011:
 				 switch( nState ){
-//				 case NRQCDvars::PSI_1S:
-//					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_Psi1S_1sigma.root", "read");
-//					 nRapBins=2;
-//					 maxPTPoints[0] = 10; maxPTPoints[1] = 10;
-//					 npTBins[0] = 10; npTBins[1] = 10;
-//					 npTBins_toIgnoreAtBeginOfFile[0]=2; npTBins_toIgnoreAtBeginOfFile[1]=2;
-//					 isMeasurementAvailable=true;
-//					 break;
+				 case NRQCDvars::PSI_1S:
+					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_Psi1S_1sigma.root", "read");
+					 nRapBins=2;
+					 maxPTPoints[0] = 10; maxPTPoints[1] = 10;
+					 npTBins[0] = 10; npTBins[1] = 10;
+					 npTBins_toIgnoreAtBeginOfFile[0]=2; npTBins_toIgnoreAtBeginOfFile[1]=2;
+					 isMeasurementAvailable=true;
+					 break;
 				 case NRQCDvars::PSI_2S:
 					 sprintf(inname,"HEPDATA/Polarization/TGraphResults_Psi2S_1sigma.root", "read");
 					 nRapBins=3;

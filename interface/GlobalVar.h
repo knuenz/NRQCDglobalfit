@@ -15,8 +15,8 @@ namespace NRQCDvars{
 //const double proposalWidthBurnIn_Np_relToUnc=1e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
 
 const double proposalWidthBurnIn_f=5e-3;
-const double proposalWidthBurnIn_R=2.5e-1;
-const double proposalWidthBurnIn_Np_relToUnc=1e-1;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
+const double proposalWidthBurnIn_R=5.e-2;//1.e-1
+const double proposalWidthBurnIn_Np_relToUnc=5e-2;//width proposalWidthBurnIn_Np = Np_uncertainty*proposalWidthBurnIn_Np_relToUnc
 
 
 bool debug=false;
@@ -28,37 +28,45 @@ enum {PSI_1S, CHIC1_1P, CHIC2_1P, PSI_2S, UPS_1S, CHIB1_1P, CHIB2_1P, UPS_2S,
 const int nStates = (CHIB2_3P-PSI_1S)+1;// modified by Joao: always use last state - first state to set this number
 enum {CrossSection, Lamth, Lamph, Lamtp, CrossSectionRatio, FeedDownFraction};
 const int nMeasurementIDs = (FeedDownFraction-CrossSection)+1; // modified by Joao: : always use last measur. - first measur. to set this number
-enum {CMS, LHCb, ATLAS, ALICE, CDF};
-const int nExperiments = (CDF-CMS)+1; // modified by Joao: always use last exp. - first exp. to set this number
-bool isAbsRapExp[nExperiments] = {true, false, true, false, true};
+
+//enum {CMS, LHCb, ATLAS, ALICE, CDF};
+//const int nExperiments = (CDF-CMS)+1; // modified by Joao: always use last exp. - first exp. to set this number
+//Char_t *ExpName[nExperiments] = {"CMS", "LHCb", "ATLAS", "ALICE", "CDF"};
+//bool isAbsRapExp[nExperiments] = {true, false, true, false, true};
+
+enum {CMS2010, CMS2011, CMS2012, LHCb2010, LHCb2011, LHCb2012, ATLAS2010, ATLAS2011, ATLAS2012};
+const int nExperiments = (ATLAS2012-CMS2010)+1; // modified by Joao: always use last exp. - first exp. to set this number
+Char_t *ExpName[nExperiments] = {"CMS2010", "CMS2011", "CMS2012", "LHCb2010", "LHCb2011", "LHCb2012", "ATLAS2010", "ATLAS2011", "ATLAS2012"};
+Char_t *ExpNameTex[nExperiments] = {"CMS 2010", "CMS 2011", "CMS 2012", "LHCb 2010", "LHCb 2011", "LHCb 2012", "ATLAS 2010", "ATLAS 2011", "ATLAS 2012"};
+bool isAbsRapExp[nExperiments] = {true, true, true, false, false, false, true, true, true};
+
 Char_t *StateName[nStates] = {"PSI_1S", "CHIC1_1P", "CHIC2_1P", "PSI_2S", "UPS_1S", "CHIB1_1P", "CHIB2_1P", "UPS_2S", "CHIB1_2P", "CHIB2_2P", "UPS_3S", "CHIB1_3P", "CHIB2_3P"};
-Char_t *StateNameTex[nStates] = {"#psi(1S)", "#chi_{c1}(1P)", "#chi_{c2}(1P)", "#psi(2S)", "#Upsilon(1S)", "#chi_{b1}(1P)", "#chi_{b2}(1P)", "#Upsilon(2S)", "#chi_{b1}(2P)", "#chi_{b2}(2P)", "#Upsilon(3S)", "#chi_{b1}(3P)", "#chi_{b2}(3P)"};
+Char_t *StateNameTex[nStates] = {"#psi(1#it{S})", "#chi_{c1}(1#it{P})", "#chi_{c2}(1#it{P})", "#psi(2#it{S})", "#Upsilon(1#it{S})", "#chi_{b1}(1#it{P})", "#chi_{b2}(1#it{P})", "#Upsilon(2#it{S})", "#chi_{b1}(2#it{P})", "#chi_{b2}(2#it{P})", "#Upsilon(3#it{S})", "#chi_{b1}(3#it{P})", "#chi_{b2}(3#it{P})"};
 Char_t *MeasurementIDName[nMeasurementIDs] = {"CrossSection", "Lamth", "Lamph", "Lamtp", "CrossSectionRatio", "FeedDownFraction"};
 Char_t *MeasurementIDNameTex[nMeasurementIDs] = {"d#sigma / d#it{p}_{T}d#it{y} [nb/GeV]", "#lambda_{#vartheta}^{HX}", "#lambda_{#varphi}^{HX}", "#lambda_{#vartheta#varphi}^{HX}", "CrossSectionRatio", "FeedDownFraction"};
-Char_t *ExpName[nExperiments] = {"CMS", "LHCb", "ATLAS", "ALICE", "CDF"};
 Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278, 9.91221, 10.02326, 10.25546,
 		                   10.26865, 10.3552, 10.530, 10.530};
 
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
-const int nModelSystematicScales = 4;
+const int nModelSystematicScales = 0;
 const int nDataSystematicScales = nExperiments;
 
 //const int nColorChannels_S=4;//includes CS
 //const int nColorChannels_P=2;//includes CS
-//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S_{1}^{(1)}", "^{1}S_{0}^{(8)}", "^{3}S_{1}^{(8)}", "^{3}P_{J}^{(8)}"};
-//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}P_{J}^{(1)}", "^{3}S_{1}^{(8)}"};
+//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
+//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{3}#it{S}_{1}^{[8]}"};
 
 const int nColorChannels_S=3;//includes CS
-const int nColorChannels_P=2;//includes CS
-Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S_{1}^{(1)}", "^{1}S_{0}^{(8)}", "^{3}S_{1}^{(8)}"};
-Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}P_{J}^{(1)}", "^{3}S_{1}^{(8)}"};
+const int nColorChannels_P=3;//includes CS
+Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
 
 //const int nColorChannels_S=2;//includes CS
 //const int nColorChannels_P=2;//includes CS
-//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S_{1}^{(1)}", "^{1}S_{0}^{(8)}"};
-//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}P_{J}^{(1)}", "^{3}S_{1}^{(8)}"};
+//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}S#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}"};
+//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{3}#it{S}_{1}^{[8]}"};
 
 const int nColorChannels = std::max(nColorChannels_S, nColorChannels_P);
 //const int nColorChannels4States[nStates]={nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P, nColorChannels_S, nColorChannels_P, nColorChannels_P};
@@ -122,7 +130,7 @@ double errFeedDownBranchingRatio[nStates][nStates]={
 //};
 
 //TODO:
-double ColorSingletME[nStates]={1.32, 1., 1., 0.76, 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
+double ColorSingletME[nStates]={1.32, 1e-5,  1e-5, 0.76, 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
 double errColorSingletME[nStates]={0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}; //uncertainty on ColorSinglet matrix elements taken from literature
 //const double pT_star=35.;//20;
 const double pT_star_over_m=6.;

@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
 
 				doesAnyDataExist_all[iState][iMeasurementID][iExperiment]=false;
-				if(iExperiment!=0 || iMeasurementID!=0) continue;
+				if(iExperiment>2 || iMeasurementID!=0) continue;
 
 				    	cout<<"build TGraph from data points for state="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<endl;
 
@@ -351,7 +351,7 @@ int main(int argc, char** argv) {
 							  fPtDist->Draw("l,same");
 
 						      char text[200];
-						      sprintf(text,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[iState], NRQCDvars::ExpName[iExperiment], rapMin[iState][iMeasurementID][iExperiment][iRap], rapMax[iState][iMeasurementID][iExperiment][iRap]);
+						      sprintf(text,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[iState], NRQCDvars::ExpNameTex[iExperiment], rapMin[iState][iMeasurementID][iExperiment][iRap], rapMax[iState][iMeasurementID][iExperiment][iRap]);
 						      TLatex *tex = new TLatex(pTmin+(pTmax-pTmin)*0.35, sigmamin+(sigmamax-sigmamin)*0.2, text);
 						      tex->SetTextSize(0.045)                                                                                                                                                                                                                                             ;
 						      tex->Draw( "same" )                                                                                                                                                                                                                                                 ;
@@ -500,7 +500,7 @@ int main(int argc, char** argv) {
 
 			fPtDist_scaled[iCurve]->Draw("l,same");
 
-		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpName[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
+		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpNameTex[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
 			DMLegend->AddEntry(fPtDist_scaled[iCurve],DMLegendEntry,"l");
 
 		}
@@ -620,7 +620,7 @@ int main(int argc, char** argv) {
 			fPtDist_scaled_ratio[iCurve]->SetLineWidth(2.);
 			fPtDist_scaled_ratio[iCurve]->Draw("l,same");
 
-		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpName[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
+		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpNameTex[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
 			DMLegend->AddEntry(fPtDist_scaled_ratio[iCurve],DMLegendEntry,"l");
 
 			//add data uncertainties to ratio:
@@ -1063,7 +1063,7 @@ int main(int argc, char** argv) {
 			PtDataDists_scaled[iCurve]->Draw("p,same");
 			fPtDist_scaled[iCurve]->Draw("l,same");
 
-		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpName[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
+		    sprintf(DMLegendEntry,"%s, %s, %1.1f<|y|<%1.1f", NRQCDvars::StateNameTex[nStateCurves[iCurve]], NRQCDvars::ExpNameTex[iCurveExp], rapMin[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap], rapMax[nStateCurves[iCurve]][iCurveMeasID][iCurveExp][iCurveRap]);
 			DMLegend->AddEntry(PtDataDists_scaled[iCurve],DMLegendEntry,"lp");
 
 		}

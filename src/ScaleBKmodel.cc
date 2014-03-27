@@ -24,6 +24,7 @@
 #include "TH2.h"
 #include "TF1.h"
 #include "TF2.h"
+#include "TCanvas.h"
 #include "TRandom3.h"
 #include "TTree.h"
 #include "TSystem.h"
@@ -42,6 +43,7 @@ using namespace NRQCDvars;
 dvector func_lam_gen(int iMother, int iColorChannel);
 double func_pT_gen(double* x, double* par);
 double exponential(double* x, double* par);
+Double_t paramMassRapParabola(Double_t *x, Double_t *par);
 
 int main(int argc, char** argv) {
 
@@ -90,9 +92,9 @@ int main(int argc, char** argv) {
 
 	const int nRapIntervals=3;
 	bool isAbsRap[nRapIntervals]={true, true, false};
-	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.};
-	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.5};
-	double AverageRap[nRapIntervals]={0.3, 0.6, 3.25};
+	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.5};
+	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.};
+	double AverageRap[nRapIntervals]={0.3, 0.9, 3.25};
 	const int npTBinsPerRap[nRapIntervals][nHelicityChannels]={
 			{12, 12, 12},
 			{7, 7, 7},
@@ -100,6 +102,13 @@ int main(int argc, char** argv) {
 	};
 	const int maxpTBinsPerRap=12;
 
+	double deltaRapOriginal[nRapIntervals];
+	for(int iRap=0;iRap<nRapIntervals;iRap++){
+		deltaRapOriginal[iRap]=RapIntervalBordersMax[iRap]-RapIntervalBordersMin[iRap];
+		if(isAbsRap[iRap]) deltaRapOriginal[iRap]*=2;
+	}
+
+	bool interpretOriginalModelAsIntegratedInRap=true;
 
 	bool isDummyRap[nRapIntervals]={false, false, false};
 
@@ -111,15 +120,6 @@ int main(int argc, char** argv) {
 
 
 	double pTmean[nStatesGiven][nRapIntervals][nHelicityChannels][maxpTBinsPerRap];//={
-	//		{
-	//				{10.00, 12.50, 15.00, 17.50, 20.00, 25.00, 30.00, 35.00, 40.00},
-	//				{10.00, 12.50, 15.00, 17.50, 20.00, 25.00, 30.00, 00.00, 00.00}
-	//		},
-	//		{
-	//				{10.00, 12.50, 15.00, 17.50, 20.00, 25.00, 30.00, 35.00, 40.00},
-	//				{10.00, 12.50, 15.00, 17.50, 20.00, 25.00, 30.00, 00.00, 00.00}
-	//		}
-	//};
 
 	double pTMin[nRapIntervals]={10, 10, 3};
 	double pTMax[nRapIntervals]={70, 30, 10};
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 			}
 		}
 			scaleFactor[k]/=double(countAverage);
-			//cout<<"(sigma) scaleFactor[k] "<<scaleFactor[k]<<endl;
+			cout<<"(sigma) scaleFactor[k] "<<scaleFactor[k]<<endl;
 			//cout<<"(SDC) scaleFactor[k]*fittedLDMEs[0][k]/fittedLDMEs[1][k] "<<scaleFactor[k]*fittedLDMEs[0][k]/fittedLDMEs[1][k]<<endl;
 	}
 
@@ -380,9 +380,14 @@ int main(int argc, char** argv) {
 				for(int m=0;m<nBinsFinalModels;m++){
 					double deltaPt=(pTMax[j]-pTMin[j])/double(nBinsFinalModels);
 					pTmean_graph[m]=pTMin[j]+m*deltaPt;
-					SDC_graph[m]=SDC_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
+					//SDC_graph[m]=SDC_Graph_original[i][j][k]->Eval(pTmean_graph[m],0,"S");
+
+					double rapCorrFactor=deltaRapOriginal[j];
+					if(!interpretOriginalModelAsIntegratedInRap) rapCorrFactor=1.;
+
+					SDC_graph[m]=SDC_Graph_original[i][j][k]->Eval(pTmean_graph[m])/rapCorrFactor;
 					Lamth_graph[m]=Lamth_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
-					Lamph_graph[m]=Lamph_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
+					Lamph_graph[m]=0;//Lamph_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
 					Lamtp_graph[m]=0;
 				}
 
@@ -411,6 +416,9 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+
+
+
 
 	SDC_Graph_original[0][0][3]->Print();
 
@@ -473,6 +481,260 @@ int main(int argc, char** argv) {
 		}
 	}
 
+
+
+
+/*
+	SDC extrapolation:
+	1) normalize the rap2 curve to match the rap0 curve at 10 GeV. The same can be done for rap1, and (similar) for rap2
+	2) We want to fill the hole between y=1.2 and y=2.5, to be able to add more data. For this, I will interpolate linearly the normalization factor between the rap1 and rap2 curves. With this, we will be able to add a rapidity bin of 1.2<|y|<2.5
+
+	Lamth extrapolation:
+	S0: everything is 0 :)
+	S1 CO rap0: Shift rap2 to match rap0
+	S1 CO rap1: Shift rap2 to match rap1
+	S1 CO rap2: Shift rap1 to match rap2
+	S1 CS rap0: Shift rap2 to match rap0
+	S1 CS rap1: Shift rap2 to match rap1
+	S1 CS rap2: Shift rap1 to match rap2
+*/
+
+/*
+
+	define finalRap-stuff
+	start from these:
+	SDC_Graph[i][j][k]
+	Lamth_Graph[i][j][k]
+	Lamph_Graph[i][j][k]
+	Lamtp_Graph[i][j][k]
+	Take Care Of integrated Rap-factor
+
+*/
+
+
+	const int nEpRapIntervals=9;
+	//bool isAbsEpRap[nEpRapIntervals]={true, true, true, true, true, true, true, true, true};
+	double EpRapIntervalBordersMin[nEpRapIntervals]={0, 0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4.};
+	double EpRapIntervalBordersMax[nEpRapIntervals]={0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4., 4.5};
+	double AverageEpRap[nEpRapIntervals]={0.3, 0.9, 1.4, 1.8, 2.25, 2.75, 3.25, 3.75, 4.25};
+
+	double pTMinEp[nEpRapIntervals]={2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875};
+	double pTMaxEp[nEpRapIntervals]={70, 70, 70, 70, 70, 70, 70, 70, 70};
+
+	double deltaRap[nEpRapIntervals];
+	double NormRapXToRap0Factor[nEpRapIntervals][nColorChannelsGiven];
+	double NormRapXToRap0Factor_dycorr[nEpRapIntervals][nColorChannelsGiven];
+	int normToRap=0;
+	double normAtPt=10.;
+
+	double LamthDiffToRap2[nEpRapIntervals][nColorChannelsGiven];
+	int diffToRap=2;
+	double diffAtPt=10.;
+
+	for(int i=0;i<1;i++){
+		for(int j=0;j<nRapIntervals;j++){
+
+			deltaRap[j]=RapIntervalBordersMax[j]-RapIntervalBordersMin[j];
+			if(isAbsRap[j]) deltaRap[j]*=2;
+
+			for(int k=0;k<nColorChannelsGiven;k++){
+
+				NormRapXToRap0Factor[j][k]=SDC_Graph[i][j][k]->Eval(normAtPt)/SDC_Graph[i][normToRap][k]->Eval(normAtPt);
+
+				LamthDiffToRap2[j][k]=Lamth_Graph[i][j][k]->Eval(diffAtPt)-Lamth_Graph[i][diffToRap][k]->Eval(diffAtPt);
+
+				cout<<"LamthDiffToRap2["<<j<<"]["<<k<<"] = "<<LamthDiffToRap2[j][k]<<endl;
+
+				cout<<"NormRapXToRap0Factor["<<j<<"]["<<k<<"] = "<<NormRapXToRap0Factor[j][k]<<endl;
+
+			}
+		}
+	}
+
+
+	//Get rapidity-dependence of normalization
+
+
+	double rapDepNorm[nRapIntervals];
+
+	TGraph *g_rapDepNorm[nColorChannelsGiven];
+	char name[200];
+	sprintf(name, "fParabola");
+	TF1* fParabola[nColorChannelsGiven];
+	int color[nColorChannelsGiven]={kGray, kGreen+2, kRed, 1};
+
+	TCanvas *tmpC = new TCanvas("tmpC","tmpC",1000,800);
+	tmpC->SetFillColor(kWhite);
+	tmpC->SetFrameBorderMode(0);
+
+	TGraph *g_rapDepNorm_XC;
+	const int nRapIntervals_XC=9;
+	double rapDepNorm_XC[nRapIntervals_XC]={4.35e-1/4.31780303030303014e-01, 4.31e-1/4.31780303030303014e-01, 3.84e-1/4.31780303030303014e-01, 3.49e-1/4.31780303030303014e-01, 2.94e-1/4.31780303030303014e-01, 2.56e-1/4.31780303030303014e-01, 2.17e-1/4.31780303030303014e-01, 1.28e-1/4.31780303030303014e-01, 0.715e-1/4.31780303030303014e-01};
+	double rap_XC[nRapIntervals_XC]={0.375, 0.6, 1.4, 1.875, 2.25, 2.75, 3.25, 3.75, 4.25};
+	g_rapDepNorm_XC = new TGraph(nRapIntervals_XC, rap_XC, rapDepNorm_XC);
+	g_rapDepNorm_XC->SetMarkerColor(kMagenta);
+	g_rapDepNorm_XC->SetMarkerStyle(24);
+
+	for(int i=0;i<1;i++){
+		for(int k=0;k<nColorChannelsGiven;k++){
+			for(int j=0;j<nRapIntervals;j++){
+				rapDepNorm[j]=SDC_Graph[i][j][k]->Eval(normAtPt)/SDC_Graph[i][normToRap][k]->Eval(normAtPt);;
+				if(j==2&&k==0) rapDepNorm[j]+=0.035;
+				if(j==2&&k==2) rapDepNorm[j]+=0.0375;
+			}
+			g_rapDepNorm[k] = new TGraph(nRapIntervals, AverageRap, rapDepNorm);
+			g_rapDepNorm[k]->Print();
+			fParabola[k] = new TF1(name, paramMassRapParabola, 0, 5, 3.);
+
+			double a=1;
+			double b=1;
+			double c=1;
+			fParabola[k]->SetParameter(0,a);
+			fParabola[k]->SetParameter(1,b);
+			fParabola[k]->SetParameter(2,c);
+			g_rapDepNorm[k]->Fit(fParabola[k], "0", "", 0., 5.);
+
+			double a_fit=fParabola[k]->GetParameter(0);
+			double b_fit=fParabola[k]->GetParameter(1);
+			double c_fit=fParabola[k]->GetParameter(2);
+
+			cout<<"double a_fit = "<<a_fit<<";"<<endl;
+			cout<<"double b_fit = "<<b_fit<<";"<<endl;
+			cout<<"double c_fit = "<<c_fit<<";"<<endl;
+
+			fParabola[k]->SetLineColor(color[k]);
+			fParabola[k]->SetLineWidth(1.);
+			g_rapDepNorm[k]->SetMarkerStyle(20);
+			g_rapDepNorm[k]->SetTitle(0);
+			g_rapDepNorm[k]->GetYaxis()->SetRangeUser(0,1.2);
+			g_rapDepNorm[k]->GetXaxis()->SetLimits(0.,5.);
+			g_rapDepNorm[k]->GetXaxis()->SetTitle("#it{y}");
+			g_rapDepNorm[k]->GetYaxis()->SetTitle("normalized to #bar{y}=0.3");
+
+			if(k==0) g_rapDepNorm[k]->Draw("ap");
+			else g_rapDepNorm[k]->Draw("psame");
+			fParabola[k]->Draw("lsame");
+
+		}
+	}
+
+	g_rapDepNorm_XC->Draw("psame");
+
+	char tmpN[500];
+	sprintf(tmpN,"%s/RapNormBK.pdf",originalmodeldirname);
+	tmpC->SaveAs(tmpN);
+
+	// Fit with some function
+
+
+
+
+
+
+	TGraph *EpSDC_Graph[nStatesGiven][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *EpLamth_Graph[nStatesGiven][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *EpLamph_Graph[nStatesGiven][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *EpLamtp_Graph[nStatesGiven][nEpRapIntervals][nColorChannelsGiven];
+
+
+	for(int i=0;i<nStatesGiven;i++){
+		for(int j=0;j<nEpRapIntervals;j++){
+			for(int k=0;k<nColorChannelsGiven;k++){
+
+				cout<<"Ep: rap "<<j<<" CC "<<k<<" state "<<i<<endl;
+
+				cout<<"NormRapXToRap0Factor["<<j<<"]["<<k<<"] = "<<NormRapXToRap0Factor[j][k]<<endl;
+
+				double pTmean_graph_Ep[nBinsFinalModels];
+				double SDC_graph_Ep[nBinsFinalModels];
+				double Lamth_graph_Ep[nBinsFinalModels];
+				double Lamph_graph_Ep[nBinsFinalModels];
+				double Lamtp_graph_Ep[nBinsFinalModels];
+				for(int m=0;m<nBinsFinalModels;m++){
+
+					double deltaPt=(pTMaxEp[j]-pTMinEp[j])/double(nBinsFinalModels);
+					pTmean_graph_Ep[m]=pTMinEp[j]+m*deltaPt;
+
+					if(j==0){
+
+						if(pTmean_graph_Ep[m]>=normAtPt) SDC_graph_Ep[m]=SDC_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
+						else SDC_graph_Ep[m]=SDC_Graph[i][2][k]->Eval(pTmean_graph_Ep[m])/NormRapXToRap0Factor[2][k];
+
+					}
+					else{
+
+						SDC_graph_Ep[m]=EpSDC_Graph[i][0][k]->Eval(pTmean_graph_Ep[m])*fParabola[k]->Eval(AverageEpRap[j]);
+
+					}
+
+
+
+					if(k==1){
+						Lamth_graph_Ep[m]=0;//Lamth_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
+					}
+					else{
+
+						double Lamth_j0;
+						double Lamth_j1;
+						double Lamth_j2;
+
+						if(pTmean_graph_Ep[m]>=diffAtPt){
+							Lamth_j0=Lamth_Graph[i][0][k]->Eval(pTmean_graph_Ep[m]);
+							Lamth_j1=Lamth_Graph[i][1][k]->Eval(pTmean_graph_Ep[m]);
+							if(pTmean_graph_Ep[m]>=30) Lamth_j1=Lamth_Graph[i][0][k]->Eval(pTmean_graph_Ep[m])+Lamth_Graph[i][1][k]->Eval(30)-Lamth_Graph[i][0][k]->Eval(30);
+							Lamth_j2=Lamth_j1-LamthDiffToRap2[1][k];
+						}
+						else{
+							Lamth_j0=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[0][k];
+							Lamth_j1=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[1][k];
+							Lamth_j2=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[2][k];
+						}
+
+						if(k==3 && pTmean_graph_Ep[m] < 8.71){
+							Lamth_j0=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
+							Lamth_j1=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
+							Lamth_j2=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
+						}
+
+						Lamth_graph_Ep[m]=Lamth_j1+(Lamth_j2-Lamth_j1)*(AverageEpRap[j]-AverageRap[1])/(AverageRap[2]-AverageRap[1]);
+
+
+						if(j==0) Lamth_graph_Ep[m]=Lamth_j0;
+						if(j==1) Lamth_graph_Ep[m]=Lamth_j1;
+
+
+					}
+
+
+
+
+					Lamph_graph_Ep[m]=0;
+					Lamtp_graph_Ep[m]=0;
+
+				}
+
+				EpSDC_Graph[i][j][k]= new TGraph(nBinsFinalModels,pTmean_graph_Ep,SDC_graph_Ep);
+				EpLamth_Graph[i][j][k]= new TGraph(nBinsFinalModels,pTmean_graph_Ep,Lamth_graph_Ep);
+				EpLamph_Graph[i][j][k]= new TGraph(nBinsFinalModels,pTmean_graph_Ep,Lamph_graph_Ep);
+				EpLamtp_Graph[i][j][k]= new TGraph(nBinsFinalModels,pTmean_graph_Ep,Lamtp_graph_Ep);
+
+				sprintf(graphName,"EpSDC_Graph_state%d_rap%d_CC%d",StatesGiven[i],j,k);
+				EpSDC_Graph[i][j][k]->SetName(graphName);
+				sprintf(graphName,"EpLamth_Graph_state%d_rap%d_CC%d",StatesGiven[i],j,k);
+				EpLamth_Graph[i][j][k]->SetName(graphName);
+				sprintf(graphName,"EpLamph_Graph_state%d_rap%d_CC%d",StatesGiven[i],j,k);
+				EpLamph_Graph[i][j][k]->SetName(graphName);
+				sprintf(graphName,"EpLamtp_Graph_state%d_rap%d_CC%d",StatesGiven[i],j,k);
+				EpLamtp_Graph[i][j][k]->SetName(graphName);
+
+			}
+		}
+	}
+
+
+
+
+
 	/*
 
  1) scale the "horizontal" variable, pT, such that p2/p1 = m2/m1 (i.e. taking into account the average rapidity to calculate p for each pT point)
@@ -509,17 +771,17 @@ NEW:
 	 */
 
 
-	TGraph *SDC_Graph_scaled[NRQCDvars::nStates][nRapIntervals][nColorChannelsGiven];
-	TGraph *Lamth_Graph_scaled[NRQCDvars::nStates][nRapIntervals][nColorChannelsGiven];
-	TGraph *Lamph_Graph_scaled[NRQCDvars::nStates][nRapIntervals][nColorChannelsGiven];
-	TGraph *Lamtp_Graph_scaled[NRQCDvars::nStates][nRapIntervals][nColorChannelsGiven];
+	TGraph *SDC_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *Lamth_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *Lamph_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
+	TGraph *Lamtp_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
 
 	const int const_nBinsFinalModels=nBinsFinalModels;
 	double buff_array1[const_nBinsFinalModels];//={NULL};
 	double buff_array2[const_nBinsFinalModels];//={NULL};
 
 	for(int i=0;i<NRQCDvars::nStates;i++){
-		for(int j=0;j<nRapIntervals;j++){
+		for(int j=0;j<nEpRapIntervals;j++){
 			for(int k=0;k<nColorChannelsGiven;k++){
 
 				SDC_Graph_scaled[i][j][k]= new TGraph(nBinsFinalModels,buff_array1,buff_array2);
@@ -574,7 +836,6 @@ NEW:
 	double massmin=1;
 	double massmax=13;
 
-	char name[200];
 	sprintf(name, "expo_fit");
 	TF1* expo_fit  = new TF1(name, exponential, massmin, massmax, 2);
 	expo_fit->FixParameter(0,expnorm);
@@ -616,6 +877,20 @@ NEW:
 				Lamph_Graph_original[i][j][k]->Write();
 				Lamtp_Graph_original[i][j][k]->Write();
 
+
+			}
+		}
+	}
+
+	for(int i=0;i<nStatesGiven;i++){
+		for(int j=0;j<nEpRapIntervals;j++){
+			for(int k=0;k<nColorChannelsGiven;k++){
+
+				EpSDC_Graph[i][j][k]->Write();
+				EpLamth_Graph[i][j][k]->Write();
+				EpLamph_Graph[i][j][k]->Write();
+				EpLamtp_Graph[i][j][k]->Write();
+
 			}
 		}
 	}
@@ -629,7 +904,7 @@ NEW:
 	double buff_p, buff_p_scaled;
 
 	for(int i=0;i<NRQCDvars::nStates;i++){
-		for(int j=0;j<nRapIntervals;j++){
+		for(int j=0;j<nEpRapIntervals;j++){
 			int nColorChannels_state;
 			bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
@@ -637,11 +912,11 @@ NEW:
 			for (int k=0; k<nColorChannels_state; k++){
 
 				int kPrime=k;
-				if(!isSstate&&k==1) kPrime=2;
+				//if(!isSstate&&k==1) kPrime=2;
 
 				for(int l=0;l<nBinsFinalModels;l++){
 
-					SDC_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
+					EpSDC_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
 
 					//actually scale pT:
 					if(Scale_pT){
@@ -659,15 +934,15 @@ NEW:
 					//buff_pT_scaled=buff_pT;
 
 					//Dummy model for low pT Upsilon polarization
-					if(l==0&&i==10) buff_pT_scaled=10;
+					//if(l==0&&i==10) buff_pT_scaled=10;
 
 					SDC_Graph_scaled[i][j][k]->SetPoint(l,buff_pT_scaled, buff_val_scaled);
 
-					Lamth_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
+					EpLamth_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
 					Lamth_Graph_scaled[i][j][k]->SetPoint(l,buff_pT_scaled, buff_val);
-					Lamph_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
+					EpLamph_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
 					Lamph_Graph_scaled[i][j][k]->SetPoint(l,buff_pT_scaled, buff_val);
-					Lamtp_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
+					EpLamtp_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
 					Lamtp_Graph_scaled[i][j][k]->SetPoint(l,buff_pT_scaled, buff_val);
 
 
@@ -995,3 +1270,7 @@ double exponential(double* x, double* par) {
 
 }
 
+Double_t paramMassRapParabola(Double_t *x, Double_t *par){
+	Double_t result=par[0]+x[0]*par[1]+x[0]*x[0]*par[2];
+	return result;
+}

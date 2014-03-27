@@ -192,10 +192,10 @@ int main(int argc, char** argv) {
 						sprintf(branch_name_f1,"state%d_f%d",i,j);
 						sprintf(branch_name_f2,"state%d_f%d",i,k);
 						//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f1);
-						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f1);
-						f2Min=outputTreeAllSamplings->GetMinimum(branch_name_f2)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f2);
-						f2Max=outputTreeAllSamplings->GetMaximum(branch_name_f2)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f2);
+						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_f1));
+						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_f1));
+						f2Min=outputTreeAllSamplings->GetMinimum(branch_name_f2)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_f2));
+						f2Max=outputTreeAllSamplings->GetMaximum(branch_name_f2)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_f2));
 
 						f1Min=-0.5;
 						f1Max=1.5;
@@ -369,8 +369,8 @@ int main(int argc, char** argv) {
 			for (int j=0; j<nColorChannels_state; j++){
 						sprintf(branch_name_f1,"state%d_f%d",i,j);
 						//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f1);
-						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f1);
+						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_f1));
+						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_f1));
 
 						if(j==1){
 							f1Min=-0.5;

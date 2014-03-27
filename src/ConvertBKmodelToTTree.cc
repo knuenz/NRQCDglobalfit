@@ -77,11 +77,15 @@ int main(int argc, char** argv) {
 // Convert BK input model
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	const int nRapIntervals=3;
-	bool isAbsRap[nRapIntervals]={true, true, false};
-	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.};
-	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.5};
+	//const int nRapIntervals=3;
+	//bool isAbsRap[nRapIntervals]={true, true, false};
+	//double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.};
+	//double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.5};
 
+	const int nRapIntervals=9;
+	bool isAbsRap[nRapIntervals]={true, true, true, true, true, true, true, true, true};
+	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4.};
+	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4., 4.5};
 
 		sprintf(inname,"%s/TGraphs_scaled.root",originalmodeldirname);
 		TFile* inputFile = new TFile(inname, "READ");
@@ -115,7 +119,7 @@ int main(int argc, char** argv) {
 				for (int k=0; k<nColorChannels_state; k++){
 
 					char TGid[200];
-					sprintf(TGid,"original");
+					sprintf(TGid,"scaled");
 
 					sprintf(nameSDCgraph,"SDC_Graph_%s_state%d_rap%d_CC%d",TGid,i,j,k);
 					SDC_Graph[i][j][k]=(TGraph*)inputFile->Get(nameSDCgraph);
@@ -159,21 +163,23 @@ int main(int argc, char** argv) {
 
 	//model_pTMin=3;
 	//model_pTMax=40;
-	model_rapMin=-1.2;
+	model_rapMin=-4.5;
 	model_rapMax=4.5;
 	model_costhMin=-1;
 	model_costhMax=1;
 	model_phiMin=-180;
 	model_phiMax=180;
 
+	bool ignoreState[NRQCDvars::nStates]={true, true, true, false, true, true, true, true, true, true, false, true, true};
 
-	int n_nTuple=1000000;
+	int n_nTuple=5000000;
 
 	TTree* nTupleModel[NRQCDvars::nStates][NRQCDvars::nColorChannels];
 	char nTupleModelName[1000];
 
 	for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
 		if(!ModelGiven[iMother]) continue;
+		if(ignoreState[iMother]) continue;
 		if(iMother!=0 && iMother!=3&& iMother!=4 && iMother!=7 && iMother!=10)
 		cout<<"Converting original model nTuple for nState = "<<iMother<<endl;
 		int nColorChannels_state;
@@ -287,7 +293,7 @@ int main(int argc, char** argv) {
 					nTupleModel[iMother][iColorChannel]->Fill();
 
 			 		if (k%nStep == 0) {
-			 			cout << nStep_*10 <<"% (nState = "<<iMother<<", Color channel = "<<iColorChannel<<")"<<endl;
+			 			cout << nStep_*10 <<"% (BK original, nState = "<<iMother<<", Color channel = "<<iColorChannel<<")"<<endl;
 			 			++nStep_;
 			 		}
 
@@ -300,7 +306,7 @@ int main(int argc, char** argv) {
 			}
 
 
-			bool interpretModelIntegratedInRapidityInterval=true;
+			bool interpretModelIntegratedInRapidityInterval=false;
 
 			double deltay=model_rapMax-model_rapMin;
 

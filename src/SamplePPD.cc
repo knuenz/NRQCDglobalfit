@@ -72,6 +72,8 @@ int main(int argc, char** argv) {
   	bool 	useCharmoniumOnly=false;
   	bool 	useBottomoniumOnly=false;
   	int 	useOnlyState=999;
+  	bool 	useCrossSectionOnly=false;
+  	bool 	usePolarizationOnly=false;
 	int 	Minimizer;
   	std::string filename("data");
   	std::string properties;
@@ -201,6 +203,14 @@ int main(int argc, char** argv) {
 	    	cout<<"useBottomoniumOnly=true"<<endl;
 			properties.append("_useBottomoniumOnly");
 	    }
+	    if(std::string(argv[i]).find("useCrossSectionOnly=true") != std::string::npos) {
+	    	useCrossSectionOnly=true;
+	    	cout<<"useCrossSectionOnly=true"<<endl;
+	    }
+	    if(std::string(argv[i]).find("usePolarizationOnly=true") != std::string::npos) {
+	    	usePolarizationOnly=true;
+	    	cout<<"usePolarizationOnly=true"<<endl;
+	    }
 	}
   	filename.append(properties);
 	filename.append(".dat");
@@ -242,12 +252,16 @@ int main(int argc, char** argv) {
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
-				    	pTMin=1000;//CHANGE_BACK
-				    	if(iState==3) pTMin=13;//CHANGE_BACK
-				    	if(iState==10) pTMin=35;//CHANGE_BACK
+				    	//pTMin=1000;//CHANGE_BACK
+				    	if(iState==3) pTMin=12;//CHANGE_BACK
+				    	if(iState==10) pTMin=30;//CHANGE_BACK
+				    	if(iState!=3 && iState!=10) continue;//CHANGE_BACK
 
 				    	//if(iMeasurementID!=0) continue;
-				    	if(iMeasurementID>1) continue;
+				    	//if(iState<1) continue;
+
+				    	if(useCrossSectionOnly && iMeasurementID!=0) continue;
+				    	if(usePolarizationOnly && iMeasurementID!=1) continue;
 
 				    	//if(iState!=0 || iMeasurementID!=0 || iExperiment!=0 || iRap!=0 || iP!=0) continue;
 
@@ -275,7 +289,7 @@ int main(int argc, char** argv) {
 								&& readDataModelObject.getyMax() <= rapMax
 							) DataSelected=true;
 
-							if(readDataModelObject.getpTMin() >= 29 && iMeasurementID==1 && pTMin==35) DataSelected=true;
+							//if(readDataModelObject.getpTMin() >= 29 && iMeasurementID==1 && pTMin==35) DataSelected=true;
 
 							if(useSstatesOnly && StateQuantumID[readDataModelObject.getState()] != NRQCDvars::quID_S)
 								DataSelected=false;
@@ -294,6 +308,7 @@ int main(int argc, char** argv) {
 
 								cout << "Selected: iState=" << StateName[iState] << ", iMeasurementID=" << MeasurementIDName[iMeasurementID];
 								cout << ", iExperiment=" << ExpName[iExperiment] << ", iRap=" << iRap << ", iP=" << iP << endl;
+								cout<<"readDataModelObject.getCentralValue() "<<readDataModelObject.getCentralValue() <<endl;
 								cout<<"readDataModelObject.getErrTot() "<<readDataModelObject.getErrTot() <<endl;
 
 								//readDataModelObject.Dump(NRQCDvars::nStates, true, true);
@@ -395,6 +410,9 @@ int main(int argc, char** argv) {
 	Np_US_SampleWidths.push_back(Np_US_1_);
 	dvector Np_US_0__ (NRQCDvars::nDataSystematicScales, 1.);
 	dvector Np_US_1__ (NRQCDvars::nModelSystematicScales, 1.);
+
+	//Np_US_1__[0]=10.;
+
 	Np_US_ExpectationUncertainty.push_back(Np_US_0__);
 	Np_US_ExpectationUncertainty.push_back(Np_US_1__);
 	Np_US_Expectation=Np_US_PreviousCandidates;
@@ -562,12 +580,15 @@ int main(int argc, char** argv) {
 
 	cout<<"set starting point of Candidates:"<<endl;
 
-	double RstartingVal=36.;//worked fine for HP_1-2
+	double RstartingVal;//worked fine for HP_1-2
 	//RstartingVal=70.;
+
 
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
 		if(isSstate){
+			RstartingVal=36.;
+			if(i==0) RstartingVal=24.;
 			for (int j=0; j<NRQCDvars::nColorChannels_S; j++){
 				if(j==0) Candidates_S.at(j)=RstartingVal;
 				else Candidates_S.at(j)=1./double(NRQCDvars::nColorChannels_S-1);
@@ -579,6 +600,7 @@ int main(int argc, char** argv) {
 			Candidates.at(i)=Candidates_S;
 		}
 		else{
+			RstartingVal=5e6;
 			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
 				if(j==0) Candidates_P.at(j)=RstartingVal;
 				else Candidates_P.at(j)=1./double(NRQCDvars::nColorChannels_P-1);
@@ -589,6 +611,7 @@ int main(int argc, char** argv) {
 	PreviousCandidates=Candidates;
 	Fractions=Candidates;
 
+	cout<<"Candidates"<<endl;
 	cout<<Candidates<<endl;
 
 	consts_star_var=consts_star;
@@ -597,8 +620,10 @@ int main(int argc, char** argv) {
 	transformFractionsToOps(Op, Fractions, consts_star);
 
 
+//5.5e6+-7e5 chi1 noFD
+//4.5e6+-5e5 chi2 noFD
 
-	cout<<"set widths"<<endl;
+
 
 	for (int i=0; i<NRQCDvars::nStates; i++){
 		bool isSstate=(StateQuantumID[i] > NRQCDvars::quID_S)?false:true;
@@ -611,7 +636,7 @@ int main(int argc, char** argv) {
 		}
 		else{
 			for (int j=0; j<NRQCDvars::nColorChannels_P; j++){
-				if(j==0) SampleWidths_P[j]=NRQCDvars::proposalWidthBurnIn_R;
+				if(j==0) SampleWidths_P[j]=5e4;
 				else SampleWidths_P.at(j)=NRQCDvars::proposalWidthBurnIn_f;
 			}
 			SampleWidths.at(i)=SampleWidths_P;
@@ -619,6 +644,8 @@ int main(int argc, char** argv) {
 	}
 
 
+	cout<<"SampleWidths"<<endl;
+	cout<<SampleWidths<<endl;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -677,6 +704,8 @@ int main(int argc, char** argv) {
 
 	cout<<"FreeParam_Fractions"<<endl;
 	cout<<FreeParam_Fractions<<endl;
+
+	//return 0;
 
 	int nOps=0;
 
@@ -2198,6 +2227,10 @@ int main(int argc, char** argv) {
 					//	if(j>0) SumFractions+=Fractions_P[j];
 					//}
 					//cout << "Sum f[1]-f[n] "<< SumFractions <<endl;
+
+					//Fractions_P.at(1)=1;
+					//Fractions_P.at(2)=0;
+
 					Fractions.at(i)=Fractions_P;
 				}
 
@@ -2244,6 +2277,7 @@ int main(int argc, char** argv) {
 				//cout << "likelihood: " << loglikelihood << endl;
 				//if(loglikelihood>1e99) state->Dump(NRQCDvars::nStates, true, true);
 				//cout << "likelihood: " << likelihood << endl;
+
 				if(NRQCDvars::debug) {
 					cout << "iDataPoint: " << distance(DataModelObject.begin(), state) << endl;
 					cout << "likelihood: " << loglikelihood << endl;
@@ -2380,6 +2414,7 @@ int main(int argc, char** argv) {
 			 if(nMH_rejectedInARow==1000) {cout<<"I'd be even more worried, 1000 points rejected in a row.. iSampledPoints: "<<iSampledPoint<<", MH_av_eff = "<<MH_av_eff*100<<"%"<<endl;}
 			 if(nMH_rejectedInARow==10000) {cout<<"Sorry - 10000 points rejected in a row is enough -> EXIT"<<endl; exit(0);}
 
+			 //cout<<"Np_BR "<<Np_BR<<endl;
 			outputTreeAllSamplings->Fill();
 
 			if(NRQCDvars::debug) cout << "Sum loglikelihood: " << loglikelihood << endl;

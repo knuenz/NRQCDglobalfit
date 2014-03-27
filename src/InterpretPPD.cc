@@ -136,13 +136,14 @@ int main(int argc, char** argv) {
 
   	double expandMinMaxBy=0.01;
 
+  	int nBins1D=75;
 
   	double buff_fi_MPV;
   	double buff_fi_errlow;
   	double buff_fi_errhign;
 
   	//double fi_sampling[NRQCDvars::nStates][NRQCDvars::nColorChannels];
-  	int nBins_h_fi=100;
+  	int nBins_h_fi=nBins1D;
   	dmatrix fi_MPV(NRQCDvars::nStates);
   	dvector fi_MPV_state(NRQCDvars::nColorChannels);
   	dmatrix fi_errlow(NRQCDvars::nStates);
@@ -161,8 +162,8 @@ int main(int argc, char** argv) {
 		for (int j=0; j<nColorChannels_state; j++){
 				sprintf(branch_name,"state%d_f%d",i,j);
 				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &fi_sampling[i][j] );
-				h_fi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-				h_fi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				h_fi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-TMath::Abs(expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name));
+				h_fi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+TMath::Abs(expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name));
 				sprintf(hist_name,"h_state%d_f%d",i,j);
 				h_fi[i][j] = new TH1D( hist_name, hist_name, nBins_h_fi, h_fi_min[i][j], h_fi_max[i][j] );
 				if(isSstate) sprintf(hist_var_name,"f_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
@@ -203,7 +204,7 @@ int main(int argc, char** argv) {
   	double buff_Opi_errhign;
 
   	//double Opi_sampling[NRQCDvars::nStates][NRQCDvars::nColorChannels];
-  	int nBins_h_Opi=100;
+  	int nBins_h_Opi=nBins1D;
   	dmatrix Opi_MPV(NRQCDvars::nStates);
   	dvector Opi_MPV_state(NRQCDvars::nColorChannels);
   	dmatrix Opi_errlow(NRQCDvars::nStates);
@@ -222,8 +223,8 @@ int main(int argc, char** argv) {
 		for (int j=0; j<nColorChannels_state; j++){
 				sprintf(branch_name,"state%d_Op%d",i,j);
 				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-				h_Opi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-				h_Opi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				h_Opi_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name));
+				h_Opi_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name));
 				sprintf(hist_name,"h_state%d_Op%d",i,j);
 				h_Opi[i][j] = new TH1D( hist_name, hist_name, nBins_h_Opi, h_Opi_min[i][j], h_Opi_max[i][j] );
 				if(isSstate) sprintf(hist_var_name,"O_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
@@ -300,7 +301,7 @@ int main(int argc, char** argv) {
   	double buff_consts_star_var_errlow;
   	double buff_consts_star_var_errhign;
 
-  	int nBins_h_consts_star_var=100;
+  	int nBins_h_consts_star_var=nBins1D;
   	dmatrix consts_star_var_MPV(NRQCDvars::nStates);
   	dvector consts_star_var_MPV_state(NRQCDvars::nColorChannels);
   	dmatrix consts_star_var_errlow(NRQCDvars::nStates);
@@ -319,8 +320,8 @@ int main(int argc, char** argv) {
 		for (int j=0; j<nColorChannels_state; j++){
 				sprintf(branch_name,"state%d_const_star%d",i,j);
 				//outputTreeAccSamplings->SetBranchAddress( branch_name,  &consts_star_var_sampling[i][j] );
-				h_consts_star_var_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-				h_consts_star_var_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				h_consts_star_var_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name));
+				h_consts_star_var_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name));
 				sprintf(hist_name,"h_state%d_consts_star%d",i,j);
 				h_consts_star_var[i][j] = new TH1D( hist_name, hist_name, nBins_h_consts_star_var, h_consts_star_var_min[i][j], h_consts_star_var_max[i][j] );
 				if(isSstate) sprintf(hist_var_name,"c*_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
@@ -353,7 +354,7 @@ int main(int argc, char** argv) {
   	double buff_Np_BR_errlow;
   	double buff_Np_BR_errhign;
 
-  	int nBins_h_Np_BR=100;
+  	int nBins_h_Np_BR=nBins1D;
   	dmatrix Np_BR_MPV;
   	dvector Np_BR_MPV_0 (NRQCDvars::nStates,0.);
 	for(int i=0; i < NRQCDvars::nStates; i++) Np_BR_MPV.push_back(Np_BR_MPV_0);
@@ -371,8 +372,8 @@ int main(int argc, char** argv) {
 		for (int j=0; j<NRQCDvars::nStates; j++){
 			if(NRQCDvars::FeedDownBranchingRatio[i][j]>0){
 				sprintf(branch_name,"Np_BR_Daughter%d_Mother%d",i,j);
-				h_Np_BR_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-				h_Np_BR_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+				h_Np_BR_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name));
+				h_Np_BR_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name));
 				sprintf(hist_name,"h_Np_BR_Daughter%d_Mother%d",i,j);
 				h_Np_BR[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_BR, h_Np_BR_min[i][j], h_Np_BR_max[i][j] );
 				sprintf(hist_var_name,"BR( %s -> %s )", StateNameTex[j], StateNameTex[i]);
@@ -382,7 +383,7 @@ int main(int argc, char** argv) {
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_Np_BR[i][j]->SetTitle(0);
 				if(FreeParam_Np_BR[i][j]==1 && SampleNp) FindMPV(h_Np_BR[i][j], buff_Np_BR_MPV, buff_Np_BR_errlow, buff_Np_BR_errhign, MPValgo, nSigma);
-				else{buff_Np_BR_MPV=DummyVal; buff_Np_BR_errlow=DummyVal; buff_Np_BR_errhign=DummyVal; }
+				else{buff_Np_BR_MPV=NRQCDvars::FeedDownBranchingRatio[i][j]; buff_Np_BR_errlow=0; buff_Np_BR_errhign=0; }
 				Np_BR_MPV[i][j]=buff_Np_BR_MPV;
 				Np_BR_errlow[i][j]=buff_Np_BR_errlow;
 				Np_BR_errhigh[i][j]=buff_Np_BR_errhign;
@@ -395,7 +396,7 @@ int main(int argc, char** argv) {
 				cout<<buff_Np_BR_MPV<<endl;
 			}
 			else{
-				buff_Np_BR_MPV=DummyVal; buff_Np_BR_errlow=DummyVal; buff_Np_BR_errhign=DummyVal;
+				buff_Np_BR_MPV=0; buff_Np_BR_errlow=0; buff_Np_BR_errhign=0;
 				Np_BR_MPV[i][j]=buff_Np_BR_MPV;
 				Np_BR_errlow[i][j]=buff_Np_BR_errlow;
 				Np_BR_errhigh[i][j]=buff_Np_BR_errhign;
@@ -412,7 +413,7 @@ int main(int argc, char** argv) {
   	double buff_Np_US_errlow;
   	double buff_Np_US_errhign;
 
-  	int nBins_h_Np_US=100;
+  	int nBins_h_Np_US=nBins1D;
 
   	int nScales=2;
   	if(NRQCDvars::nModelSystematicScales==0) nScales=1;
@@ -432,11 +433,11 @@ int main(int argc, char** argv) {
 	i=0;
 	for(int j=0; j < NRQCDvars::nDataSystematicScales; j++){
 		sprintf(branch_name,"Np_US_DataSystematicScale%d",j);
-		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name));
+		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name));
 		sprintf(hist_name,"h_Np_US_DataSystematicScale%d",j);
 		h_Np_US[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_US, h_Np_US_min[i][j], h_Np_US_max[i][j] );
-		sprintf(hist_var_name,"LumiCorrFactor(%s)", ExpName[j]);
+		sprintf(hist_var_name,"LumiCorrFactor(%s)", ExpNameTex[j]);
 		h_Np_US[i][j] -> SetXTitle(hist_var_name);
 		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
 		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
@@ -464,8 +465,8 @@ int main(int argc, char** argv) {
 	i=1;
 	for(int j=0; j < NRQCDvars::nModelSystematicScales; j++){
 		sprintf(branch_name,"Np_US_ModelSystematicScale%d",j);
-		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name);
-		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name);
+		h_Np_US_min[i][j]=outputTreeAllSamplings->GetMinimum(branch_name)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name));
+		h_Np_US_max[i][j]=outputTreeAllSamplings->GetMaximum(branch_name)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name));
 		sprintf(hist_name,"h_Np_US_ModelSystematicScale%d",j);
 		h_Np_US[i][j] = new TH1D( hist_name, hist_name, nBins_h_Np_US, h_Np_US_min[i][j], h_Np_US_max[i][j] );
 		//sprintf(hist_var_name,"ModelSystScale%d", j);
@@ -577,10 +578,10 @@ int main(int argc, char** argv) {
 					sprintf(branch_name_O1,"state%d_Op%d",i,j);
 					sprintf(branch_name_O2,"state%d_Op%d",i,k);
 					//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-					O1Min=outputTreeAllSamplings->GetMinimum(branch_name_O1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_O1);
-					O1Max=outputTreeAllSamplings->GetMaximum(branch_name_O1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_O1);
-					O2Min=outputTreeAllSamplings->GetMinimum(branch_name_O2)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_O2);
-					O2Max=outputTreeAllSamplings->GetMaximum(branch_name_O2)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_O2);
+					O1Min=outputTreeAllSamplings->GetMinimum(branch_name_O1)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_O1));
+					O1Max=outputTreeAllSamplings->GetMaximum(branch_name_O1)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_O1));
+					O2Min=outputTreeAllSamplings->GetMinimum(branch_name_O2)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_O2));
+					O2Max=outputTreeAllSamplings->GetMaximum(branch_name_O2)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_O2));
 					if(isSstate){
 						sprintf(hist_var_name_O1,"O_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
 						sprintf(hist_var_name_O2,"O_{%s}^{%s}", ColorChannelNameTexS[k], StateNameTex[i]);
@@ -591,6 +592,13 @@ int main(int argc, char** argv) {
 					}
 					sprintf(projectchar,"%s:%s>>%s",branch_name_O2, branch_name_O1, h_2DLDME_name);
 					sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+
+					O2Min=-4.e-4;
+					O2Max=12.e-4;
+					O1Min=0;
+					O1Max=0.04;
+
+
 					h_2DLDME[j][k] 	= new TH2D( h_2DLDME_name, h_2DLDME_name, nBins2D, O1Min, O1Max, nBins2D, O2Min, O2Max );
 					outputTreeAllSamplings->Draw(projectchar, selectchar);
 
@@ -612,7 +620,7 @@ int main(int argc, char** argv) {
 					  h_2DLDME_axis 	= new TH2D( Form("%s_axis",h_2DLDME_name), Form("%s_axis",h_2DLDME_name), nBins2D, O1Min, O1Max, nBins2D, O2Min, O2Max );
 
 					  char DrawContourStyle[200];
-					  sprintf(DrawContourStyle,"cont2,same");
+					  sprintf(DrawContourStyle,"cont4,same");
 					  int LineWidth=4;
 					  int LineStyle=2;
 
@@ -666,7 +674,7 @@ int main(int argc, char** argv) {
 
 			bool plot2DLDMEComb[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
 			TH2D* h_2DLDME[NRQCDvars::nColorChannels][NRQCDvars::nColorChannels];
-			int nBins2D=200;
+			int nBins2D=50;
 			double f1Min, f1Max, f2Min, f2Max;
 			char branch_name_f1[200];
 			char branch_name_f2[200];
@@ -694,10 +702,10 @@ int main(int argc, char** argv) {
 						sprintf(branch_name_f1,"state%d_f%d",i,j);
 						sprintf(branch_name_f2,"state%d_f%d",i,k);
 						//outputTreeAccSamplings->SetBranchAddress( branch_name,  &Opi_sampling[i][j] );
-						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f1);
-						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f1);
-						f2Min=outputTreeAllSamplings->GetMinimum(branch_name_f2)-expandMinMaxBy*outputTreeAllSamplings->GetMinimum(branch_name_f2);
-						f2Max=outputTreeAllSamplings->GetMaximum(branch_name_f2)+expandMinMaxBy*outputTreeAllSamplings->GetMaximum(branch_name_f2);
+						f1Min=outputTreeAllSamplings->GetMinimum(branch_name_f1)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_f1));
+						f1Max=outputTreeAllSamplings->GetMaximum(branch_name_f1)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_f1));
+						f2Min=outputTreeAllSamplings->GetMinimum(branch_name_f2)-expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMinimum(branch_name_f2));
+						f2Max=outputTreeAllSamplings->GetMaximum(branch_name_f2)+expandMinMaxBy*TMath::Abs(outputTreeAllSamplings->GetMaximum(branch_name_f2));
 						if(isSstate){
 							sprintf(hist_var_name_f1,"f_{%s}^{%s}", ColorChannelNameTexS[j], StateNameTex[i]);
 							sprintf(hist_var_name_f2,"f_{%s}^{%s}", ColorChannelNameTexS[k], StateNameTex[i]);
@@ -731,7 +739,7 @@ int main(int argc, char** argv) {
 						  h_2DLDME_axis 	= new TH2D( Form("%s_axis",h_2DLDME_name), Form("%s_axis",h_2DLDME_name), nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
 
 						  char DrawContourStyle[200];
-						  sprintf(DrawContourStyle,"cont2,same");
+						  sprintf(DrawContourStyle,"cont4,same");
 						  int LineWidth=4;
 						  int LineStyle=2;
 
@@ -751,6 +759,8 @@ int main(int argc, char** argv) {
 
 						  setContourHistogram ( h_2DLDME[j][k] );
 						  h_2DLDME[j][k]->SetLineColor( kGreen+2 );
+						  h_2DLDME[j][k]->SetFillColor( kGreen+2 );
+						  h_2DLDME[j][k]->SetFillStyle( 1001 );
 						  h_2DLDME[j][k]->SetLineWidth( LineWidth );
 						  h_2DLDME[j][k]->SetLineStyle( LineStyle  );
 						  h_2DLDME[j][k]->SetTitle(0);
@@ -887,12 +897,16 @@ void PlotPosterior(char xAxisTitle[200], char filename[200], TH1* histo, double 
 	plotCanvas->GetFrame()->SetBorderSize(0);
 	plotCanvas->SetRightMargin(0.05) ;
 
+	histo->Scale(1./histo->GetEntries());
 	histo->SetStats(kFALSE);
 	histo->SetLineColor(kBlack);
 	histo->SetYTitle("Posterior Probability");
 	histo->SetXTitle(xAxisTitle);
-	histo->GetYaxis()->SetTitleOffset(1.5);
-	histo->Draw();
+	histo->GetYaxis()->SetTitleOffset(1.85);
+
+	histo->SetFillColor(kGreen);
+	histo->SetFillStyle(1001);
+	histo->Draw("CF2");
 
 
 	int maxbin_PosteriorDist = histo->GetMaximumBin();
@@ -983,10 +997,12 @@ inline double contourHeight2D ( TH2D *h, double confidenceLevel ) {
 
 // function to set the 99% and 68% C.L. contours of a 2D histogram
 inline void setContourHistogram ( TH2D *h ) {
-  double cont0 = contourHeight2D( h, 0.997 );
-  double cont2 = contourHeight2D( h, 0.683 );
-  h->SetContour(2);
-  h->SetContourLevel(0,cont0);
-  h->SetContourLevel(1,cont2);
+	  double cont0 = contourHeight2D( h, 0.997 );
+	  double cont1 = contourHeight2D( h, 0.953 );
+	  double cont2 = contourHeight2D( h, 0.683 );
+	  h->SetContour(3);
+	  h->SetContourLevel(0,cont0);
+	  h->SetContourLevel(1,cont1);
+	  h->SetContourLevel(2,cont2);
 
 }

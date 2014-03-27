@@ -55,25 +55,15 @@ double func_pT_ratio_NLO(double* x, double* par);
 
 int main(int argc, char** argv) {
 
-	gStyle->SetPalette(1,0);
-	gStyle->SetPadBottomMargin(0.12);
-	gStyle->SetPadLeftMargin(0.13);
-	gStyle->SetPadRightMargin(0.15);
 
-	gStyle->SetTickLength(-0.02, "xyz");
-	gStyle->SetLabelOffset(0.02, "x");
-	gStyle->SetLabelOffset(0.02, "y");
-	gStyle->SetTitleOffset(1.3, "x");
-	gStyle->SetTitleOffset(1.4, "y");
-	gStyle->SetTitleFillColor(kWhite);
-
-	cout<<"start PlotPPDderivative"<<endl;
+	cout<<"start PlotPPD"<<endl;
 
   	Char_t *JobID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
 	int useOnlyState=999;
   	int 	MPValgo=-1;
   	double 	nSigma=-1;
+	bool 	PlotVSpToverM=false;
 
   	for( int i=0;i < argc; ++i ) {
   		cout<<"i arcgc "<<i<<endl;
@@ -86,6 +76,10 @@ int main(int argc, char** argv) {
 	    	char* useOnlyStatechar2 = strtok (useOnlyStatechar, "u");
 	    	useOnlyState = atoi(useOnlyStatechar2);
 	    	cout<<"useOnlyState = "<<useOnlyState<<endl;
+	    }
+	    if(std::string(argv[i]).find("PlotVSpToverM=true") != std::string::npos) {
+	    	PlotVSpToverM=true;
+	    	cout<<"PlotVSpToverM=true"<<endl;
 	    }
   	}
 
@@ -112,29 +106,35 @@ int main(int argc, char** argv) {
 
 
 
+	//allCharm
+	//const int nSeq=15;
+	//double pTmin[nSeq]={4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+	//Psi2S
+	//const int nSeq=13;
+	//double pTmin[nSeq]={4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18};
+	//Psi2S prel CMS data
+	//const int nSeq=21;
+	//double pTmin[nSeq]={4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25, 27, 30};
+	//Ups3S
+	const int nSeq=19;
+	double pTmin[nSeq]={10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 43};
 
-	const int nSeq=11;
+	int ScanState=10;
+
 	char JobIDs[200];
 	TTree*  outputTreeAllSamplings[nSeq];
 	double  chi2Prob[nSeq];
 	double  chi2ndf[nSeq];
-	double pTmin[nSeq]={3,4,5,6,7,8,9,10,11,12,13};
 	double errpTmin[nSeq];
 	double zero[nSeq];
 
 	for(int iSeq=0;iSeq<nSeq;iSeq++){
 
-		if(iSeq==0) sprintf(JobIDs,"November1_HPsequence_2_cs_pol_psi2S_wo3PJ");
-		if(iSeq==1) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin4_psi2S_wo3PJ");
-		if(iSeq==2) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin5_psi2S_wo3PJ");
-		if(iSeq==3) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin6_psi2S_wo3PJ");
-		if(iSeq==4) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin7_psi2S_wo3PJ");
-		if(iSeq==5) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin8_psi2S_wo3PJ");
-		if(iSeq==6) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin9_psi2S_wo3PJ");
-		if(iSeq==7) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin10_psi2S_wo3PJ");
-		if(iSeq==8) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin11_psi2S_wo3PJ");
-		if(iSeq==9) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin12_psi2S_wo3PJ");
-		if(iSeq==10) sprintf(JobIDs,"November1_HPsequence_3_cs_pol_pTmin13_psi2S_wo3PJ");
+		if(ScanState==3) sprintf(JobIDs,"ScanPsi2S_pTmin%1.0f_December5",pTmin[iSeq]);
+		if(ScanState==10) sprintf(JobIDs,"ScanUps3S_pTmin%1.0f_December5",pTmin[iSeq]);
+
+		//sprintf(JobIDs,"ScanPsi1S_pTmin%1.0f_December7",pTmin[iSeq]);
+		//if(iSeq<5) sprintf(JobIDs,"ScanPsi1S_pTmin%1.0f_December7_v2",pTmin[iSeq]);
 
 		sprintf(inname,"%s/JobID/%s/results.root",storagedir, JobIDs);
 		TFile *ResultsFile = new TFile(inname, "READ");
@@ -171,6 +171,8 @@ int main(int argc, char** argv) {
 
 	    errpTmin[iSeq]=0.25;
 	    zero[iSeq]=0.;
+		if(PlotVSpToverM) pTmin[iSeq]/=NRQCDvars::mass[ScanState];
+
 
 	}
 
@@ -185,39 +187,73 @@ int main(int argc, char** argv) {
 	double minY;
 	double maxY;
 	bool plotLogy;
+	bool plotDashedLine;
+	double plotDashedLineAt;
 	bool plotRatio;
 	int LegendPos;
 	bool plotChiStyle;
 	int ColorSetting;
 	int k;
 
-	int nPlots=6;
+	int nPlots=7;
 
 
 	for(int iPlot=0;iPlot<nPlots;iPlot++){
 
+		gStyle->SetPalette(1,0);
+		gStyle->SetPadBottomMargin(0.12);
+		gStyle->SetPadLeftMargin(0.13);
+		gStyle->SetPadRightMargin(0.15);
+		gStyle->SetPadTopMargin(0.1);
+
+		gStyle->SetTickLength(-0.02, "xyz");
+		gStyle->SetLabelOffset(0.02, "x");
+		gStyle->SetLabelOffset(0.02, "y");
+		gStyle->SetTitleOffset(1.3, "x");
+		gStyle->SetTitleOffset(1.4, "y");
+		gStyle->SetTitleFillColor(kWhite);
+
+
 
 		if(iPlot==0){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=1;
 			minY=-0.25;
 			maxY=1.25;
+			if(ScanState==1 || ScanState==2){
+				minY=-0.5;
+				maxY=1.5;
+			}
+			if(ScanState==0){
+				minY=-0.5;
+				maxY=1.5;
+			}
 			plotLogy=false;
 			plotChiStyle=false;
 			plotRatio=false;
 			sprintf(PlotID,"FRAC_S0");
 			sprintf(hist_var_name,"Relative fraction of %s contribution", ColorChannelNameTexS[j]);
 			sprintf(branch_name_plot,"state%d_f%d",i,j);
-			LegendPos=1;
+			LegendPos=3;
 			ColorSetting=0;
+			plotDashedLineAt=0.;
+			plotDashedLine=false;
 		}
 		if(iPlot==1){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=2;
 			minY=-0.25;
 			maxY=1.25;
+			if(ScanState==1 || ScanState==2){
+				minY=-0.5;
+				maxY=1.5;
+			}
+			if(ScanState==0){
+				minY=-0.5;
+				maxY=1.5;
+			}
 			plotLogy=false;
 			plotChiStyle=false;
 			plotRatio=false;
@@ -226,13 +262,25 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_plot,"state%d_f%d",i,j);
 			LegendPos=2;
 			ColorSetting=1;
+			plotDashedLineAt=0.;
+			plotDashedLine=false;
 		}
 		if(iPlot==2){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=1;
-			minY=-0.02;
-			maxY=0.1;
+			if(ScanState==3 || ScanState==10){
+				minY=-0.01;
+				maxY=0.05;
+			}
+			if(ScanState==0){
+				minY=-0.01;
+				maxY=0.11;
+			}
+			if(ScanState==1 || ScanState==2){
+				minY=-0.02;
+				maxY=0.25;
+			}
 			plotLogy=false;
 			plotChiStyle=false;
 			plotRatio=false;
@@ -241,13 +289,19 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_plot,"state%d_Op%d",i,j);
 			LegendPos=1;
 			ColorSetting=0;
+			plotDashedLineAt=0.;
+			plotDashedLine=false;
 		}
 		if(iPlot==3){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=2;
-			minY=-0.5;
-			maxY=3.5;
+			minY=-0.6;
+			maxY=3.;
+			if(ScanState==1 || ScanState==2){
+				minY=-1.5;
+				maxY=7.;
+			}
 			plotLogy=false;
 			plotChiStyle=false;
 			plotRatio=false;
@@ -256,13 +310,15 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_plot,"state%d_Op%d",i,j);
 			LegendPos=2;
 			ColorSetting=1;
+			plotDashedLineAt=0.;
+			plotDashedLine=false;
 		}
 		if(iPlot==4){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=2;
-			minY=1e-37;
-			maxY=1.;
+			minY=1e-26;
+			maxY=5.;
 			plotLogy=true;
 			plotChiStyle=true;
 			plotRatio=false;
@@ -271,13 +327,19 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_plot,"DUMMY");
 			LegendPos=2;
 			ColorSetting=1;
+			plotDashedLineAt=1.;
+			plotDashedLine=true;
 		}
 		if(iPlot==5){
 			//continue;
-			i=3;
+			i=ScanState;
 			j=2;
 			minY=-0.0009999;
-			maxY=14.;
+			maxY=8.;
+			if(ScanState==1 || ScanState==2 || ScanState==0){
+				minY=-0.0009999;
+				maxY=14.;
+			}
 			plotLogy=false;
 			plotChiStyle=true;
 			plotRatio=false;
@@ -286,22 +348,28 @@ int main(int argc, char** argv) {
 			sprintf(branch_name_plot,"DUMMY");
 			LegendPos=2;
 			ColorSetting=1;
+			plotDashedLineAt=1.;
+			plotDashedLine=true;
 		}
-		//if(iPlot==2){
-		//	continue;
-		//	i=3;
-		//	j=1;
-		//	minY=-0.02;
-		//	maxY=0.1;
-		//	plotLogy=false;
-		//	plotChiStyle=false;
-		//	plotRatio=false;
-		//	sprintf(PlotID,"LDME_S0");
-		//	sprintf(hist_var_name,"O(%s) GeV^{3}", ColorChannelNameTexS[j]);
-		//	sprintf(branch_name_plot,"state%d_Op%d",i,j);
-		//	LegendPos=1;
-		//	ColorSetting=0;
-		//}
+		if(iPlot==6){
+			continue;
+			i=ScanState;
+			j=2;
+			k=1;
+			minY=5e-4;
+			maxY=1.;
+			plotLogy=true;
+			plotChiStyle=false;
+			plotRatio=true;
+			sprintf(PlotID,"LDME_S1_ov_LDME_S0");
+			sprintf(hist_var_name,"%s / %s long distance matrix elements", ColorChannelNameTexS[j], ColorChannelNameTexS[k]);
+			sprintf(branch_name_plot,"state%d_Op%d",i,j);
+			sprintf(branch_name_plotD,"state%d_Op%d",i,k);
+			LegendPos=2;
+			ColorSetting=2;
+			plotDashedLineAt=1.;
+			plotDashedLine=false;
+		}
 
 		cout<<"branch name to plot: "<<branch_name_plot<<endl;
 
@@ -314,9 +382,12 @@ int main(int argc, char** argv) {
 		double buff_errlow_3sig[nSeq];
 		double buff_errhigh_3sig[nSeq];
 
+
 		for(int iSeq=0;iSeq<nSeq;iSeq++){
 			if(plotChiStyle) continue;
 			cout<<"iSeq: "<<iSeq<<endl;
+
+
 
 			double plotObservable;
 			double plotObservableD;
@@ -384,8 +455,8 @@ int main(int argc, char** argv) {
 
 			double expandMinMaxBy=0.01;
 
-			h_plotObservable_min=plotTree->GetMinimum("plotObservableOut")-expandMinMaxBy*plotTree->GetMinimum("plotObservableOut");
-			h_plotObservable_max=plotTree->GetMaximum("plotObservableOut")+expandMinMaxBy*plotTree->GetMaximum("plotObservableOut");
+			h_plotObservable_min=plotTree->GetMinimum("plotObservableOut")-expandMinMaxBy*TMath::Abs(plotTree->GetMinimum("plotObservableOut"));
+			h_plotObservable_max=plotTree->GetMaximum("plotObservableOut")+expandMinMaxBy*TMath::Abs(plotTree->GetMaximum("plotObservableOut"));
 
 			sprintf(hist_name,"h_plotObservable");
 			h_plotObservable = new TH1D( hist_name, hist_name, nBins_h,h_plotObservable_min, h_plotObservable_max );
@@ -433,7 +504,8 @@ int main(int argc, char** argv) {
 		if(plotChiStyle&&iPlot==5) g_plotObservable_vs_pTMin = new TGraphAsymmErrors(nSeq,pTmin,chi2ndf, zero, zero, zero, zero);
 
 		char graph_var_name[200];
-		sprintf(graph_var_name,"p^{min}_{T} [GeV]");
+		sprintf(graph_var_name,"#it{p}^{min}_{T} [GeV]");
+		if(PlotVSpToverM) sprintf(graph_var_name,"#it{p}^{min}_{T} / M");
 		g_plotObservable_vs_pTMin -> GetXaxis() -> SetTitle(graph_var_name);
 		g_plotObservable_vs_pTMin -> GetYaxis() -> SetTitle(hist_var_name);
 
@@ -485,8 +557,8 @@ int main(int argc, char** argv) {
 			TLegend* legend;
 			if(LegendPos==1) legend = new TLegend(0.16,0.7510989,0.31,0.925008242);
 			if(LegendPos==2) legend = new TLegend(0.8,0.7510989,0.95,0.925008242);
-			if(LegendPos==3) legend = new TLegend(0.8,0.1310989,0.95,0.45008242);
-			if(LegendPos==4) legend = new TLegend(0.16,0.1310989,0.31,0.25008242);
+			if(LegendPos==3) legend = new TLegend(0.8,0.1310989,0.95,0.30008242);
+			if(LegendPos==4) legend = new TLegend(0.16,0.1310989,0.31,0.30008242);
 			legend->SetFillColor(0);
 			legend->SetTextSize(0.025);
 			legend->SetBorderSize(0);
@@ -496,14 +568,14 @@ int main(int argc, char** argv) {
 			char legendentry[200];
 
 
-			const int nColorSettings=2;
+			const int nColorSettings=3;
 
-			int FillStyle_sig[nColorSettings]={1001,1001};
-			int LineStyle_Central[nColorSettings]={1,1};
-			int LineColor_Central[nColorSettings]={416+2,632+2};
-			int LineColor_1Sig[nColorSettings]={416-3,632+0};
-			int LineColor_2Sig[nColorSettings]={416-7,632-7};
-			int LineColor_3Sig[nColorSettings]={416-10,632-10};
+			int FillStyle_sig[nColorSettings]={1001,1001, 1001};
+			int LineStyle_Central[nColorSettings]={1,1, 1};
+			int LineColor_Central[nColorSettings]={416+2,632+2, 600};
+			int LineColor_1Sig[nColorSettings]={416-3,632+0, 600-7};
+			int LineColor_2Sig[nColorSettings]={416-7,632-7, 600-9};
+			int LineColor_3Sig[nColorSettings]={416-10,632-10, 600-10};
 			double linewidthCC=2.;
 
 
@@ -526,6 +598,17 @@ int main(int argc, char** argv) {
 			g_plotObservable_vs_pTMin_3sig->SetLineColor(LineColor_3Sig[ColorSetting]);
 
 
+			double expandBy=0.1;
+			double pTminAxis=pTmin[0]-(pTmin[nSeq-1]-pTmin[0])*expandBy;
+			double pTmaxAxis=pTmin[nSeq-1]+(pTmin[nSeq-1]-pTmin[0])*expandBy;
+
+			if(PlotVSpToverM){
+				pTminAxis=0.5001;
+				pTmaxAxis=5.4999;
+			}
+
+			g_plotObservable_vs_pTMin->GetXaxis()->SetLimits(pTminAxis, pTmaxAxis);
+
 			//g_plotObservable_vs_pTMin_3sig->Draw("a");
 			if(!plotChiStyle){
 				g_plotObservable_vs_pTMin->Draw("al");
@@ -537,6 +620,14 @@ int main(int argc, char** argv) {
 
 			if(plotChiStyle){
 				g_plotObservable_vs_pTMin->Draw("alp");
+			}
+
+			if(plotDashedLine){
+				TLine* Dashedline = new TLine( pTminAxis, plotDashedLineAt, pTmaxAxis, plotDashedLineAt);
+				Dashedline->SetLineWidth( 1 );
+				Dashedline->SetLineStyle( 2 );
+				Dashedline->SetLineColor( kBlack );
+				Dashedline->Draw( "same" );
 			}
 
 			sprintf(legendentry,"68.3%% CL");
@@ -551,11 +642,6 @@ int main(int argc, char** argv) {
 			char rapchar[200];
 
 
-			//TLine* extreme0 = new TLine( xVarmin, 0, xVarmax, 0);
-			//extreme0->SetLineWidth( 1 );
-			//extreme0->SetLineStyle( 2 );
-			//extreme0->SetLineColor( kBlack );
-			//extreme0->Draw( "same" );
 
 			if(!plotChiStyle) legend->Draw("same");
 

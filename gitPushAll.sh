@@ -1,4 +1,5 @@
-git add runNRQCDglobalfit.sh
+git add *.sh
+git add *.txt
 git add interface/*
 git add src/*
 git add gitTest
@@ -10,7 +11,6 @@ git add BaranovCode/*.f
 git add BaranovCode/*.sh
 git add BaranovCode/*.cmd
 git add BaranovCode/*.dat
-git add gitPushAll.sh
 git add OriginalModelID/*
       
 git commit -m 'comment'

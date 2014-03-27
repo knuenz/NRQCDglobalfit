@@ -106,19 +106,35 @@ dvector NRQCDglobalfitObject::getDirectProduction(int nState, dmatrix  &Op, dmat
 
 	for(int i=0; i<nOp ; i++){
 		double sigma_Central=ShortDistanceCoef_[i];
-		//cout<<"sigma_Central "<<sigma_Central<<endl;
-		//cout<<"ShortDistanceCoef_globalSystPos[0][0] "<<ShortDistanceCoef_globalSystPos[0][0]<<endl;
-		//cout<<"ShortDistanceCoef_globalSystNeg[0][0] "<<ShortDistanceCoef_globalSystNeg[0][0]<<endl;
 		ShortDistanceCoef_corrected[i]=sigma_Central;
 		for(int j=0; j<nModelSystematicScales_ ; j++){
-			double sigma_Pos=ShortDistanceCoef_globalSystPos[i][j];
+			double sigma_Pos=ShortDistanceCoef_globalSystPos[i][j]; //if(j==0) sigma_Pos=sigma_Central+(sigma_Pos-sigma_Central)*10;
 			double sigma_Neg=ShortDistanceCoef_globalSystNeg[i][j];
 			double RandomUS=Np_US[1][j];
 			double GlobalSystCorrectionFactor=1+(sigma_Pos-sigma_Neg)/(2.*sigma_Central)*RandomUS+((sigma_Pos+sigma_Neg)/(2.*sigma_Central)-1)*RandomUS*RandomUS;
-			//cout<<"RandomUS "<<RandomUS<<endl;
-			//cout<<"GlobalSystCorrectionFactor "<<GlobalSystCorrectionFactor<<endl;
+
+			//old bugged version
+			//if(RandomUS>0) GlobalSystCorrectionFactor=sigma_Pos/sigma_Central*RandomUS;
+			//if(RandomUS<0) GlobalSystCorrectionFactor=sigma_Neg/sigma_Central*(-1.*RandomUS);
+
+			//new debugged version
+			if(RandomUS>0) GlobalSystCorrectionFactor=1+(sigma_Pos/sigma_Central-1)*RandomUS;
+			if(RandomUS<0) GlobalSystCorrectionFactor=1+(sigma_Neg/sigma_Central-1)*(-1.*RandomUS);
+
+
 			if(i==j) ShortDistanceCoef_corrected[i]*=GlobalSystCorrectionFactor;
-		}
+
+			//if(i==j){
+			//	cout<<"CC"<<j<<endl;
+			//	cout<<"sigma_Central "<<sigma_Central<<endl;
+			//	cout<<"sigma_Pos "<<ShortDistanceCoef_globalSystPos[i][j]<<endl;
+			//	cout<<"sigma_Neg "<<ShortDistanceCoef_globalSystNeg[i][j]<<endl;
+			//	cout<<"RandomUS "<<RandomUS<<endl;
+			//	cout<<"GlobalSystCorrectionFactor "<<GlobalSystCorrectionFactor<<endl;
+			//	cout<<"sigma_Corr "<<ShortDistanceCoef_corrected[i]<<endl;
+			//	cout<<" "<<endl;
+			//}
+}
 		//cout<<"ShortDistanceCoef_corrected["<<i<<"] "<<ShortDistanceCoef_corrected[i]<<endl;
 	}
 
@@ -494,6 +510,14 @@ double NRQCDglobalfitObject::getCorrPromptCrossSect(dvector &PredPromptCrossSect
 	CorrPromptCrossSect/=ErrGlobalScale;
 
 #ifdef mydebug
+	cout<<"getMeasurementID(): "<<getMeasurementID()<<endl;
+	cout<<"getState(): "<<getState()<<endl;
+	cout<<"getpTMin(): "<<getpTMin()<<endl;
+	cout<<"getyMin(): "<<getyMin()<<endl;
+	cout<<"getErrGlobal(): "<<getErrGlobal()<<endl;
+	cout<<"getCentralValue(): "<<getCentralValue()<<endl;
+	cout<<"getExperiment(): "<<getExperiment()<<endl;
+	cout<<"gNp_US[0][getExperiment()]: "<<Np_US[0][getExperiment()]<<endl;
 	cout<<"Luminosity correction factor: "<<ErrGlobalScale<<endl;
 	cout<<"Luminosity corrected PromptCrossSect: "<<CorrPromptCrossSect<<endl;
 #endif

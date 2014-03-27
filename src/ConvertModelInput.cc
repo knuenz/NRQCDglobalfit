@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 	double model_costhMin, model_costhMax;
 	double model_phiMin, model_phiMax;
 
-	model_pTMin=8;
+	model_pTMin=2;
 	model_pTMax=100;
 	model_rapMin=-5;
 	model_rapMax=5;
@@ -402,7 +402,7 @@ int main(int argc, char** argv) {
 							  model_phi_daughter=model_phi_mother;
 							  weight_daughter=weight_mother;
 
-							  //if(i_event==1&&iColorChannel==0)cout<<"weight_daughter "<<weight_daughter<<endl;
+							  //if(i_event==1&&iColorChannel==0) cout<<"weight_daughter "<<weight_daughter<<endl;
 
 							  nTupleModel_Transformed[iMother][iDaughter][iColorChannel][iCascade]->Fill();
 

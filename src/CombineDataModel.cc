@@ -40,6 +40,7 @@ using namespace NRQCDvars;
 vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> DecayChain);
 vector<double> addPolarizations(vector<vector<double> > lamMatrix, vector<double> lamVecContributions);
 vector<double> GeneralPolarizationTransformation(vector<double> lamVecOriginal, double t1, double t2, double t3);
+Double_t paramMassRapParabola(Double_t *x, Double_t *par);
 
 int main(int argc, char** argv) {
 
@@ -105,7 +106,26 @@ int main(int argc, char** argv) {
 	TFile* ModelIngredientsFile = new TFile(inname, "READ");
 
 
+	double pTminModel=2.85;
+	double pTmaxModel=70.;
+	double yminModel=-4.51;
+	double ymaxModel=4.51;
+	double ModelMass=3;
 
+	double MassRatioScale[NRQCDvars::nStates];
+	double pTminModel_scaled[NRQCDvars::nStates];
+	double pTmaxModel_scaled[NRQCDvars::nStates];
+
+	for(int iScaleState=0; iScaleState<NRQCDvars::nStates; iScaleState++){
+		MassRatioScale[iScaleState]=NRQCDvars::mass[iScaleState]/ModelMass;
+		pTminModel_scaled[iScaleState]=pTminModel*MassRatioScale[iScaleState];
+		pTmaxModel_scaled[iScaleState]=pTmaxModel*MassRatioScale[iScaleState];
+		cout<<"State "<<iScaleState<<":"<<endl;
+		cout<<"MassRatioScale = "<<MassRatioScale[iScaleState]<<endl;
+		cout<<"pTminModel_scaled = "<<pTminModel_scaled[iScaleState]<<endl;
+		cout<<"pTmaxModel_scaled = "<<pTmaxModel_scaled[iScaleState]<<endl;
+
+	}
 
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
@@ -113,8 +133,9 @@ int main(int argc, char** argv) {
 //				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 //				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
-				    	//if(iState!=3 || iMeasurementID!=0 || iExperiment!=4 /*|| iRap!=0 || iP!=0*/) continue;
+				    	//if(iState!=10 || iMeasurementID!=0 || iExperiment!=1 /*|| iRap!=0 || iP!=0*/) continue;
 				    	cout<<"calculate and set model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]/*<<", iRap="<<iRap<<", iP="<<iP*/<<endl;
+				    	//if(iState!=1 && iState!=2) continue;
 
 
 				    	NRQCDglobalfitObject *DataObject[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -139,6 +160,21 @@ int main(int argc, char** argv) {
 									DataObject[iRap][iP] = new NRQCDglobalfitObject();
 									in >> *DataObject[iRap][iP];
 									in.close();
+
+									double yminModel=-4.51;
+									double ymaxModel=4.51;
+									double ModelMass=3;
+
+
+									if(
+											(DataObject[iRap][iP]->getpTMin()<pTminModel_scaled[DataObject[iRap][iP]->getState()])
+											|| (DataObject[iRap][iP]->getpTMax()>pTmaxModel_scaled[DataObject[iRap][iP]->getState()])
+											|| (DataObject[iRap][iP]->getisAbsRap() && (-1)*DataObject[iRap][iP]->getyMin()<yminModel)
+											|| (DataObject[iRap][iP]->getyMax()>ymaxModel)
+									){
+										cout<<"data phase space exceeds existing model! continue;"<<endl;
+										doesDataExist[iRap][iP]=false; continue;
+									}
 
 									//Clone DataObject -> ModelObject and set Data members correctly
 									ModelObject[iRap][iP] = new NRQCDglobalfitObject();
@@ -228,6 +264,7 @@ int main(int argc, char** argv) {
 											//POL:
 											const double l_min = -1, l_max =  1, l_step_1D = 0.02;
 
+
 											TH1D* h_costh2[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 											TH1D* h_cos2ph[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 											TH1D* h_sin2thcosph[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -262,10 +299,7 @@ int main(int argc, char** argv) {
 											int n_events = int( nTupleModel_Transformed->GetEntries() );
 											cout<<n_events<<" events: Looping through nTuple of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
-											TH1F* h_weight_pT3 = new TH1F("h_weight_pT3","h_weight_pT3",100,-4000,4000);
-											TH1F* h_weight_pT4 = new TH1F("h_weight_pT4","h_weight_pT4",100,-4000,4000);
-											TH1F* h_weight_pT5 = new TH1F("h_weight_pT5","h_weight_pT5",100,-4000,4000);
-											TH1F* h_weight_pT6 = new TH1F("h_weight_pT6","h_weight_pT6",100,-4000,4000);
+											//TH1F* h_SDC_CS_pT0 = new TH1F("h_SDC_CS_pT0","h_SDC_CS_pT0",100,0,1);
 
 											int i_eventPerBin[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
 											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
@@ -303,20 +337,20 @@ int main(int argc, char** argv) {
 
 												if(pT_index<0 || rap_index<0) continue;
 
-												if(rap_index==0){
-													if(pT_index==3){
-														h_weight_pT3->Fill(weight_mother);
-													}
-													if(pT_index==4){
-														h_weight_pT4->Fill(weight_mother);
-													}
-													if(pT_index==5){
-														h_weight_pT5->Fill(weight_mother);
-													}
-													if(pT_index==6){
-														h_weight_pT6->Fill(weight_mother);
-													}
-												}
+												//if(rap_index==0){
+												//	if(pT_index==3){
+												//		h_weight_pT3->Fill(weight_mother);
+												//	}
+												//	if(pT_index==4){
+												//		h_weight_pT4->Fill(weight_mother);
+												//	}
+												//	if(pT_index==5){
+												//		h_weight_pT5->Fill(weight_mother);
+												//	}
+												//	if(pT_index==6){
+												//		h_weight_pT6->Fill(weight_mother);
+												//	}
+												//}
 
 												i_eventPerBin[rap_index][pT_index]++;
 												Buffer_ShortDistanceCoef[rap_index][pT_index]+=weight_mother;
@@ -326,12 +360,16 @@ int main(int argc, char** argv) {
 
 											}
 
-									    	if(iExperiment==0&&iMeasurementID==0&&iColorChannel==3){
-												h_weight_pT3->SaveAs("tmp/h_weight_pT3.root");
-												h_weight_pT4->SaveAs("tmp/h_weight_pT4.root");
-												h_weight_pT5->SaveAs("tmp/h_weight_pT5.root");
-												h_weight_pT6->SaveAs("tmp/h_weight_pT6.root");
-									    	}
+									    	//if(iExperiment==0&&iMeasurementID==0&&iColorChannel==0){
+									    	//	cout<<
+											//	h_weight_pT0->SaveAs("tmp/h_weight_pT0.root");
+											//	h_weight_pT1->SaveAs("tmp/h_weight_pT1.root");
+											//	h_weight_pT2->SaveAs("tmp/h_weight_pT2.root");
+											//	h_weight_pT3->SaveAs("tmp/h_weight_pT3.root");
+											//	h_weight_pT4->SaveAs("tmp/h_weight_pT4.root");
+											//	h_weight_pT5->SaveAs("tmp/h_weight_pT5.root");
+											//	h_weight_pT6->SaveAs("tmp/h_weight_pT6.root");
+									    	//}
 											//cout<<"Calculating SDC and vecLam of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
 											for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
@@ -340,18 +378,31 @@ int main(int argc, char** argv) {
 											    	if(i_eventPerBin[iRap][iP]<1) continue;
 
 
-											    	if(iExperiment==0&&iMeasurementID==0&&iColorChannel==3){
-											    		cout<<"Buffer_ShortDistanceCoef["<<iRap<<"]["<<iP<<"]"<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
-											    	}
+											    	//if(iRap==0 && DataObject[iRap][iP]->getState()==3 && iExperiment==1&&iMeasurementID==0&&iColorChannel==0){
+											    	//	cout<<"CMS CS ShortDistanceCoef["<<iRap<<"]["<<iP<<"] = "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+											    	//}
 
 											    	Buffer_ShortDistanceCoef[iRap][iP]*=nTupleModel_Transformed->GetWeight();
 
+											    	//if(iRap==0 && DataObject[iRap][iP]->getState()==3 && iExperiment==1&&iMeasurementID==0&&iColorChannel==0){
+											    	//	cout<<"global weight = "<<nTupleModel_Transformed->GetWeight()<<endl;
+											    	//	cout<<"After global weight: CMS CS ShortDistanceCoef["<<iRap<<"]["<<iP<<"] = "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+											    	//}
 
 
 											    	double deltaPt=DataObject[iRap][iP]->getpTMax()-DataObject[iRap][iP]->getpTMin();
 											    	double deltay=DataObject[iRap][iP]->getyMax()-DataObject[iRap][iP]->getyMin();
 											    	if(DataObject[iRap][iP]->getisAbsRap()) deltay*=2;
 											    	Buffer_ShortDistanceCoef[iRap][iP]/=deltaPt*deltay;
+
+
+											    	//if(iRap==0 && DataObject[iRap][iP]->getState()==3 && iExperiment==1&&iMeasurementID==0&&iColorChannel==0){
+											    	//	cout<<"pTmin = "<<DataObject[iRap][iP]->getpTMin()<<endl;
+											    	//	cout<<"pTmax = "<<DataObject[iRap][iP]->getpTMax()<<endl;
+											    	//	cout<<"ymin = "<<DataObject[iRap][iP]->getyMin()<<endl;
+											    	//	cout<<"ymax = "<<DataObject[iRap][iP]->getyMax()<<endl;
+											    	//	cout<<"After /=deltaPt*deltay: CS ShortDistanceCoef["<<iRap<<"]["<<iP<<"] = "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+											    	//}
 
 
 											vector<double> lamVecRaw(3,0);
@@ -411,12 +462,16 @@ int main(int argc, char** argv) {
 									for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 									    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 									    	if(!doesDataExist[iRap][iP]) continue;
-									    	cout<<"iRap "<<iRap<<endl;
-									    	cout<<"iP "<<iP<<endl;
+									    	//cout<<"iRap "<<iRap<<endl;
+									    	//cout<<"iP "<<iP<<endl;
 
 									    	//cout<<"here?"<<endl;
 
-									vector<double> lamVecSumCascades;
+								    double Lamth_scalePtransform=1.;
+								    double Lamph_scalePtransform=1.;
+								    double Lamtp_scalePtransform=1.;
+
+								    vector<double> lamVecSumCascades;
 									if(ContributionExists){
 
 										vector<double> BuffVec=lamVecTransformedCascadesContributions[iRap][iP];
@@ -428,6 +483,48 @@ int main(int argc, char** argv) {
 										if(ContributionIntegral==0) {doesDataExist[iRap][iP]=false; continue;}
 										else lamVecSumCascades = addPolarizations(lamVecTransformedCascades[iRap][iP], lamVecTransformedCascadesContributions[iRap][iP]);
 										//// These are the only values that need to be set to fully define the model:
+
+
+
+										if(!isSstate){
+
+											Lamth_scalePtransform=lamVecSumCascades[0];
+											//cout<<"Lamth_before_Ptransformation "<<lamVecSumCascades[0]<<endl;
+
+											//Transform polarization if mother state is a chi, as the polarization of BK is given for S-waves -> ll
+											if(NRQCDvars::StateQuantumID[iMother]==NRQCDvars::quID_P1){
+												//chi_1:  vec{lambda}(psi->chi_1 gamma) = - vec{lambda}(psi->l+l-) / [2 + lambda_theta(psi->l+l-)]
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, -1., 2., 1.); //Transformation 1a)
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, -1., 2., 1.); //Transformation 3a)
+
+											}
+											else if(NRQCDvars::StateQuantumID[iMother]==NRQCDvars::quID_P2){
+												//chi_2:  vec{lambda}(psi->chi_2 gamma) = vec{lambda}(psi->l+l-) / [10 + 3 lambda_theta(psi->l+l-)]
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, 1., 10., 3.); //Transformation 1b)
+												lamVecSumCascades = GeneralPolarizationTransformation(lamVecSumCascades, 21., 6., -5.); //Transformation 3b)
+											}
+
+											if(Lamth_scalePtransform>1e-3) Lamth_scalePtransform=lamVecSumCascades[0]/Lamth_scalePtransform;
+											else Lamth_scalePtransform=1.;
+											//cout<<"Lamth_after_Ptransformation "<<lamVecSumCascades[0]<<endl;
+											//cout<<"Lamth_scalePtransform "<<Lamth_scalePtransform<<endl;
+
+										}
+
+										if(iColorChannel==1){
+											lamVecSumCascades[0]=0.;
+											lamVecSumCascades[1]=0.;
+											lamVecSumCascades[2]=0.;
+										}
+
+										//CS P-wave: SDC=1, pol=0
+										if(!isSstate && iColorChannel==0){
+											Buffer_ShortDistanceCoef[iRap][iP]=1.;
+											lamVecSumCascades[0]=0;
+											lamVecSumCascades[1]=0;
+											lamVecSumCascades[2]=0;
+										}
+
 										setModel_ShortDistanceCoef[iRap][iP].push_back(Buffer_ShortDistanceCoef[iRap][iP]);
 										setModel_OctetCompLamth[iRap][iP].push_back(lamVecSumCascades[0]);
 										setModel_OctetCompLamph[iRap][iP].push_back(lamVecSumCascades[1]);
@@ -540,6 +637,10 @@ int main(int argc, char** argv) {
 												double buffx, buffy;
 												double Data_pTMin=DataObject[iRap][iP]->getpTMin();
 												double Data_pTMax=DataObject[iRap][iP]->getpTMax();
+												double Data_yMin=DataObject[iRap][iP]->getyMin();
+												double Data_yMax=DataObject[iRap][iP]->getyMax();
+												double Data_yMean=(Data_yMin+Data_yMax)/2.;
+
 												int nTGbins;
 
 												nTGbins=0;
@@ -643,6 +744,89 @@ int main(int argc, char** argv) {
 												if(nTGbins<1) setModel_Lamtp_globalSystNeg_val=0;
 
 
+												//Evaluate normalization-correction here, and correct setModel_SDC_globalSystPos_val and setModel_SDC_globalSystNeg_val
+												//Correction: /1.2 (IntegratedRap) and *RapNorm (from function)
+
+
+												double a_fit;
+												double b_fit;
+												double c_fit;
+
+												if(iColorChannel==0){
+													a_fit = 1.00859;
+													b_fit = -0.0146688;
+													c_fit = -0.0465102;
+												}
+												if(iColorChannel==1){
+													a_fit = 1.00499;
+													b_fit = -0.00297872;
+													c_fit = -0.0454618;
+												}
+												if(iColorChannel==2){
+													a_fit = 1.00219;
+													b_fit = 0.00674901;
+													c_fit = -0.0468319;
+												}
+												if(iColorChannel==3){
+													a_fit = 0.9933;
+													b_fit = 0.0365688;
+													c_fit = -0.0474462;
+												}
+
+												TF1* fParabola;
+												char name[200];
+												sprintf(name, "fParabola");
+												fParabola = new TF1(name, paramMassRapParabola, 0, 5, 3);
+
+												fParabola->SetParameter(0,a_fit);
+												fParabola->SetParameter(1,b_fit);
+												fParabola->SetParameter(2,c_fit);
+
+												double RapScale=1./1.2;
+												RapScale*=fParabola->Eval(Data_yMean);
+
+												//Correct THuncert of SDCs by rapcorr factor (1.2 as calculated integrated in |y|<0.6 BK bin) * normalization factor (Rap-dependence: TH uncertainty root file integrated in rap, for rap0 (y=0.3), fit in ScakeBK, rap dependence hard-coded in CDM)
+												setModel_SDC_globalSystPos_val*=RapScale;
+												setModel_SDC_globalSystNeg_val*=RapScale;
+
+
+												//Correct TH uncertainty of polarization parameters, in case of P-waves, as the polarization of the BK S->ll has been transformed
+												if(!isSstate){
+
+
+													setModel_Lamth_globalSystPos_val*=Lamth_scalePtransform;
+													setModel_Lamth_globalSystNeg_val*=Lamth_scalePtransform;
+													setModel_Lamph_globalSystPos_val*=Lamph_scalePtransform;
+													setModel_Lamph_globalSystNeg_val*=Lamph_scalePtransform;
+													setModel_Lamtp_globalSystPos_val*=Lamtp_scalePtransform;
+													setModel_Lamtp_globalSystNeg_val*=Lamtp_scalePtransform;
+
+												}
+
+
+
+												//if P-state, we neglect the CS contribution
+												if(!isSstate && iColorChannel==0){
+													setModel_SDC_globalSystPos_val=0.;
+													setModel_SDC_globalSystNeg_val=0.;
+													setModel_Lamth_globalSystPos_val=0.;
+													setModel_Lamth_globalSystNeg_val=0.;
+													setModel_Lamph_globalSystPos_val=0.;
+													setModel_Lamph_globalSystNeg_val=0.;
+													setModel_Lamtp_globalSystPos_val=0.;
+													setModel_Lamtp_globalSystNeg_val=0.;
+												}
+
+												//Define 1S0 CO polarization = 0, to avoid wiggles in plots (we know it is exactly 0)
+												if(iColorChannel==1){
+													setModel_Lamth_globalSystPos_val=0.;
+													setModel_Lamth_globalSystNeg_val=0.;
+													setModel_Lamph_globalSystPos_val=0.;
+													setModel_Lamph_globalSystNeg_val=0.;
+													setModel_Lamtp_globalSystPos_val=0.;
+													setModel_Lamtp_globalSystNeg_val=0.;
+												}
+
 												//Here the setModel_-_globalSyst-_val's are converted from differences into lower and upper 'absolute' values around the 'best' model
 												setModel_SDC_globalSystPos_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystPos_val;
 												setModel_SDC_globalSystNeg_val=Buffer_ShortDistanceCoef[iRap][iP]+setModel_SDC_globalSystNeg_val;
@@ -652,6 +836,7 @@ int main(int argc, char** argv) {
 												setModel_Lamph_globalSystNeg_val=lamVecSumCascades[1]+setModel_Lamph_globalSystNeg_val;
 												setModel_Lamtp_globalSystPos_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystPos_val;
 												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystNeg_val;
+
 
 												//cout<<"Buffer_ShortDistanceCoef "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
 												//cout<<"setModel_SDC_globalSystPos_val "<<setModel_SDC_globalSystPos_val<<endl;
@@ -719,6 +904,10 @@ int main(int argc, char** argv) {
 								    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 								    	if(!doesDataExist[iRap][iP]) continue;
 
+								    	//if(iState==1 || iState==2){
+								    	//	cout<<"chi"<<iState<<" 3S1 polarization["<<iRap<<"]["<<iP<<"] = "<<setModel_OctetCompLamth[iRap][iP].at(2)<<endl;
+								    	//}
+
 								    	//cout<<"ModelObject->setModel(iMother, ..."<<endl;
 								ModelObject[iRap][iP]->setModel(iMother,
 										  setModel_ShortDistanceCoef[iRap][iP], setModel_OctetCompLamth[iRap][iP], setModel_OctetCompLamph[iRap][iP], setModel_OctetCompLamtp[iRap][iP],
@@ -741,6 +930,7 @@ int main(int argc, char** argv) {
 
 							//write updated NRQCDglobalfitObject containing data+model components to output file
 							sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+							cout<<"write "<<outname<<endl;
 							ofstream out;
 							out.open(outname);
 							out << *ModelObject[iRap][iP];
@@ -882,7 +1072,6 @@ vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> D
 	vector<double> lamVecStart (3,0);
 
 	//If first decay in altered decay chain is a S->P decay -> apply the transformation from the dilepton decay (given by Sergey) to the radiative decay
-	bool applyTransformationFromDileptonToRadiativeDecay=false;
 	if(NRQCDvars::StateQuantumID[AlteredDecayChain[0]]==NRQCDvars::quID_S && NRQCDvars::StateQuantumID[AlteredDecayChain[1]]==NRQCDvars::quID_P1){
 		//chi_1:  vec{lambda}(psi->chi_1 gamma) = - vec{lambda}(psi->l+l-) / [2 + lambda_theta(psi->l+l-)]
 		lamVecStart = GeneralPolarizationTransformation(lamVecOriginal, -1., 2., 1.);
@@ -963,4 +1152,9 @@ vector<double> PolarizationTransfer(vector<double> lamVecOriginal, vector<int> D
 
 
 	return lamVecTransfer;
+}
+
+Double_t paramMassRapParabola(Double_t *x, Double_t *par){
+	Double_t result=par[0]+x[0]*par[1]+x[0]*x[0]*par[2];
+	return result;
 }
