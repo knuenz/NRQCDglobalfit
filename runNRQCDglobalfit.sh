@@ -109,8 +109,8 @@ calcOnlyConstsStat=false
 ### GenerateToyData
 
 ### PlotCompareDataModel
-PredictionPlot=true
-PlotVSpToverM=true
+PredictionPlot=false
+PlotVSpToverM=false
 PredictionDataPlot=false
 
 ### SamplePPD
