@@ -12,7 +12,7 @@
 
 
 
-//#define mydebug
+#define mydebug
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +398,7 @@ dvector NRQCDglobalfitObject::getPromptProduction(int state, dmatrix  &Op, dmatr
 	}
 
 
-	double PromptCrossSect;
+	double PromptCrossSect=0;
 
 	// Calculate PromptCrossSect
 	dvector PromptCrossSectCont (NRQCDvars::nStates, 0);

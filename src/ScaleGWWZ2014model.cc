@@ -1,7 +1,7 @@
 /*
- * ScaleBKmodel.cc
+ * ScaleGWWZ2014model.cc
  *
- *  Created on: Oct 1, 2013
+ *  Created on: May 16, 2014
  *      Author: valentinknuenz
  */
 
@@ -68,124 +68,224 @@ int main(int argc, char** argv) {
 	gSystem->mkdir(originalmodeldirname);
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Convert BK input model
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Convert GWWZ2014 input model
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Matrix elements:
+	//STEP1: read in the original inputs (lp and tp SDC components)
 
-	const int nStatesGiven=2;//Given models in any form
-	int StatesGiven[nStatesGiven]={0, 3};
-	const int nColorChannelsGiven=4;
+		const int nStatesGiven=7;//Given models in any form
+		int StatesGiven[nStatesGiven]={0, 1, 2, 3, 4, 7, 10};
+		const int nColorChannelsGiven=4;
 
-	double fittedLDMEs[nStatesGiven][nColorChannelsGiven]={
-			{1.32, 0.0304, 0.00168, -0.00908},
-			{0.76, -0.00247, 0.00280, 0.00168}
-	};
-
-	double errfittedLDMEs[nStatesGiven][nColorChannelsGiven]={
-			{0., 0.0035, 0.00046, 0.00161},
-			{0., 0.00370, 0.00049, 0.00185}
-	};
-
-	const int nHelicityChannels=3;	//00, 11, 1m1
-
-	const int nRapIntervals=3;
-	bool isAbsRap[nRapIntervals]={true, true, false};
-	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 2.5};
-	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 4.};
-	double AverageRap[nRapIntervals]={0.3, 0.9, 3.25};
-	const int npTBinsPerRap[nRapIntervals][nHelicityChannels]={
-			{12, 12, 12},
-			{7, 7, 7},
-			{8, 10, 11}
-	};
-	const int maxpTBinsPerRap=12;
-
-	double deltaRapOriginal[nRapIntervals];
-	for(int iRap=0;iRap<nRapIntervals;iRap++){
-		deltaRapOriginal[iRap]=RapIntervalBordersMax[iRap]-RapIntervalBordersMin[iRap];
-		if(isAbsRap[iRap]) deltaRapOriginal[iRap]*=2;
-	}
-
-	bool interpretOriginalModelAsIntegratedInRap=true;
-
-	bool isDummyRap[nRapIntervals]={false, false, false};
+		double fittedLDMEs[nStatesGiven][nColorChannelsGiven]={//if inputs are given as SDC*LDME, the actual LDMEs have to be put here. If the inputs are given as SDC already, the LDME correction is 1
+				{1.16, 1., 1., 1.},
+				{0.1075, 1., 1., 1.},
+				{0.1075, 1., 1., 1.},
+				{0.76, 1., 1., 1.},
+				{1., 1., 1., 1.},
+				{1., 1., 1., 1.},
+				{1., 1., 1., 1.}
+		};
 
 
+		const int nHelicityChannels=2;	//00, 11, 1m1
 
-// CMS rapidities
+		const int nRapIntervals=3;
+		bool isAbsRap[nRapIntervals]={true, true, true};
+		double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 1.2};
+		double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 1.5};
+		double AverageRap[nRapIntervals]={0.3, 0.9, 1.35};
+		const int npTBinsPerRap[nStatesGiven][nRapIntervals]={
+				{24, 24, 24},
+				{24, 24, 24},
+				{24, 24, 24},
+				{24, 24, 24},
+				{40, 40, 40},
+				{32, 32, 32},
+				{32, 32, 32}
+		};
+		const int maxpTBinsPerRap=40;
 
 
-
-
-	double pTmean[nStatesGiven][nRapIntervals][nHelicityChannels][maxpTBinsPerRap];//={
-
-	double pTMin[nRapIntervals]={10, 10, 3};
-	double pTMax[nRapIntervals]={70, 30, 10};
-
-	double model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
-	double total_model[nStatesGiven][nRapIntervals][nHelicityChannels][maxpTBinsPerRap];
-
-	cout<<"read in file"<<endl;
-
-	for(int j=0;j<nRapIntervals;j++){
-
-		cout<<"rap"<<j<<endl;
-		sprintf(inname,"%s/BKmodel_Psi_rap%d.txt",originalmodeldirname,j+1);
-		FILE *fIn;
-		fIn = fopen(inname, "read");
-		cout<<inname<<endl;
-		Char_t line[1000];
-
-		for(int l=0;l<nHelicityChannels;l++){
-			cout<<"helicity"<<l<<endl;
-			for(int m=0;m<npTBinsPerRap[j][l];m++){
-
-				double buffer;
-				fgets(line, sizeof(line), fIn); //comment
-				cout<<line<<endl;
-				sscanf(line, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf", &pTmean[0][j][l][m], &model[0][j][0][l][m], &model[0][j][1][l][m], &model[0][j][2][l][m], &model[0][j][3][l][m], &total_model[0][j][l][m], &model[1][j][0][l][m], &model[1][j][1][l][m], &model[1][j][2][l][m], &model[1][j][3][l][m], &total_model[1][j][l][m]);
-
-				pTmean[1][j][l][m]=pTmean[0][j][l][m];
-
-				//cout<<"ratio sum_cc/total (1S) = "<<(model[0][j][0][l][m]+model[0][j][1][l][m]+model[0][j][2][l][m]+model[0][j][3][l][m])/total_model[0][j][l][m]<<endl;
-				//cout<<"ratio sum_cc/total (2S) = "<<(model[1][j][0][l][m]+model[1][j][1][l][m]+model[1][j][2][l][m]+model[1][j][3][l][m])/total_model[1][j][l][m]<<endl;
-
-			}
-			fgets(line, sizeof(line), fIn); //comment
+		double deltaRapOriginal[nRapIntervals];
+		for(int iRap=0;iRap<nRapIntervals;iRap++){
+			deltaRapOriginal[iRap]=RapIntervalBordersMax[iRap]-RapIntervalBordersMin[iRap];
+			if(isAbsRap[iRap]) deltaRapOriginal[iRap]*=2;
 		}
-	}
+
+		bool interpretOriginalModelAsIntegratedInRap=true;
+
+		bool isDummyRap[nStatesGiven][nRapIntervals]={
+				{false, false, false},
+				{false, false, false},
+				{false, false, false},
+				{false, false, false},
+				{false, false, true},
+				{false, false, true},
+				{false, false, true}
+		};
+		bool isDummyColorChannel[nStatesGiven][nColorChannelsGiven]={
+				{false, false, false, false},
+				{false, true, false, true},
+				{false, true, false, true},
+				{false, false, false, false},
+				{false, false, false, false},
+				{false, false, false, false},
+				{false, false, false, false},
+		};
+		double dummyVal=999;
 
 
 
+		double pTmean[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];//={
 
-	TGraph *model_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
+		double pTMin[nStatesGiven][nRapIntervals]={
+				{3, 3, 3},
+				{3, 3, 3},
+				{3, 3, 3},
+				{3, 3, 3},
+				{3, 3, 3},
+				{3, 3, 3},
+				{3, 3, 3}
+		};
+		double pTMax[nStatesGiven][nRapIntervals]={
+				{75, 75, 75},
+				{75, 75, 75},
+				{75, 75, 75},
+				{75, 75, 75},
+				{100, 100, 100},
+				{110, 110, 110},
+				{110, 110, 110}
+		};
 
-	for(int i=0;i<nStatesGiven;i++){
-		for(int j=0;j<nRapIntervals;j++){
-			for(int k=0;k<nColorChannelsGiven;k++){
+		double model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
+		double err_model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
+
+		cout<<"read in file"<<endl;
+
+		char in_rapChar[200];
+		char in_stateChar[200];
+		char in_helcolChar[200];
+
+		for(int i=0;i<nStatesGiven;i++){
+			cout<<"State"<<StatesGiven[i]<<endl;
+
+		    if(StatesGiven[i]==0) sprintf(in_stateChar,"Jpsi/direct");
+		    if(StatesGiven[i]==1) sprintf(in_stateChar,"Jpsi/chic_feeddown");
+		    if(StatesGiven[i]==2) sprintf(in_stateChar,"Jpsi/chic_feeddown");
+		    if(StatesGiven[i]==3) sprintf(in_stateChar,"Psi2s/direct");
+		    if(StatesGiven[i]==4) sprintf(in_stateChar,"upsilon1s/direct");
+		    if(StatesGiven[i]==7) sprintf(in_stateChar,"upsilon2s/direct");
+		    if(StatesGiven[i]==10) sprintf(in_stateChar,"upsilon3s/direct");
+
+			for(int j=0;j<nRapIntervals;j++){
+				cout<<"rap"<<j<<endl;
+
+			    if(j==0) sprintf(in_rapChar,"y_0-0.6");
+			    if(j==1) sprintf(in_rapChar,"y_0.6-1.2");
+			    if(j==2) sprintf(in_rapChar,"y_1.2-1.5");
+
 				for(int l=0;l<nHelicityChannels;l++){
+					cout<<"helicity"<<l<<endl;
 
-					double pTmean_graph[npTBinsPerRap[j][l]];
-					double model_graph[npTBinsPerRap[j][l]];
-					for(int m=0;m<npTBinsPerRap[j][l];m++){
-						pTmean_graph[m]=pTmean[i][j][l][m];
-						model_graph[m]=model[i][j][k][l][m];
+
+					for(int k=0;k<nColorChannelsGiven;k++){
+						cout<<"color channel"<<k<<endl;
+
+					    if(l==0 && k==0) sprintf(in_helcolChar,"lp/cs");
+					    if(l==1 && k==0) sprintf(in_helcolChar,"tp/cs");
+
+					    if(l==0 && k==1) sprintf(in_helcolChar,"pt/1s08");
+					    if(l==1 && k==1) sprintf(in_helcolChar,"pt/1s08");
+
+					    if(l==0 && k==2) sprintf(in_helcolChar,"lp/3s18");
+					    if(l==1 && k==2) sprintf(in_helcolChar,"tp/3s18");
+
+					    if(l==0 && k==3) sprintf(in_helcolChar,"lp/3pj8");
+					    if(l==1 && k==3) sprintf(in_helcolChar,"tp/3pj8");
+
+					    if(StatesGiven[i]==1 || StatesGiven[i]==2){
+					    	if(l==0 && k==0) sprintf(in_helcolChar,"lp/3pj1");
+					    	if(l==1 && k==0) sprintf(in_helcolChar,"tp/3pj1");
+					    }
+
+					    if(StatesGiven[i]<4) sprintf(inname,"%s/data-jpsi/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
+					    else sprintf(inname,"%s/data-ups/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
+
+						FILE *fIn;
+						fIn = fopen(inname, "read");
+						cout<<inname<<endl;
+						Char_t line[1000];
+
+						bool readIn=true;
+						if(isDummyColorChannel[i][k]){
+							cout<<"isDummyColorChannel"<<endl;
+							readIn=false;
+						}
+						if(isDummyRap[i][j]){
+							cout<<"isDummyRap"<<endl;
+							readIn=false;
+						}
+
+						for(int m=0;m<npTBinsPerRap[i][j];m++){
+
+
+							if(!readIn){
+								pTmean[i][j][k][l][m]=m;
+								model[i][j][k][l][m]=dummyVal;
+								err_model[i][j][k][l][m]=dummyVal;
+							}
+
+							if(readIn){
+								double buffer;
+								fgets(line, sizeof(line), fIn); //comment
+								cout<<line<<endl;
+								sscanf(line, "%lf %lf %lf", &pTmean[i][j][k][l][m], &model[i][j][k][l][m], &err_model[i][j][k][l][m]);
+							}
+
+							if(k==1){
+								model[i][j][k][l][m]/=3.;
+								err_model[i][j][k][l][m]/=3.;
+							}
+
+							cout<<pTmean[i][j][k][l][m]<<" "<<model[i][j][k][l][m]<<" "<<err_model[i][j][k][l][m]<<" "<<endl;
+
+						}
+						if(readIn) fgets(line, sizeof(line), fIn); //comment
 					}
-
-					model_Graph[i][j][k][l] = new TGraph(npTBinsPerRap[j][l],pTmean_graph,model_graph);
-
-					//cout<<"model_Graph[state"<<i<<"][rap"<<j<<"][CC"<<k<<"][HC"<<l<<"]"<<endl;
-					//model_Graph[i][j][k][l]->Print();
-
 				}
 			}
 		}
-	}
 
 
 
+		TGraph *model_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
+
+		for(int i=0;i<nStatesGiven;i++){
+			for(int j=0;j<nRapIntervals;j++){
+				for(int k=0;k<nColorChannelsGiven;k++){
+					for(int l=0;l<nHelicityChannels;l++){
+
+						double pTmean_graph[npTBinsPerRap[i][j]];
+						double model_graph[npTBinsPerRap[i][j]];
+						for(int m=0;m<npTBinsPerRap[i][j];m++){
+							pTmean_graph[m]=pTmean[i][j][k][l][m];
+							model_graph[m]=model[i][j][k][l][m];
+						}
+
+						model_Graph[i][j][k][l] = new TGraph(npTBinsPerRap[i][j],pTmean_graph,model_graph);
+
+						cout<<"model_Graph[state"<<i<<"][rap"<<j<<"][CC"<<k<<"][HC"<<l<<"]"<<endl;
+						model_Graph[i][j][k][l]->Print();
+
+					}
+				}
+			}
+		}
+
+
+		//STEP2: convert lp and tp SDC components to SDCs and polarizations
 
 		TGraph *SDC_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven];
 		TGraph *Lamth_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven];
@@ -210,74 +310,38 @@ int main(int argc, char** argv) {
 
 				cout<<"originals: rap "<<j<<" CC "<<k<<" state "<<i<<endl;
 
-				int nBinsOriginal=npTBinsPerRap[j][0];
-				if(j==2) nBinsOriginal=nBinsFinalModels;
+				int nBinsOriginal=npTBinsPerRap[i][j];
 
 				double pTmean_graph_original[nBinsOriginal];
 				double SDC_graph_original[nBinsOriginal];
 				double Lamth_graph_original[nBinsOriginal];
 				double Lamph_graph_original[nBinsOriginal];
 				double Lamtp_graph_original[nBinsOriginal];
-				if(j<2){
-					for(int m=0;m<nBinsOriginal;m++){
-						double buff_sigma00;
-						double buff_sigma11;
-						double buff_sigma1m1;
-						model_Graph[i][j][k][0]->GetPoint(m,pTmean_graph_original[m],buff_sigma00);
-						model_Graph[i][j][k][1]->GetPoint(m,pTmean_graph_original[m],buff_sigma11);
-						model_Graph[i][j][k][2]->GetPoint(m,pTmean_graph_original[m],buff_sigma1m1);
-						//if(pTmean_graph_original[m]<45) model_Graph[i][j][k][2]->GetPoint(m,pTmean_graph_original[m],buff_sigma1m1);
-						//else buff_sigma1m1=0.;
+				for(int m=0;m<nBinsOriginal;m++){
+					double buff_sigma00;
+					double buff_sigma11;
+					double buff_sigma1m1;
+					model_Graph[i][j][k][0]->GetPoint(m,pTmean_graph_original[m],buff_sigma00);
+					model_Graph[i][j][k][1]->GetPoint(m,pTmean_graph_original[m],buff_sigma11);
+					//model_Graph[i][j][k][2]->GetPoint(m,pTmean_graph_original[m],buff_sigma1m1);
+					//if(pTmean_graph_original[m]<45) model_Graph[i][j][k][2]->GetPoint(m,pTmean_graph_original[m],buff_sigma1m1);
+					//else buff_sigma1m1=0.;
 
-						SDC_graph_original[m]=buff_sigma00/fittedLDMEs[i][k]+2*buff_sigma11/fittedLDMEs[i][k];
-						double polDenominator=(buff_sigma11/fittedLDMEs[i][k]+buff_sigma00/fittedLDMEs[i][k]);
-						if(UseChaoPolDenominatorDef && buff_sigma11 * buff_sigma00 < 0) polDenominator=fabs(polDenominator);
-						Lamth_graph_original[m]=(buff_sigma11/fittedLDMEs[i][k]-buff_sigma00/fittedLDMEs[i][k])/polDenominator;
-						Lamph_graph_original[m]=(buff_sigma1m1/fittedLDMEs[i][k])/polDenominator;
-						Lamtp_graph_original[m]=0;
+					SDC_graph_original[m]=buff_sigma00/fittedLDMEs[i][k]+2*buff_sigma11/fittedLDMEs[i][k];
+					double polDenominator=(buff_sigma11/fittedLDMEs[i][k]+buff_sigma00/fittedLDMEs[i][k]);
+					if(UseChaoPolDenominatorDef && buff_sigma11 * buff_sigma00 < 0) polDenominator=fabs(polDenominator);
+					Lamth_graph_original[m]=(buff_sigma11/fittedLDMEs[i][k]-buff_sigma00/fittedLDMEs[i][k])/polDenominator;
+					Lamph_graph_original[m]=0.;//(buff_sigma1m1/fittedLDMEs[i][k])/polDenominator;
+					Lamtp_graph_original[m]=0;
 
-						double dummyVal=999;
-						if(isDummyRap[j]){
-							SDC_graph_original[m]=dummyVal;
-							Lamth_graph_original[m]=dummyVal;
-							Lamph_graph_original[m]=dummyVal;
-							Lamtp_graph_original[m]=dummyVal;
-						}
+					if(isDummyRap[i][j]){
+						SDC_graph_original[m]=dummyVal;
+						Lamth_graph_original[m]=dummyVal;
+						Lamph_graph_original[m]=dummyVal;
+						Lamtp_graph_original[m]=dummyVal;
 					}
 				}
-				else{
-					for(int m=0;m<nBinsOriginal;m++){
 
-						double deltaPt=(pTMax[j]-pTMin[j])/double(nBinsOriginal);
-						pTmean_graph_original[m]=pTMin[j]+m*deltaPt;
-
-						double buff_sigma00;
-						double buff_sigma11;
-						double buff_sigma1m1;
-
-						buff_sigma00 = model_Graph[i][j][k][0]->Eval(pTmean_graph_original[m]);
-						buff_sigma11 = model_Graph[i][j][k][1]->Eval(pTmean_graph_original[m]);
-						buff_sigma1m1 = model_Graph[i][j][k][2]->Eval(pTmean_graph_original[m]);
-
-						//if(pTmean_graph_original[m]<45) model_Graph[i][j][k][2]->GetPoint(m,pTmean_graph_original[m],buff_sigma1m1);
-						//else buff_sigma1m1=0.;
-
-						SDC_graph_original[m]=buff_sigma00/fittedLDMEs[i][k]+2*buff_sigma11/fittedLDMEs[i][k];
-						double polDenominator=(buff_sigma11/fittedLDMEs[i][k]+buff_sigma00/fittedLDMEs[i][k]);
-						if(UseChaoPolDenominatorDef && buff_sigma11 * buff_sigma00 < 0) polDenominator=fabs(polDenominator);
-						Lamth_graph_original[m]=(buff_sigma11/fittedLDMEs[i][k]-buff_sigma00/fittedLDMEs[i][k])/polDenominator;
-						Lamph_graph_original[m]=(buff_sigma1m1/fittedLDMEs[i][k])/polDenominator;
-						Lamtp_graph_original[m]=0;
-
-						double dummyVal=999;
-						if(isDummyRap[j]){
-							SDC_graph_original[m]=dummyVal;
-							Lamth_graph_original[m]=dummyVal;
-							Lamph_graph_original[m]=dummyVal;
-							Lamtp_graph_original[m]=dummyVal;
-						}
-					}
-				}
 
 
 
@@ -306,8 +370,8 @@ int main(int argc, char** argv) {
 				double Lamph_graph[nBinsFinalModels];
 				double Lamtp_graph[nBinsFinalModels];
 				for(int m=0;m<nBinsFinalModels;m++){
-					double deltaPt=(pTMax[j]-pTMin[j])/double(nBinsFinalModels);
-					pTmean_graph[m]=pTMin[j]+m*deltaPt;
+					double deltaPt=(pTMax[i][j]-pTMin[i][j])/double(nBinsFinalModels);
+					pTmean_graph[m]=pTMin[i][j]+m*deltaPt;
 					//SDC_graph[m]=SDC_Graph_original[i][j][k]->Eval(pTmean_graph[m],0,"S");
 
 					double rapCorrFactor=deltaRapOriginal[j];
@@ -348,106 +412,41 @@ int main(int argc, char** argv) {
 
 
 
-	SDC_Graph_original[0][0][3]->Print();
-
-	double evalPt[6]={10.5, 11.48, 12.72, 14.23, 16.3, 21.92};
-	for(int u=0;u<6;u++){
-		double crossSection=0;
-		for(int k=0;k<nColorChannelsGiven;k++){
-			crossSection+=SDC_Graph[1][1][k]->Eval(evalPt[u])*fittedLDMEs[1][k];
-		}
-		//cout<<"crossSection at "<<evalPt[u]<<" = "<<crossSection<<endl;
-	}
-
-
-
-	//x[0]=10.5, y[0]=5.43118
-	//x[1]=11.48, y[1]=3.89092
-	//x[2]=12.72, y[2]=2.33473
-	//x[3]=14.23, y[3]=1.45768
-	//x[4]=16.3, y[4]=0.73896
-	//x[5]=21.92, y[5]=0.168861
-
-
-	for(int i=0;i<nStatesGiven;i++){
-		cout<<"state "<<i<<endl;
-		for(int k=0;k<nColorChannelsGiven;k++){
-			cout<<"CC "<<k<<endl;
-
-			double RapRatio_1ov0;
-			double RapRatio_2ov1;
-			RapRatio_1ov0=SDC_Graph[i][1][k]->Eval(10.)/SDC_Graph[i][0][k]->Eval(10.);
-			RapRatio_2ov1=SDC_Graph[i][2][k]->Eval(10.)/SDC_Graph[i][1][k]->Eval(10.);
-			//cout<<"RapRatio_1ov0 "<<RapRatio_1ov0<<" RapRatio_2ov1 "<<RapRatio_2ov1<<endl;
-
-			double RapDiffLamth_1m0;
-			double RapDiffLamth_2m1;
-			RapDiffLamth_1m0=Lamth_Graph[i][1][k]->Eval(10.)-Lamth_Graph[i][0][k]->Eval(10.);
-			RapDiffLamth_2m1=Lamth_Graph[i][2][k]->Eval(10.)-Lamth_Graph[i][1][k]->Eval(10.);
-			//cout<<"RapDiffLamth_1m0 "<<RapDiffLamth_1m0<<" RapDiffLamth_2m1 "<<RapDiffLamth_2m1<<endl;
-			double RapDiffLamph_1m0;
-			double RapDiffLamph_2m1;
-			RapDiffLamph_1m0=Lamph_Graph[i][1][k]->Eval(10.)-Lamph_Graph[i][0][k]->Eval(10.);
-			RapDiffLamph_2m1=Lamph_Graph[i][2][k]->Eval(10.)-Lamph_Graph[i][1][k]->Eval(10.);
-			//cout<<"RapDiffLamph_1m0 "<<RapDiffLamph_1m0<<" RapDiffLamph_2m1 "<<RapDiffLamph_2m1<<endl;
-
-		}
-	}
-
-
-	double SDC_StateRatio_3ov0;
-	for(int j=0;j<nRapIntervals;j++){
-		for(int k=0;k<nColorChannelsGiven;k++){
-			SDC_StateRatio_3ov0=SDC_Graph[1][j][k]->Eval(10.)/SDC_Graph[0][j][k]->Eval(10.);
-			cout<<"SDC_StateRatio_3ov0 at 10 GeV"<<SDC_StateRatio_3ov0<<endl;
-			SDC_StateRatio_3ov0=SDC_Graph[1][j][k]->Eval(20.)/SDC_Graph[0][j][k]->Eval(20.);
-			cout<<"SDC_StateRatio_3ov0 at 20 GeV"<<SDC_StateRatio_3ov0<<endl;
-			SDC_StateRatio_3ov0=SDC_Graph[1][j][k]->Eval(30.)/SDC_Graph[0][j][k]->Eval(30.);
-			cout<<"SDC_StateRatio_3ov0 at 30 GeV"<<SDC_StateRatio_3ov0<<endl;
-			SDC_StateRatio_3ov0=SDC_Graph[1][j][k]->Eval(40.)/SDC_Graph[0][j][k]->Eval(40.);
-			cout<<"SDC_StateRatio_3ov0 at 40 GeV"<<SDC_StateRatio_3ov0<<endl;
-		}
-	}
-
-
-
-
-/*
-	SDC extrapolation:
-	1) normalize the rap2 curve to match the rap0 curve at 10 GeV. The same can be done for rap1, and (similar) for rap2
-	2) We want to fill the hole between y=1.2 and y=2.5, to be able to add more data. For this, I will interpolate linearly the normalization factor between the rap1 and rap2 curves. With this, we will be able to add a rapidity bin of 1.2<|y|<2.5
-
-	Lamth extrapolation:
-	S0: everything is 0 :)
-	S1 CO rap0: Shift rap2 to match rap0
-	S1 CO rap1: Shift rap2 to match rap1
-	S1 CO rap2: Shift rap1 to match rap2
-	S1 CS rap0: Shift rap2 to match rap0
-	S1 CS rap1: Shift rap2 to match rap1
-	S1 CS rap2: Shift rap1 to match rap2
-*/
-
-/*
-
-	define finalRap-stuff
-	start from these:
-	SDC_Graph[i][j][k]
-	Lamth_Graph[i][j][k]
-	Lamph_Graph[i][j][k]
-	Lamtp_Graph[i][j][k]
-	Take Care Of integrated Rap-factor
-
-*/
+	//STEP3: Extrapolate SDCs and polarizations to desired pT and y region
 
 
 	const int nEpRapIntervals=9;
 	//bool isAbsEpRap[nEpRapIntervals]={true, true, true, true, true, true, true, true, true};
-	double EpRapIntervalBordersMin[nEpRapIntervals]={0, 0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4.};
-	double EpRapIntervalBordersMax[nEpRapIntervals]={0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4., 4.5};
-	double AverageEpRap[nEpRapIntervals]={0.3, 0.9, 1.4, 1.8, 2.25, 2.75, 3.25, 3.75, 4.25};
+	double EpRapIntervalBordersMin[nEpRapIntervals]={0, 0.6, 1.2, 1.5, 2., 2.5, 3., 3.5, 4.};
+	double EpRapIntervalBordersMax[nEpRapIntervals]={0.6, 1.2, 1.5, 2., 2.5, 3., 3.5, 4., 4.5};
+	double AverageEpRap[nEpRapIntervals]={0.3, 0.9, 1.35, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25};
 
-	double pTMinEp[nEpRapIntervals]={2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875};
-	double pTMaxEp[nEpRapIntervals]={70, 70, 70, 70, 70, 70, 70, 70, 70};
+	double pTMinEp[nStatesGiven][nEpRapIntervals]={
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875},
+			{2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875, 2.875}
+	};
+	double pTMaxEp[nStatesGiven][nEpRapIntervals]={
+			{80., 80., 80., 80., 80., 80., 80., 80., 80.},
+			{80., 80., 80., 80., 80., 80., 80., 80., 80.},
+			{80., 80., 80., 80., 80., 80., 80., 80., 80.},
+			{80., 80., 80., 80., 80., 80., 80., 80., 80.},
+			{110., 110., 110., 110., 110., 110., 110., 110., 110.},
+			{110., 110., 110., 110., 110., 110., 110., 110., 110.},
+			{110., 110., 110., 110., 110., 110., 110., 110., 110.}
+	};
+
+	bool useOriginalRap[nStatesGiven][nEpRapIntervals]={
+			{true, true, true, false, false, false, false, false, false},
+			{true, true, true, false, false, false, false, false, false},
+			{true, true, false, false, false, false, false, false, false},
+			{true, true, false, false, false, false, false, false, false},
+			{true, true, false, false, false, false, false, false, false}
+	};
 
 	double deltaRap[nEpRapIntervals];
 	double NormRapXToRap0Factor[nEpRapIntervals][nColorChannelsGiven];
@@ -580,57 +579,34 @@ int main(int argc, char** argv) {
 				double Lamtp_graph_Ep[nBinsFinalModels];
 				for(int m=0;m<nBinsFinalModels;m++){
 
-					double deltaPt=(pTMaxEp[j]-pTMinEp[j])/double(nBinsFinalModels);
-					pTmean_graph_Ep[m]=pTMinEp[j]+m*deltaPt;
+					double deltaPt=(pTMaxEp[i][j]-pTMinEp[i][j])/double(nBinsFinalModels);
+					pTmean_graph_Ep[m]=pTMinEp[i][j]+m*deltaPt;
 
-					if(j==0){
 
-						if(pTmean_graph_Ep[m]>=normAtPt) SDC_graph_Ep[m]=SDC_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
-						else SDC_graph_Ep[m]=SDC_Graph[i][2][k]->Eval(pTmean_graph_Ep[m])/NormRapXToRap0Factor[2][k];
-
+					if(useOriginalRap[i][j]){
+						SDC_graph_Ep[m]=SDC_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
 					}
 					else{
-
-						SDC_graph_Ep[m]=EpSDC_Graph[i][0][k]->Eval(pTmean_graph_Ep[m])*fParabola[k]->Eval(AverageEpRap[j]);
+						SDC_graph_Ep[m]=SDC_Graph[i][0][k]->Eval(pTmean_graph_Ep[m])*fParabola[k]->Eval(AverageEpRap[j]);
 
 					}
-
-
 
 					if(k==1){
-						Lamth_graph_Ep[m]=0;//Lamth_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
+						Lamth_graph_Ep[m]=0;
 					}
 					else{
 
-						double Lamth_j0;
-						double Lamth_j1;
-						double Lamth_j2;
-
-						if(pTmean_graph_Ep[m]>=diffAtPt){
-							Lamth_j0=Lamth_Graph[i][0][k]->Eval(pTmean_graph_Ep[m]);
-							Lamth_j1=Lamth_Graph[i][1][k]->Eval(pTmean_graph_Ep[m]);
-							if(pTmean_graph_Ep[m]>=30) Lamth_j1=Lamth_Graph[i][0][k]->Eval(pTmean_graph_Ep[m])+Lamth_Graph[i][1][k]->Eval(30)-Lamth_Graph[i][0][k]->Eval(30);
-							Lamth_j2=Lamth_j1-LamthDiffToRap2[1][k];
+						if(useOriginalRap[i][j]){
+							Lamth_graph_Ep[m]=Lamth_Graph[i][j][k]->Eval(pTmean_graph_Ep[m]);
 						}
 						else{
-							Lamth_j0=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[0][k];
-							Lamth_j1=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[1][k];
-							Lamth_j2=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m])+LamthDiffToRap2[2][k];
+							for(int jj=j;jj>-1;jj--){
+								if(useOriginalRap[i][jj]){
+									Lamth_graph_Ep[m]=Lamth_Graph[i][jj][k]->Eval(pTmean_graph_Ep[m]);
+									break;
+								}
+							}
 						}
-
-						if(k==3 && pTmean_graph_Ep[m] < 8.71){
-							Lamth_j0=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
-							Lamth_j1=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
-							Lamth_j2=Lamth_Graph[i][diffToRap][k]->Eval(pTmean_graph_Ep[m]);
-						}
-
-						Lamth_graph_Ep[m]=Lamth_j1+(Lamth_j2-Lamth_j1)*(AverageEpRap[j]-AverageRap[1])/(AverageRap[2]-AverageRap[1]);
-
-
-						if(j==0) Lamth_graph_Ep[m]=Lamth_j0;
-						if(j==1) Lamth_graph_Ep[m]=Lamth_j1;
-
-
 					}
 
 
@@ -698,6 +674,10 @@ NEW:
 
 	 */
 
+	//STEP4: Scale the extrapolated SDCs and polarizations (pT and normalization scaling)
+
+	//Current output 'scaled': all charmonium states scaled from Jpsi, all bottomonium states scaled from Ups1S
+	//Exception: chic1,2 singlet scaled from chic1,2 singlet
 
 	TGraph *SDC_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
 	TGraph *Lamth_Graph_scaled[NRQCDvars::nStates][nEpRapIntervals][nColorChannelsGiven];
@@ -734,22 +714,32 @@ NEW:
 	//const int nScaleToBottomStates=1;
 	//int ScaleToBottomStates[nScaleToBottomStates]={10};
 
-	int ScaleFromState=0;
-	double ScaleFromMass=3;
-	bool doScaleFromMass=true;
+   //Luping Information:
+   //For the charmonium case, the mass of J/\psi  is 2x1.5 = 3.0 GeV
+   //For psi(2S), it is also 1.5*2=3.0 GeV;
+   //For Upsilon(1S), it is 4.75*2=9.5 GeV;
+   //For Upsilon(2S), it is 5.11*2=10.22 GeV;
+   //For Upsilon(3S), it is 5.2*2=10.4 GeV;
+
+	int ScaleFromStateCC=0;
+	int ScaleFromStateBB=4;
+	double ScaleFromMassCC=3;
+	double ScaleFromMassBB=9.5;
 	double MassRatioScale[NRQCDvars::nStates];
 	double NormalizationScale[NRQCDvars::nStates];
 
 	// x-axis scale:::
 
-	int ScaleFromState_asStatesGiven=-1;
+	int ScaleFromStateCC_asStatesGiven=-1;
+	int ScaleFromStateBB_asStatesGiven=-1;
 	for(int iScaleState=0; iScaleState<nStatesGiven; iScaleState++){
-		if(StatesGiven[iScaleState]==ScaleFromState) ScaleFromState_asStatesGiven=iScaleState;
+		if(StatesGiven[iScaleState]==ScaleFromStateCC) ScaleFromStateCC_asStatesGiven=iScaleState;
+		if(StatesGiven[iScaleState]==ScaleFromStateBB) ScaleFromStateBB_asStatesGiven=iScaleState;
 	}
 
 	for(int iScaleState=0; iScaleState<NRQCDvars::nStates; iScaleState++){
-		if(!doScaleFromMass) MassRatioScale[iScaleState]=NRQCDvars::mass[iScaleState]/NRQCDvars::mass[ScaleFromState];
-		else MassRatioScale[iScaleState]=NRQCDvars::mass[iScaleState]/ScaleFromMass;
+		if(iScaleState<4) MassRatioScale[iScaleState]=NRQCDvars::mass[iScaleState]/ScaleFromMassCC;
+		else MassRatioScale[iScaleState]=NRQCDvars::mass[iScaleState]/ScaleFromMassBB;
 		cout<<"MassRatioScale["<<StateName[iScaleState]<<"] = "<<MassRatioScale[iScaleState]<<endl;
 	}
 
@@ -771,8 +761,8 @@ NEW:
 
 
 	for(int iScaleState=0; iScaleState<NRQCDvars::nStates; iScaleState++){
-		if(!doScaleFromMass) NormalizationScale[iScaleState]=expo_fit->Eval(NRQCDvars::mass[iScaleState])/expo_fit->Eval(NRQCDvars::mass[ScaleFromState]);
-		else NormalizationScale[iScaleState]=expo_fit->Eval(NRQCDvars::mass[iScaleState])/expo_fit->Eval(ScaleFromMass);
+		if(iScaleState<4) NormalizationScale[iScaleState]=expo_fit->Eval(NRQCDvars::mass[iScaleState])/expo_fit->Eval(ScaleFromMassCC);
+		else NormalizationScale[iScaleState]=expo_fit->Eval(NRQCDvars::mass[iScaleState])/expo_fit->Eval(ScaleFromMassBB);
 		cout<<"NormalizationScale["<<StateName[iScaleState]<<"] = "<<NormalizationScale[iScaleState]<<endl;
 	}
 
@@ -839,10 +829,25 @@ NEW:
 			else nColorChannels_state=NRQCDvars::nColorChannels_P;
 			for (int k=0; k<nColorChannels_state; k++){
 
-				int kPrime=k;
-				//if(!isSstate&&k==1) kPrime=2;
 
 				for(int l=0;l<nBinsFinalModels;l++){
+
+					int ScaleFromState_asStatesGiven;
+					int ScaleFromState;
+					if(i<4) {
+						ScaleFromState_asStatesGiven=ScaleFromStateCC_asStatesGiven;
+						ScaleFromState=ScaleFromStateCC;
+					}
+					else{
+						ScaleFromState_asStatesGiven=ScaleFromStateBB_asStatesGiven;
+						ScaleFromState=ScaleFromStateBB;
+					}
+
+					if( (i==1||i==2) && k==0 ){
+						ScaleFromState_asStatesGiven=i;
+					}
+
+					int kPrime=k;
 
 					EpSDC_Graph[ScaleFromState_asStatesGiven][j][kPrime]->GetPoint(l,buff_pT, buff_val);
 
@@ -896,207 +901,6 @@ NEW:
 
 
 
-
-
-
-
-
-
-
-
-
-
-/*
-
-	double model_pTMin, model_pTMax;
-	double model_rapMin, model_rapMax;
-	double model_costhMin, model_costhMax;
-	double model_phiMin, model_phiMax;
-
-	model_pTMin=3;
-	model_pTMax=40;
-	model_rapMin=-1.2;
-	model_rapMax=4.5;
-	model_costhMin=-1;
-	model_costhMax=1;
-	model_phiMin=-180;
-	model_phiMax=180;
-
-
-
-	int iMother=ScaleFromCharmState;
-		for (int iScaleToMother=0; iScaleToMother<NRQCDvars::nStates; iScaleToMother++){
-			bool ScaleToState=false;
-			cout<<"Scaling original model from nState = "<<iMother<<" to nState = "<<iScaleToMother<<endl;
-			int ScaleStateIndex=-1;
-			for (int jMother=0; jMother<nScaleToBottomStates; jMother++){
-				if(ScaleToBottomStates[jMother]==iScaleToMother) {ScaleToState=true; ScaleStateIndex=jMother;}
-			}
-			if(!ScaleToState) continue;
-			int StatesGivenIndex=-1;
-			for (int jMother=0; jMother<nStatesGiven; jMother++){
-				if(StatesGiven[jMother]==iMother) StatesGivenIndex=jMother;
-			}
-			if(StatesGivenIndex==-1) continue;
-			cout<<"MassRatioCtB[ScaleStateIndex] "<<MassRatioCtB[ScaleStateIndex]<<endl;
-
-			int nColorChannels_state;
-			bool isSstate=(StateQuantumID[iMother] > NRQCDvars::quID_S)?false:true;
-			if(isSstate) nColorChannels_state=NRQCDvars::nColorChannels_S;
-			else nColorChannels_state=NRQCDvars::nColorChannels_P;
-			for (int iColorChannel=0; iColorChannel<nColorChannels_state; iColorChannel++){
-				cout<<"		Color channel = "<<iColorChannel<<endl;
-
-
-				sprintf(nTupleModelName,"nTupleModel_Mother%d_Daughter%d_ColorChannel%d_Cascade0",iScaleToMother, iScaleToMother, iColorChannel);
-				nTupleModel[iScaleToMother][iColorChannel] = new TTree(nTupleModelName, nTupleModelName);
-
-
-				Double_t model_pT;  nTupleModel[iScaleToMother][iColorChannel]->Branch("model_pT",     &model_pT,     "model_pT/D");
-				Double_t model_rap;    nTupleModel[iScaleToMother][iColorChannel]->Branch("model_rap",       &model_rap,       "model_rap/D"  );
-				Double_t model_costh;  nTupleModel[iScaleToMother][iColorChannel]->Branch("model_costh",      &model_costh,     "model_costh/D");
-				Double_t model_phi;  nTupleModel[iScaleToMother][iColorChannel]->Branch("model_phi",      &model_phi,     "model_phi/D");
-				Double_t model_weight; nTupleModel[iScaleToMother][iColorChannel]->Branch("weight",      &model_weight,     "weight/D");
-
-				int nStep = n_nTuple/10;  // visualize progress of the parameter sampling
-				int nStep_ = 0;
-				bool genAngDist2D=true;
-
-				//if(iColorChannel==3) n_nTuple=100000;
-
-
-				for (int k=0; k<n_nTuple; k++){
-
-
-
-					model_pT=gRandom->Uniform(model_pTMin,model_pTMax);
-					model_rap=gRandom->Uniform(model_rapMin,model_rapMax);
-					model_costh=gRandom->Uniform(model_costhMin,model_costhMax);
-					model_phi=gRandom->Uniform(model_phiMin,model_phiMax);
-
-					int rapIndex = -1;
-					for (int j=0; j<nRapIntervals; j++){
-						if(isAbsRap[j]){
-							if(fabs(model_rap)>RapIntervalBordersMin[j] && fabs(model_rap)<RapIntervalBordersMax[j]) {rapIndex=j; break;}
-						}
-						else{
-							if(model_rap>RapIntervalBordersMin[j] && model_rap<RapIntervalBordersMax[j]) {rapIndex=j; break;}
-						}
-						}
-
-
-
-					//cout<<"model_rap "<<model_rap<<endl;
-					//cout<<"rapIndex "<<rapIndex<<endl;
-					//cout<<"model_pT "<<model_pT<<endl;
-					bool FillEvent=true;
-					if(rapIndex==-1) FillEvent=false;
-					if(model_pT<pTMin[rapIndex] || model_pT>pTMax[rapIndex]) FillEvent=false;
-
-					if(FillEvent){
-
-
-
-						model_weight=SDC_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
-						//if(log(model_weight)>8 && TMath::Abs(model_rap)<1.2&&model_pT>12&&model_pT<13.5) cout<<"model_weight pT"<<model_weight<<endl;
-						//Define angular distribution:
-						//cout<<"model_weight pT"<<model_weight<<endl;
-
-						//dvector model_lam = func_lam_gen(iMother, iColorChannel);
-						double model_lamth, model_lamph, model_lamtp;
-						model_lamth=Lamth_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
-						model_lamph=Lamph_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
-						model_lamtp=Lamtp_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT);
-
-						if(model_lamth>-4.&&model_lamth<-2.){
-							double polDecision = gRandom->Uniform(-1,1);
-							if(polDecision>0) model_lamth=-2.;
-							else model_lamth=-4.;
-						}
-
-						//cout<<"model_lamth"<<model_lamth<<endl;
-						//cout<<"model_lamph"<<model_lamph<<endl;
-						//cout<<"model_lamtp"<<model_lamtp<<endl;
-
-						//cout<<"model_costh"<<model_costh<<endl;
-						//cout<<"model_phi"<<model_phi<<endl;
-
-						double polNormFactor;
-						if(genAngDist2D){
-							TF2 *fcosthphi;
-							fcosthphi = new TF2( "fcosthphi", "[0]*(1.+[1]*x[0]*x[0]+[2]*(1.-x[0]*x[0])*cos(2.*x[1]*0.0174532925)+[3]*2.*x[0]*sqrt(1.-x[0]*x[0])*cos(x[1]*0.0174532925))", -1., 1., -180., 180. );
-							fcosthphi->SetParameters(3./(3.+model_lamth),model_lamth, model_lamph, model_lamtp);
-							model_weight*=fcosthphi->Eval(model_costh,model_phi);
-							polNormFactor=fcosthphi->Integral(-1., 1., -180., 180. );
-							model_weight*=2.*360./fcosthphi->Integral(-1., 1., -180., 180. );
-							if(2.*360./fcosthphi->Integral(-1., 1., -180., 180. )-3>1e-2) cout<<"model_weight pol norm not 3 but "<<2.*360./fcosthphi->Integral(-1., 1., -180., 180. )<<endl;
-							if(log(model_weight)>8 && TMath::Abs(model_rap)<1.2&&model_pT>12&&model_pT<13.5){
-								cout<<"model_weight pT "<<SDC_Graph[StatesGivenIndex][rapIndex][iColorChannel]->Eval(model_pT)<<endl;
-								cout<<"model_lamth "<<model_lamth<<endl;
-								cout<<"model_weight pol function "<<fcosthphi->Eval(model_costh,model_phi)<<endl;
-								cout<<"model_weight pol norm "<<2.*360./fcosthphi->Integral(-1., 1., -180., 180. )<<endl;
-								cout<<"resulting weight "<<model_weight<<endl;
-							}
-
-							delete fcosthphi;
-						}
-						if(!genAngDist2D){
-							TF1 *fcosth;
-							fcosth = new TF1( "fcosth", "[0]*(1.+[1]*x[0]*x[0])", -1., 1.);
-							fcosth->SetParameters(1.,model_lamth);
-							model_weight*=fcosth->Eval(model_costh);
-							model_weight*=2./fcosth->Integral(-1., 1.);
-
-							delete fcosth;
-						}
-						//cout<<"model_weight pol"<<model_weight<<endl;
-
-						model_pT*=MassRatioCtB[ScaleStateIndex];
-
-						nTupleModel[iScaleToMother][iColorChannel]->Fill();
-
-						if (k%nStep == 0) {
-							cout << nStep_*10 <<"% (nState = "<<iScaleToMother<<", Color channel = "<<iColorChannel<<")"<<endl;
-							++nStep_;
-						}
-
-					}
-					else k--;
-
-
-
-
-				}
-
-
-				bool interpretModelIntegratedInRapidityInterval=true;
-
-				double deltapT=(model_pTMax-model_pTMin)*MassRatioCtB[ScaleStateIndex];
-				double deltay=model_rapMax-model_rapMin;
-
-				double phasespaceFactor=0;//30.*1.2+20.*1.2; //sum_i ( deltaPt_i*deltaRap_i ) with i...rap bin
-				for(int j=0;j<nRapIntervals;j++){
-					double deltaPt=(pTMax[j]-pTMin[j])*MassRatioCtB[ScaleStateIndex];
-					double deltaY=RapIntervalBordersMax[j]-RapIntervalBordersMin[j];
-					if(isAbsRap[j]) deltaY*=2;
-
-					if(interpretModelIntegratedInRapidityInterval) phasespaceFactor+=deltaPt;
-					else phasespaceFactor+=deltaPt*deltaY;
-				}
-
-				double globalWeight=1./double(n_nTuple)*phasespaceFactor;
-
-				cout<<"globalWeight "<<globalWeight<<endl;
-
-				cout<<"Generated "<<n_nTuple<<" events"<<endl;
-				cout<<"nTupleModel[iScaleToMother][iColorChannel]->GetEntries() "<<nTupleModel[iScaleToMother][iColorChannel]->GetEntries()<<endl;
-
-
-
-			}
-		}
-
-*/
 
 
   	return 0;

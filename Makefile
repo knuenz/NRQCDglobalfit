@@ -16,7 +16,7 @@ LIBS+=-L/afs/cern.ch/cms/sw/slc5_ia32_gcc434/lcg/roofit/5.26.00-cms5/lib
 	$(CXX) -c $<
 
 
-all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD PlotPPDderivative PlotPPD_vs_pTmin
+all: SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD PlotPPDderivative PlotPPD_vs_pTmin ScaleGWWZ2014model
 
 SamplePPD: src/SamplePPD.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit  -lMinuit2
@@ -51,6 +51,9 @@ ScaleBKmodel: src/ScaleBKmodel.cc
 ScaleGWWZmodel: src/ScaleGWWZmodel.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
 
+ScaleGWWZ2014model: src/ScaleGWWZ2014model.cc
+	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit
+
 FitPtDists: src/FitPtDists.cc
 	$(CXX) $^ -o $@ $(LIBS) -lRooFit -lRooFitCore -lFoam -lMinuit				
 
@@ -65,5 +68,5 @@ PlotPPD_vs_pTmin: src/PlotPPD_vs_pTmin.cc
 	
 								
 clean: 
-	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD PlotPPDderivative PlotPPD_vs_pTmin*.o
+	rm SamplePPD ConvertDataInput ConvertModelInput CombineDataModel ConvertNTupleToTTree GenerateToyData InterpretPPD PlotCompareDataModel ConvertBKmodelToTTree ScaleBKmodel ScaleGWWZmodel FitPtDists PlotPPD PlotPPDderivative PlotPPD_vs_pTmin ScaleGWWZ2014model*.o
 	

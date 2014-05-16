@@ -43,14 +43,18 @@ double func_pT_gen(double* x, double* par);
 
 int main(int argc, char** argv) {
 
-  	Char_t *OriginalModelID = "Default";
+  	Char_t *OriginalModelIDCCbar = "Default";
+  	Char_t *OriginalModelIDBBbar = "Default";
   	Char_t *ModelID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
+	int n_nTuple = 5e6; 
 
   	for( int i=0;i < argc; ++i ) {
-		if(std::string(argv[i]).find("OriginalModelID") != std::string::npos) {char* OriginalModelIDchar = argv[i]; char* OriginalModelIDchar2 = strtok (OriginalModelIDchar, "="); OriginalModelID = OriginalModelIDchar2; cout<<"OriginalModelID = "<<OriginalModelID<<endl;}
+		if(std::string(argv[i]).find("OriginalModelIDCCbar") != std::string::npos) {char* OriginalModelIDCCbarchar = argv[i]; char* OriginalModelIDCCbarchar2 = strtok (OriginalModelIDCCbarchar, "="); OriginalModelIDCCbar = OriginalModelIDCCbarchar2; cout<<"OriginalModelIDCCbar = "<<OriginalModelIDCCbar<<endl;}
+		if(std::string(argv[i]).find("OriginalModelIDBBbar") != std::string::npos) {char* OriginalModelIDBBbarchar = argv[i]; char* OriginalModelIDBBbarchar2 = strtok (OriginalModelIDBBbarchar, "="); OriginalModelIDBBbar = OriginalModelIDBBbarchar2; cout<<"OriginalModelIDBBbar = "<<OriginalModelIDBBbar<<endl;}
 		if(std::string(argv[i]).find("ModelID") != std::string::npos) {char* ModelIDchar = argv[i]; char* ModelIDchar2 = strtok (ModelIDchar, "="); ModelID = ModelIDchar2; cout<<"ModelID = "<<ModelID<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
+		if(std::string(argv[i]).find("n_nTuple") != std::string::npos) {n_nTuple = atoi(argv[i]); cout<<"n_nTuple = "<<n_nTuple<<endl;}
   	}
 
 	gRandom = new TRandom3(NRQCDvars::randomSeed);  // better random generator
@@ -59,8 +63,8 @@ int main(int argc, char** argv) {
 	char inname[2000];
 	char premodeldirname[2000];
 	char modeldirname[2000];
-	char originalmodeldirname[2000];
-
+	char originalmodelccbardirname[2000];
+	char originalmodelbbbardirname[2000];
 
 	sprintf(premodeldirname,"%s/ModelID", storagedir);
 	gSystem->mkdir(premodeldirname);
@@ -69,9 +73,10 @@ int main(int argc, char** argv) {
 
 	sprintf(premodeldirname,"%s/OriginalModelID",storagedir);
 	gSystem->mkdir(premodeldirname);
-	sprintf(originalmodeldirname,"%s/%s",premodeldirname,OriginalModelID);
-	gSystem->mkdir(originalmodeldirname);
-
+	sprintf(originalmodelccbardirname,"%s/%s",premodeldirname,OriginalModelIDCCbar);
+	//H: gSystem->mkdir(originalmodelccbardirname);
+	sprintf(originalmodelbbbardirname,"%s/%s",premodeldirname,OriginalModelIDBBbar);
+	//H: gSystem->mkdir(originalmodelbbbardirname);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Convert BK input model
@@ -87,29 +92,41 @@ int main(int argc, char** argv) {
 	double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4.};
 	double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 1.6, 2., 2.5, 3., 3.5, 4., 4.5};
 
-		sprintf(inname,"%s/TGraphs_scaled.root",originalmodeldirname);
-		TFile* inputFile = new TFile(inname, "READ");
-		cout<<"opened TGraph file"<<endl;
+	//sprintf(inname,"%s/TGraphs_scaled.root",originalmodeldirname);
+	TFile* inputFile; // = new TFile(inname, "READ");
+	//cout<<"opened TGraph file"<<endl;
 
-		TGraph *SDC_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
-		TGraph *Lamth_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
-		TGraph *Lamph_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
-		TGraph *Lamtp_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
+	TGraph *SDC_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
+	TGraph *Lamth_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
+	TGraph *Lamph_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
+	TGraph *Lamtp_Graph[NRQCDvars::nStates][nRapIntervals][NRQCDvars::nColorChannels];
 
-		char nameSDCgraph[200];
-		char nameLamthgraph[200];
-		char nameLamphgraph[200];
-		char nameLamtpgraph[200];
+	char nameSDCgraph[200];
+	char nameLamthgraph[200];
+	char nameLamphgraph[200];
+	char nameLamtpgraph[200];
 
-		double model_pTMin_state[NRQCDvars::nStates], model_pTMax_state[NRQCDvars::nStates];
-		double model_pTMin_staterap[NRQCDvars::nStates][nRapIntervals], model_pTMax_staterap[NRQCDvars::nStates][nRapIntervals];
+	double model_pTMin_state[NRQCDvars::nStates], model_pTMax_state[NRQCDvars::nStates];
+	double model_pTMin_staterap[NRQCDvars::nStates][nRapIntervals], model_pTMax_staterap[NRQCDvars::nStates][nRapIntervals];
 
-		bool ModelGiven[NRQCDvars::nStates];
+	bool ModelGiven[NRQCDvars::nStates];
 
-		for(int i=0;i<NRQCDvars::nStates;i++){
-			model_pTMin_state[i]=10000;
-			model_pTMax_state[i]=0;
-			ModelGiven[i]=false;
+	for(int i=0;i<NRQCDvars::nStates;i++){
+
+	  if(i == PSI_1S){
+	    sprintf(inname,"%s/TGraphs_scaled.root",originalmodelccbardirname);
+	    inputFile = new TFile(inname, "READ");
+	    printf("<ConvertBKmodelToTree> opening model input file %s for charmonium\n", inputFile->GetName());
+	  }
+	  else if(i == UPS_1S){
+	    if(inputFile) delete inputFile;
+	    sprintf(inname,"%s/TGraphs_scaled.root",originalmodelbbbardirname);
+	    inputFile = new TFile(inname, "READ");
+	    printf("<ConvertBKmodelToTree> opening model input file %s for bottomonium\n", inputFile->GetName());
+	  }
+	  model_pTMin_state[i]=10000;
+	  model_pTMax_state[i]=0;
+	  ModelGiven[i]=false;
 
 			for(int j=0;j<nRapIntervals;j++){
 				int nColorChannels_state;
@@ -170,16 +187,12 @@ int main(int argc, char** argv) {
 	model_phiMin=-180;
 	model_phiMax=180;
 
-	bool ignoreState[NRQCDvars::nStates]={true, true, true, false, true, true, true, true, true, true, false, true, true};
-
-	int n_nTuple=5000000;
-
 	TTree* nTupleModel[NRQCDvars::nStates][NRQCDvars::nColorChannels];
 	char nTupleModelName[1000];
 
 	for (int iMother=0; iMother<NRQCDvars::nStates; iMother++){
 		if(!ModelGiven[iMother]) continue;
-		if(ignoreState[iMother]) continue;
+		if(NRQCDvars::ignoreState[iMother]) continue;
 		if(iMother!=0 && iMother!=3&& iMother!=4 && iMother!=7 && iMother!=10)
 		cout<<"Converting original model nTuple for nState = "<<iMother<<endl;
 		int nColorChannels_state;

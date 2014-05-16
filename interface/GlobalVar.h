@@ -26,6 +26,7 @@ enum {MH, Minuit}; //choice of Minimizer
 enum {PSI_1S, CHIC1_1P, CHIC2_1P, PSI_2S, UPS_1S, CHIB1_1P, CHIB2_1P, UPS_2S,
 	  CHIB1_2P, CHIB2_2P, UPS_3S, CHIB1_3P, CHIB2_3P};
 const int nStates = (CHIB2_3P-PSI_1S)+1;// modified by Joao: always use last state - first state to set this number
+bool ignoreState[nStates]={true, true, true, false, true, true, true, true, true, true, false, true, true};
 enum {CrossSection, Lamth, Lamph, Lamtp, CrossSectionRatio, FeedDownFraction};
 const int nMeasurementIDs = (FeedDownFraction-CrossSection)+1; // modified by Joao: : always use last measur. - first measur. to set this number
 
@@ -50,7 +51,7 @@ Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
-const int nModelSystematicScales = 0;
+const int nModelSystematicScales = 3; //0... theory unc. not included; 3... they are included
 const int nDataSystematicScales = nExperiments;
 
 //const int nColorChannels_S=4;//includes CS
@@ -58,10 +59,15 @@ const int nDataSystematicScales = nExperiments;
 //Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
 //Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{3}#it{S}_{1}^{[8]}"};
 
-const int nColorChannels_S=3;//includes CS
-const int nColorChannels_P=3;//includes CS
-Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
-Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+//const int nColorChannels_S=3;//includes CS
+//const int nColorChannels_P=3;//includes CS
+//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+
+const int nColorChannels_S=4;//includes CS
+const int nColorChannels_P=4;//includes CS
+Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
+Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
 
 //const int nColorChannels_S=2;//includes CS
 //const int nColorChannels_P=2;//includes CS
@@ -130,7 +136,7 @@ double errFeedDownBranchingRatio[nStates][nStates]={
 //};
 
 //TODO:
-double ColorSingletME[nStates]={1.32, 1e-5,  1e-5, 0.76, 1., 1., 1., 1., 1., 1., 1., 1., 1.}; //ColorSinglet matrix elements taken from literature
+double ColorSingletME[nStates]={1.32, 0.1075,  0.1075, 0.76, 9.28, 1e-5, 1e-5, 4.63, 1e-5, 1e-5, 3.54, 1e-5, 1e-5}; //ColorSinglet matrix elements taken from literature
 double errColorSingletME[nStates]={0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}; //uncertainty on ColorSinglet matrix elements taken from literature
 //const double pT_star=35.;//20;
 const double pT_star_over_m=6.;

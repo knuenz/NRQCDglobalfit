@@ -1,7 +1,5 @@
 #!/bin/sh
 
-#storagedir=/Users/hwoehri/Temp/NRQCD
-#storagedir=/Volumes/CMSData/NRQCD
 storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 
 #store here the NRQCDglobalfitObjects containing data measurements
@@ -12,16 +10,12 @@ DataID=December7_addJpsiData_addSomPolUncertainties
 
 ### This is the location of the original model (nTuple provided by Sergey or BK model txt file)
 #OriginalModelID=GWWZmodel
-OriginalModelID=GWWZ2014model
-#OriginalModelID=BKmodel70
-OriginalModelIDCCbar=BKmodel70 #needed for "ConvertBKmodelToTree" in which we can use different inputs for the different systems
-OriginalModelIDBBbar=GWWZmodel
+OriginalModelID=BKmodel70
 ### store here the ModelIngredients.root file and consts_star file
 ########################ModelID=October31_UNCORR_BKmodel70_OriginalAllStates_pTstar_over_m6_UpsAssumption #HP original
 ########################ModelID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption #HP scaled
-#ModelID=December2_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
+ModelID=December2_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
 #ModelID=March1_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6_inclPJ_ModelOnly2States
-ModelID=13May2014_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
 
 ### store here the NRQCD objects combining data and model predictions
 ModelSystScaleID=NLOmLO_Nov30
@@ -33,7 +27,6 @@ DataModelCombID=December7_allNew_newRapNorm_newTHunc_realChiPol_addJpsiData_addS
 #DataModelCombID=March1_allNew_newRapNorm_noTHunc_realChiPol_addJpsiData_addSomePolUncertainties_inclPJ_ModelOnly2States
 #DataModelCombID=March3_ToyData_THunc
 
-n_nTuple=500000 #for final run should be 5e6
 ##### November30: new TH uncertainty, new P-wave CCs, Ep BK model, more data incl chi, new iExpYear, allScaled
 
 for pTMin in 0;do
@@ -66,8 +59,6 @@ run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
 run_ScaleBKmodel=0
 run_ScaleGWWZmodel=0
-run_ScaleGWWZ2014model=1
-run_ScaleGWWZ2014TF1model=0
 run_ConvertBKmodelToTTree=0
 run_ConvertModelInput=0
 run_CombineDataModel=0
@@ -124,10 +115,10 @@ PredictionDataPlot=false
 
 ### SamplePPD
 Minimizer=0		#0...MH, 1...Minuit
-#nBurnIn=5000 #H: test
-#nSample=50000 #H: test
-nBurnIn=10000 #H: best fit
-nSample=500000 #H: best fit
+#nBurnIn=5000
+#nSample=50000
+nBurnIn=5000
+nSample=50000
 SampleNp=true
 SampleNp_consts_star=true
 
@@ -151,8 +142,6 @@ cp FitPtDists FitPtDists_${DataID}
 cp ConvertNTupleToTTree ConvertNTupleToTTree_${ModelID}
 cp ScaleBKmodel ScaleBKmodel_${ModelID}
 cp ScaleGWWZmodel ScaleGWWZmodel_${ModelID}
-cp ScaleGWWZ2014model ScaleGWWZ2014model_${ModelID}
-cp ScaleGWWZ2014TF1model ScaleGWWZ2014TF1model_${ModelID}
 cp ConvertBKmodelToTTree ConvertBKmodelToTTree_${ModelID}
 cp ConvertModelInput ConvertModelInput_${ModelID}
 cp CombineDataModel CombineDataModel_${DataModelCombID}
@@ -187,17 +176,9 @@ if [ ${run_ScaleGWWZmodel} -eq 1 ]
 then
 ./ScaleGWWZmodel_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir
 fi
-if [ ${run_ScaleGWWZ2014model} -eq 1 ]
-then
-./ScaleGWWZ2014model_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir
-fi
-if [ ${run_ScaleGWWZ2014TF1model} -eq 1 ]
-then
-./ScaleGWWZ2014TF1model_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir
-fi
 if [ ${run_ConvertBKmodelToTTree} -eq 1 ]
 then
-./ConvertBKmodelToTTree_${ModelID} ${OriginalModelIDCCbar}=OriginalModelIDCCbar ${OriginalModelIDBBbar}=OriginalModelIDBBbar ${ModelID}=ModelID ${storagedir}=storagedir ${n_nTuple}=n_nTuple
+./ConvertBKmodelToTTree_${ModelID} ${OriginalModelID}=OriginalModelID ${ModelID}=ModelID ${storagedir}=storagedir
 fi
 if [ ${run_ConvertModelInput} -eq 1 ]
 then
@@ -255,23 +236,21 @@ fi
 
 
 
-rm -f ConvertDataInput_${DataID}
-rm -f ConvertNTupleToTTree_${ModelID}
-rm -f ConvertBKmodelToTTree_${ModelID}
-rm -f ConvertModelInput_${ModelID}
-rm -f CombineDataModel_${DataModelCombID}
-rm -f GenerateToyData_${DataModelCombID}
-rm -f SamplePPD_${JobID}
-rm -f InterpretPPD_${JobID}
-rm -f PlotCompareDataModel_${JobID}_PredictionPlot${PredictionPlot}_PredictionDataPlot${PredictionDataPlot}
-rm -f PlotPPD_${JobID}
-rm -f PlotPPDderivative_${JobID}
-rm -f PlotPPD_vs_pTmin_${JobID}
-rm -f ScaleBKmodel_${ModelID}
-rm -f ScaleGWWZmodel_${ModelID}
-rm -f ScaleGWWZ2014model_${ModelID}
-rm -f ScaleGWWZ2014TF1model_${ModelID}
-rm -f FitPtDists_${DataID}
+rm ConvertDataInput_${DataID}
+rm ConvertNTupleToTTree_${ModelID}
+rm ConvertBKmodelToTTree_${ModelID}
+rm ConvertModelInput_${ModelID}
+rm CombineDataModel_${DataModelCombID}
+rm GenerateToyData_${DataModelCombID}
+rm SamplePPD_${JobID}
+rm InterpretPPD_${JobID}
+rm PlotCompareDataModel_${JobID}_PredictionPlot${PredictionPlot}_PredictionDataPlot${PredictionDataPlot}
+rm PlotPPD_${JobID}
+rm PlotPPDderivative_${JobID}
+rm PlotPPD_vs_pTmin_${JobID}
+rm ScaleBKmodel_${ModelID}
+rm ScaleGWWZmodel_${ModelID}
+rm FitPtDists_${DataID}
 
 done
 done
