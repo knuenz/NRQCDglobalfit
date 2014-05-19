@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
 
 				outputTreeAllSamplings->GetEvent( i_event-1 );
 
-				if(acceptedSampling!=1 || BurnInInt==1) continue;
+				if(acceptedSampling<0 || BurnInInt==1) continue;
 				//if(O1<0 || O2<0) continue;
 
 				OpRatio=O1/O2;

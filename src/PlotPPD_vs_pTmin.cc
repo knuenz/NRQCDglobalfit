@@ -420,7 +420,7 @@ int main(int argc, char** argv) {
 
 				outputTreeAllSamplings[iSeq]->GetEvent( i_event-1 );
 
-				if(acceptedSampling!=1 || BurnInInt==1) continue;
+				if(acceptedSampling<0 || BurnInInt==1) continue;
 
 				plotObservableOut=plotObservable;
 				if(plotRatio) plotObservableOut=plotObservable/plotObservableD;

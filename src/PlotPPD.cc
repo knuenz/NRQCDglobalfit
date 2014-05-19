@@ -243,19 +243,19 @@ int main(int argc, char** argv) {
 
 						sprintf(h_2Df_name,"h_2Df_state%d_f%d_vs_f%d",i,j,k);
 						sprintf(projectchar,"%s:%s>>%s",branch_name_f2, branch_name_f1, h_2Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_2Df[j][k] 	= new TH2D( h_2Df_name, h_2Df_name, nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
 						outputTreeAllSamplings->Draw(projectchar, selectchar);
 
 						sprintf(h_2Df_name,"h_2Df2_state%d_f%d_vs_f%d",i,j,k);
 						sprintf(projectchar,"%s:%s>>%s",branch_name_f2, branch_name_f1, h_2Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_2Df2[j][k] 	= new TH2D( h_2Df_name, h_2Df_name, nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
 						outputTreeAllSamplings2->Draw(projectchar, selectchar);
 
 						sprintf(h_2Df_name,"h_2Df3_state%d_f%d_vs_f%d",i,j,k);
 						sprintf(projectchar,"%s:%s>>%s",branch_name_f2, branch_name_f1, h_2Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_2Df3[j][k] 	= new TH2D( h_2Df_name, h_2Df_name, nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
 						outputTreeAllSamplings3->Draw(projectchar, selectchar);
 
@@ -397,19 +397,19 @@ int main(int argc, char** argv) {
 
 						sprintf(h_1Df_name,"h_1Df_state%d_f%d",i,j);
 						sprintf(projectchar,"%s>>%s", branch_name_f1, h_1Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_1Df[j] 	= new TH1D( h_1Df_name, h_1Df_name, nBins1D, f1Min, f1Max );
 						outputTreeAllSamplings->Draw(projectchar, selectchar);
 
 						sprintf(h_1Df_name,"h_1Df2_state%d_f%d",i,j);
 						sprintf(projectchar,"%s>>%s", branch_name_f1, h_1Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_1Df2[j] 	= new TH1D( h_1Df_name, h_1Df_name, nBins1D, f1Min, f1Max );
 						outputTreeAllSamplings2->Draw(projectchar, selectchar);
 
 						sprintf(h_1Df_name,"h_1Df3_state%d_f%d",i,j);
 						sprintf(projectchar,"%s>>%s", branch_name_f1, h_1Df_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_1Df3[j] 	= new TH1D( h_1Df_name, h_1Df_name, nBins1D, f1Min, f1Max );
 						outputTreeAllSamplings3->Draw(projectchar, selectchar);
 

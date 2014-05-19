@@ -6,8 +6,9 @@ storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 
 #store here the NRQCDglobalfitObjects containing data measurements
 #DataID=October9_DataForPtFits #September27_Psi2SUps3Sonly 
-DataID=December7_addJpsiData_addSomPolUncertainties 
+#DataID=December7_addJpsiData_addSomPolUncertainties 
 #DataID=February7_addNewPrelCMSPsi2SUps3SmergedRapData
+DataID=May19 
 
 
 ### This is the location of the original model (nTuple provided by Sergey or BK model txt file)
@@ -15,13 +16,14 @@ DataID=December7_addJpsiData_addSomPolUncertainties
 OriginalModelID=GWWZ2014model
 #OriginalModelID=BKmodel70
 OriginalModelIDCCbar=BKmodel70 #needed for "ConvertBKmodelToTree" in which we can use different inputs for the different systems
-OriginalModelIDBBbar=GWWZmodel
+OriginalModelIDBBbar=GWWZ2014model
 ### store here the ModelIngredients.root file and consts_star file
 ########################ModelID=October31_UNCORR_BKmodel70_OriginalAllStates_pTstar_over_m6_UpsAssumption #HP original
 ########################ModelID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption #HP scaled
 #ModelID=December2_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
 #ModelID=March1_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6_inclPJ_ModelOnly2States
-ModelID=13May2014_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
+#ModelID=13May2014_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
+ModelID=May19
 
 ### store here the NRQCD objects combining data and model predictions
 ModelSystScaleID=NLOmLO_Nov30
@@ -29,11 +31,12 @@ ModelSystScaleID=NLOmLO_Nov30
 ##########################DataModelCombID=August24_Psi2Sonly_BKmodel_NoAbsDef_NoLamphLamtp
 ##########################DataModelCombID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption_AddTheoryUncertainty_AddNonModelDataPointsForPlots_NEW_THuncert
 ##########################DataModelCombID=February7_allNew_newRapNorm_newTHunc_realChiPol_addJpsiData_addNewPrelCMSPsi2SUps3SmergedRapData
-DataModelCombID=December7_allNew_newRapNorm_newTHunc_realChiPol_addJpsiData_addSomePolUncertainties
+#DataModelCombID=December7_allNew_newRapNorm_newTHunc_realChiPol_addJpsiData_addSomePolUncertainties
 #DataModelCombID=March1_allNew_newRapNorm_noTHunc_realChiPol_addJpsiData_addSomePolUncertainties_inclPJ_ModelOnly2States
 #DataModelCombID=March3_ToyData_THunc
+DataModelCombID=May19
 
-n_nTuple=500000 #for final run should be 5e6
+n_nTuple=10000 #for final run should be 5e6
 ##### November30: new TH uncertainty, new P-wave CCs, Ep BK model, more data incl chi, new iExpYear, allScaled
 
 for pTMin in 0;do
@@ -57,7 +60,7 @@ pTMax=200
 
 #for JobID in BestFit_Psi2SpTmin12_Ups3SpTmin30_March1_1e4BI_5e5steps_DebugTHuncert;do
 #for JobID in BestFit_inclPJ_Psi2SpTmin12_Ups3SpTmin30_March2_1e4BI_5e4steps_noTHuncert;do
-for JobID in Test_JobID;do
+for JobID in May19;do
 
 
 run_ConvertDataInput=0
@@ -66,15 +69,14 @@ run_ConvertDataInput=0
 run_ConvertNTupleToTTree=0
 run_ScaleBKmodel=0
 run_ScaleGWWZmodel=0
-run_ScaleGWWZ2014model=1
-run_ScaleGWWZ2014TF1model=0
+run_ScaleGWWZ2014model=0
 run_ConvertBKmodelToTTree=0
 run_ConvertModelInput=0
-run_CombineDataModel=0
+run_CombineDataModel=1
 run_GenerateToyData=0
 
 #Fit and plot
-run_SamplePPD=0
+run_SamplePPD=1
 run_InterpretPPD=0
 run_PlotCompareDataModel=0
 
@@ -84,7 +86,7 @@ run_PlotPPD=0
 run_PlotPPDderivative=0
 run_PlotPPD_vs_pTmin=0
 
-reCompile=0 #dangerous in loops...
+reCompile=1 #dangerous in loops...
 
 ##################################
 ########## SELECTION #############
@@ -105,6 +107,9 @@ usePolarizationOnly=false
 ########## SETTINGS ##############
 ##################################
 
+### ScaleGWWZ2014TF1model
+useTF1inputs=true
+
 ### ConvertNTupleToTTree
 
 ### ConvertDataInput
@@ -124,10 +129,12 @@ PredictionDataPlot=false
 
 ### SamplePPD
 Minimizer=0		#0...MH, 1...Minuit
+nBurnIn=1000 #H: lowest test
+nSample=5000 #H: lowest test
 #nBurnIn=5000 #H: test
 #nSample=50000 #H: test
-nBurnIn=10000 #H: best fit
-nSample=500000 #H: best fit
+#nBurnIn=10000 #H: best fit
+#nSample=500000 #H: best fit
 SampleNp=true
 SampleNp_consts_star=true
 
@@ -189,11 +196,7 @@ then
 fi
 if [ ${run_ScaleGWWZ2014model} -eq 1 ]
 then
-./ScaleGWWZ2014model_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir
-fi
-if [ ${run_ScaleGWWZ2014TF1model} -eq 1 ]
-then
-./ScaleGWWZ2014TF1model_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir
+./ScaleGWWZ2014model_${ModelID} ${OriginalModelID}=OriginalModelID ${storagedir}=storagedir useTF1inputs=${useTF1inputs}
 fi
 if [ ${run_ConvertBKmodelToTTree} -eq 1 ]
 then

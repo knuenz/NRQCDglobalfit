@@ -77,13 +77,12 @@ There is one output text file for each measurement, containing one NRQCDglobalfi
 4) Convert model inputs too needed format
 :::::::::::::::::::::::::::::::::::::::::
 
-a) ScaleBKmodel
+a1) ScaleBKmodel
 
 
 runNRQCDglobalfit.sh:
 -set run_ScaleBKmodel=1
 -define OriginalModelID (=input, output)
--define OriginalModelID
 
 Input files: storagedir/OriginalModelID/${OriginalModelID}/...txt
 Output files: storagedir/OriginalModelID/${OriginalModelID}/TGraphs_scaled.root
@@ -91,6 +90,23 @@ Output files: storagedir/OriginalModelID/${OriginalModelID}/TGraphs_scaled.root
 The purpose of this step is to take the original theory inputs, include all the assumptions of our study (e.g. extrapolation towards high/low pT and throughout all rapidity regions needed, scaling pT/M), and convert the new theory ingredients as TGraphs.
 The input files are the BK model ingredients (direcly the values sent by the authors)
 The output file contains TGraphs for all scaled SDCs and polarizations
+
+
+a2) ScaleGWWZ2014model
+
+runNRQCDglobalfit.sh:
+-set run_ScaleGWWZ2014model=1
+-define OriginalModelID (=input, output)
+
+Input files: storagedir/OriginalModelID/${OriginalModelID}/...
+Output files: storagedir/OriginalModelID/${OriginalModelID}/TGraphs_scaled_XX.root
+
+The purpose of this step is to take the original theory inputs, include all the assumptions of our study (e.g. extrapolation towards high/low pT and throughout all rapidity regions needed, scaling pT/M), and convert the new theory ingredients as TGraphs.
+The input files are the Luping model ingredients (direcly the values sent by the authors)
+The output file contains TGraphs for all scaled SDCs and polarizations
+
+Alternatively, one can use fitted functions of the transverse and longitudinal SDCsa s inputs (TF1s):
+Set useTF1input=true (runNRQCDglobalfit.sh) and put the root input files in OriginalModelID/${OriginalModelID}/data-TF1/....root
 
 
 b) ConvertBKmodelToTTree

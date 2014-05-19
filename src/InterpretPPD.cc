@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 				if(j==0) sprintf(hist_var_name,"R^{%s}", StateNameTex[i]);
 				h_fi[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"state%d_f%d>>%s",i,j,hist_name);
-				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 				cout<<projectchar<<" , "<<selectchar<<endl;
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_fi[i][j]->SetTitle(0);
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
 				else sprintf(hist_var_name,"O_{%s}^{%s}", ColorChannelNameTexP[j], StateNameTex[i]);
 				h_Opi[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"state%d_Op%d>>%s",i,j,hist_name);
-				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_Opi[i][j]->SetTitle(0);
 				cout<<branch_name<<endl;
@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
 				if(j==0) sprintf(hist_var_name,"#sigma_{s}*^{%s}", StateNameTex[i]);
 				h_consts_star_var[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"%s>>%s",branch_name,hist_name);
-				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_consts_star_var[i][j]->SetTitle(0);
 				if(FreeParam_consts_star[i][j]==1 && SampleNp_consts_star) FindMPV(h_consts_star_var[i][j], buff_consts_star_var_MPV, buff_consts_star_var_errlow, buff_consts_star_var_errhign, MPValgo, nSigma);
@@ -379,7 +379,7 @@ int main(int argc, char** argv) {
 				sprintf(hist_var_name,"BR( %s -> %s )", StateNameTex[j], StateNameTex[i]);
 				h_Np_BR[i][j] -> SetXTitle(hist_var_name);
 				sprintf(projectchar,"%s>>%s",branch_name,hist_name);
-				sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+				sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 				outputTreeAllSamplings->Draw(projectchar, selectchar);
 				h_Np_BR[i][j]->SetTitle(0);
 				if(FreeParam_Np_BR[i][j]==1 && SampleNp) FindMPV(h_Np_BR[i][j], buff_Np_BR_MPV, buff_Np_BR_errlow, buff_Np_BR_errhign, MPValgo, nSigma);
@@ -440,7 +440,7 @@ int main(int argc, char** argv) {
 		sprintf(hist_var_name,"LumiCorrFactor(%s)", ExpNameTex[j]);
 		h_Np_US[i][j] -> SetXTitle(hist_var_name);
 		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
-		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+		sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 		outputTreeAllSamplings->Draw(projectchar, selectchar);
 		h_Np_US[i][j]->SetTitle(0);
 		if(FreeParam_Np_US[i][j]==1 && SampleNp) FindMPV(h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign, MPValgo, nSigma);
@@ -473,7 +473,7 @@ int main(int argc, char** argv) {
 		sprintf(hist_var_name,"Np Model uncertainty, %s", ColorChannelNameTexS[j]);
 		h_Np_US[i][j] -> SetXTitle(hist_var_name);
 		sprintf(projectchar,"%s>>%s",branch_name,hist_name);
-		sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+		sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 		outputTreeAllSamplings->Draw(projectchar, selectchar);
 		h_Np_US[i][j]->SetTitle(0);
 		if(FreeParam_Np_US[i][j]==1 && SampleNp) FindMPV(h_Np_US[i][j], buff_Np_US_MPV, buff_Np_US_errlow, buff_Np_US_errhign, MPValgo, nSigma);
@@ -591,7 +591,7 @@ int main(int argc, char** argv) {
 						sprintf(hist_var_name_O2,"O_{%s}^{%s}", ColorChannelNameTexP[k], StateNameTex[i]);
 					}
 					sprintf(projectchar,"%s:%s>>%s",branch_name_O2, branch_name_O1, h_2DLDME_name);
-					sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+					sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 
 					O2Min=-4.e-4;
 					O2Max=12.e-4;
@@ -717,7 +717,7 @@ int main(int argc, char** argv) {
 						if(j==0) sprintf(hist_var_name_f1,"R^{%s}", StateNameTex[i]);
 						if(k==0) sprintf(hist_var_name_f2,"R^{%s}", StateNameTex[i]);
 						sprintf(projectchar,"%s:%s>>%s",branch_name_f2, branch_name_f1, h_2DLDME_name);
-						sprintf(selectchar,"acceptedSampling==1 && BurnInInt==0");
+						sprintf(selectchar,"acceptedSampling>-1 && BurnInInt==0");
 						h_2DLDME[j][k] 	= new TH2D( h_2DLDME_name, h_2DLDME_name, nBins2D, f1Min, f1Max, nBins2D, f2Min, f2Max );
 						outputTreeAllSamplings->Draw(projectchar, selectchar);
 

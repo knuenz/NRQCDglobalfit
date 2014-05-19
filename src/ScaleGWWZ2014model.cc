@@ -49,10 +49,12 @@ int main(int argc, char** argv) {
 
   	Char_t *OriginalModelID = "Default";
 	Char_t *storagedir = "Default"; //Storage Directory
+	bool useTF1inputs=false;
 
   	for( int i=0;i < argc; ++i ) {
 		if(std::string(argv[i]).find("OriginalModelID") != std::string::npos) {char* OriginalModelIDchar = argv[i]; char* OriginalModelIDchar2 = strtok (OriginalModelIDchar, "="); OriginalModelID = OriginalModelIDchar2; cout<<"OriginalModelID = "<<OriginalModelID<<endl;}
 		if(std::string(argv[i]).find("storagedir") != std::string::npos) {char* storagedirchar = argv[i]; char* storagedirchar2 = strtok (storagedirchar, "="); storagedir = storagedirchar2; cout<<"storagedir = "<<storagedir<<endl;}
+	    if(std::string(argv[i]).find("useTF1inputs=true") != std::string::npos) {useTF1inputs=true;cout<<"useTF1inputs=true"<<endl;}
   	}
 
 	gRandom = new TRandom3(NRQCDvars::randomSeed);  // better random generator
@@ -96,16 +98,6 @@ int main(int argc, char** argv) {
 		double RapIntervalBordersMin[nRapIntervals]={0, 0.6, 1.2};
 		double RapIntervalBordersMax[nRapIntervals]={0.6, 1.2, 1.5};
 		double AverageRap[nRapIntervals]={0.3, 0.9, 1.35};
-		const int npTBinsPerRap[nStatesGiven][nRapIntervals]={
-				{24, 24, 24},
-				{24, 24, 24},
-				{24, 24, 24},
-				{24, 24, 24},
-				{40, 40, 40},
-				{32, 32, 32},
-				{32, 32, 32}
-		};
-		const int maxpTBinsPerRap=40;
 
 
 		double deltaRapOriginal[nRapIntervals];
@@ -137,6 +129,7 @@ int main(int argc, char** argv) {
 		double dummyVal=999;
 
 
+		const int maxpTBinsPerRap=40;
 
 		double pTmean[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];//={
 
@@ -159,130 +152,243 @@ int main(int argc, char** argv) {
 				{110, 110, 110}
 		};
 
-		double model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
-		double err_model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
-
 		cout<<"read in file"<<endl;
 
-		char in_rapChar[200];
-		char in_stateChar[200];
-		char in_helcolChar[200];
+		//Objects used for TF1 input
+		TF1* SDC_funcInp[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
+		//TGraph *SDC_graphInp[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
 
-		for(int i=0;i<nStatesGiven;i++){
-			cout<<"State"<<StatesGiven[i]<<endl;
-
-		    if(StatesGiven[i]==0) sprintf(in_stateChar,"Jpsi/direct");
-		    if(StatesGiven[i]==1) sprintf(in_stateChar,"Jpsi/chic_feeddown");
-		    if(StatesGiven[i]==2) sprintf(in_stateChar,"Jpsi/chic_feeddown");
-		    if(StatesGiven[i]==3) sprintf(in_stateChar,"Psi2s/direct");
-		    if(StatesGiven[i]==4) sprintf(in_stateChar,"upsilon1s/direct");
-		    if(StatesGiven[i]==7) sprintf(in_stateChar,"upsilon2s/direct");
-		    if(StatesGiven[i]==10) sprintf(in_stateChar,"upsilon3s/direct");
-
-			for(int j=0;j<nRapIntervals;j++){
-				cout<<"rap"<<j<<endl;
-
-			    if(j==0) sprintf(in_rapChar,"y_0-0.6");
-			    if(j==1) sprintf(in_rapChar,"y_0.6-1.2");
-			    if(j==2) sprintf(in_rapChar,"y_1.2-1.5");
-
-				for(int l=0;l<nHelicityChannels;l++){
-					cout<<"helicity"<<l<<endl;
+		//Objects used for txt input
+		TGraph *model_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
 
 
+		if(!useTF1inputs){
+
+			const int npTBinsPerRap[nStatesGiven][nRapIntervals]={
+					{24, 24, 24},
+					{24, 24, 24},
+					{24, 24, 24},
+					{24, 24, 24},
+					{40, 40, 40},
+					{32, 32, 32},
+					{32, 32, 32}
+			};
+
+			double model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
+			double err_model[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels][maxpTBinsPerRap];
+
+			char in_rapChar[200];
+			char in_stateChar[200];
+			char in_helcolChar[200];
+
+			for(int i=0;i<nStatesGiven;i++){
+				cout<<"State"<<StatesGiven[i]<<endl;
+
+				if(StatesGiven[i]==0) sprintf(in_stateChar,"Jpsi/direct");
+				if(StatesGiven[i]==1) sprintf(in_stateChar,"Jpsi/chic_feeddown");
+				if(StatesGiven[i]==2) sprintf(in_stateChar,"Jpsi/chic_feeddown");
+				if(StatesGiven[i]==3) sprintf(in_stateChar,"Psi2s/direct");
+				if(StatesGiven[i]==4) sprintf(in_stateChar,"upsilon1s/direct");
+				if(StatesGiven[i]==7) sprintf(in_stateChar,"upsilon2s/direct");
+				if(StatesGiven[i]==10) sprintf(in_stateChar,"upsilon3s/direct");
+
+				for(int j=0;j<nRapIntervals;j++){
+					cout<<"rap"<<j<<endl;
+
+					if(j==0) sprintf(in_rapChar,"y_0-0.6");
+					if(j==1) sprintf(in_rapChar,"y_0.6-1.2");
+					if(j==2) sprintf(in_rapChar,"y_1.2-1.5");
+
+					for(int l=0;l<nHelicityChannels;l++){
+						cout<<"helicity"<<l<<endl;
+
+
+						for(int k=0;k<nColorChannelsGiven;k++){
+							cout<<"color channel"<<k<<endl;
+
+							if(l==0 && k==0) sprintf(in_helcolChar,"lp/cs");
+							if(l==1 && k==0) sprintf(in_helcolChar,"tp/cs");
+
+							if(l==0 && k==1) sprintf(in_helcolChar,"pt/1s08");
+							if(l==1 && k==1) sprintf(in_helcolChar,"pt/1s08");
+
+							if(l==0 && k==2) sprintf(in_helcolChar,"lp/3s18");
+							if(l==1 && k==2) sprintf(in_helcolChar,"tp/3s18");
+
+							if(l==0 && k==3) sprintf(in_helcolChar,"lp/3pj8");
+							if(l==1 && k==3) sprintf(in_helcolChar,"tp/3pj8");
+
+							if(StatesGiven[i]==1 || StatesGiven[i]==2){
+								if(l==0 && k==0) sprintf(in_helcolChar,"lp/3pj1");
+								if(l==1 && k==0) sprintf(in_helcolChar,"tp/3pj1");
+							}
+
+							if(StatesGiven[i]<4) sprintf(inname,"%s/data-jpsi/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
+							else sprintf(inname,"%s/data-ups/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
+
+							FILE *fIn;
+							fIn = fopen(inname, "read");
+							cout<<inname<<endl;
+							Char_t line[1000];
+
+							bool readIn=true;
+							if(isDummyColorChannel[i][k]){
+								cout<<"isDummyColorChannel"<<endl;
+								readIn=false;
+							}
+							if(isDummyRap[i][j]){
+								cout<<"isDummyRap"<<endl;
+								readIn=false;
+							}
+
+							for(int m=0;m<npTBinsPerRap[i][j];m++){
+
+
+								if(!readIn){
+									pTmean[i][j][k][l][m]=m;
+									model[i][j][k][l][m]=dummyVal;
+									err_model[i][j][k][l][m]=dummyVal;
+								}
+
+								if(readIn){
+									double buffer;
+									fgets(line, sizeof(line), fIn); //comment
+									cout<<line<<endl;
+									sscanf(line, "%lf %lf %lf", &pTmean[i][j][k][l][m], &model[i][j][k][l][m], &err_model[i][j][k][l][m]);
+								}
+
+								if(k==1){
+									model[i][j][k][l][m]/=3.;
+									err_model[i][j][k][l][m]/=3.;
+								}
+
+								cout<<pTmean[i][j][k][l][m]<<" "<<model[i][j][k][l][m]<<" "<<err_model[i][j][k][l][m]<<" "<<endl;
+
+							}
+							if(readIn) fgets(line, sizeof(line), fIn); //comment
+						}
+					}
+				}
+			}
+
+
+			for(int i=0;i<nStatesGiven;i++){
+				for(int j=0;j<nRapIntervals;j++){
 					for(int k=0;k<nColorChannelsGiven;k++){
-						cout<<"color channel"<<k<<endl;
+						for(int l=0;l<nHelicityChannels;l++){
 
-					    if(l==0 && k==0) sprintf(in_helcolChar,"lp/cs");
-					    if(l==1 && k==0) sprintf(in_helcolChar,"tp/cs");
+							double pTmean_graph[npTBinsPerRap[i][j]];
+							double model_graph[npTBinsPerRap[i][j]];
+							for(int m=0;m<npTBinsPerRap[i][j];m++){
+								pTmean_graph[m]=pTmean[i][j][k][l][m];
+								model_graph[m]=model[i][j][k][l][m];
+							}
 
-					    if(l==0 && k==1) sprintf(in_helcolChar,"pt/1s08");
-					    if(l==1 && k==1) sprintf(in_helcolChar,"pt/1s08");
+							model_Graph[i][j][k][l] = new TGraph(npTBinsPerRap[i][j],pTmean_graph,model_graph);
 
-					    if(l==0 && k==2) sprintf(in_helcolChar,"lp/3s18");
-					    if(l==1 && k==2) sprintf(in_helcolChar,"tp/3s18");
+							cout<<"model_Graph[state"<<i<<"][rap"<<j<<"][CC"<<k<<"][HC"<<l<<"]"<<endl;
+							model_Graph[i][j][k][l]->Print();
 
-					    if(l==0 && k==3) sprintf(in_helcolChar,"lp/3pj8");
-					    if(l==1 && k==3) sprintf(in_helcolChar,"tp/3pj8");
-
-					    if(StatesGiven[i]==1 || StatesGiven[i]==2){
-					    	if(l==0 && k==0) sprintf(in_helcolChar,"lp/3pj1");
-					    	if(l==1 && k==0) sprintf(in_helcolChar,"tp/3pj1");
-					    }
-
-					    if(StatesGiven[i]<4) sprintf(inname,"%s/data-jpsi/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
-					    else sprintf(inname,"%s/data-ups/%s/%s/%s/data",originalmodeldirname,in_rapChar,in_stateChar,in_helcolChar);
-
-						FILE *fIn;
-						fIn = fopen(inname, "read");
-						cout<<inname<<endl;
-						Char_t line[1000];
-
-						bool readIn=true;
-						if(isDummyColorChannel[i][k]){
-							cout<<"isDummyColorChannel"<<endl;
-							readIn=false;
 						}
-						if(isDummyRap[i][j]){
-							cout<<"isDummyRap"<<endl;
-							readIn=false;
-						}
-
-						for(int m=0;m<npTBinsPerRap[i][j];m++){
+					}
+				}
+			}
 
 
-							if(!readIn){
-								pTmean[i][j][k][l][m]=m;
-								model[i][j][k][l][m]=dummyVal;
-								err_model[i][j][k][l][m]=dummyVal;
+		}
+
+
+
+		else if(useTF1inputs){
+
+
+			char in_rapChar[200];
+			char in_stateChar[200];
+			char in_helcolChar[200];
+			char in_colorChar[200];
+			char in_name_func[200];
+			char in_name_graph[200];
+			char in_name_part[200];
+
+			for(int i=0;i<nStatesGiven;i++){
+				cout<<"State"<<StatesGiven[i]<<endl;
+
+				if(StatesGiven[i]==0) sprintf(in_stateChar,"JPsi");
+				if(StatesGiven[i]==1) sprintf(in_stateChar,"JPsi");
+				if(StatesGiven[i]==2) sprintf(in_stateChar,"JPsi");
+				if(StatesGiven[i]==3) sprintf(in_stateChar,"JPsi");
+				if(StatesGiven[i]==4) sprintf(in_stateChar,"Ups1S");
+				if(StatesGiven[i]==7) sprintf(in_stateChar,"Ups2S");
+				if(StatesGiven[i]==10) sprintf(in_stateChar,"Ups3S");
+
+				sprintf(inname,"%s/data-TF1/param_GWWZ_longTransvComp_direct%s_pT.root",originalmodeldirname,in_stateChar);
+
+				TFile *infile = new TFile(inname,"READ");
+				cout<<inname<<endl;
+
+				for(int j=0;j<nRapIntervals;j++){
+					cout<<"rap"<<j<<endl;
+
+					for(int l=0;l<nHelicityChannels;l++){
+						cout<<"helicity"<<l<<endl;
+
+						if(l==0) sprintf(in_helcolChar,"LP");
+						if(l==1) sprintf(in_helcolChar,"TP");
+
+						for(int k=0;k<nColorChannelsGiven;k++){
+							cout<<"color channel"<<k<<endl;
+
+							//set the LDMEs to 1, given that the TF1 inputs do not have to be corrected by the LDMEs
+							fittedLDMEs[i][k]=1.;
+
+							if(k==0) sprintf(in_colorChar,"cs");
+							if(k==1) sprintf(in_colorChar,"1s08");
+							if(k==2) sprintf(in_colorChar,"3s18");
+							if(k==3) sprintf(in_colorChar,"3pj8");
+
+							sprintf(in_name_part,"%s_%s_%s_rap%d",in_stateChar, in_colorChar, in_helcolChar, j);
+
+							sprintf(in_name_func,"func_%s",in_name_part);
+							sprintf(in_name_graph,"graph_%s",in_name_part);
+
+							bool readIn=true;
+							if(isDummyColorChannel[i][k]){
+								cout<<"isDummyColorChannel"<<endl;
+								readIn=false;
+							}
+							if(isDummyRap[i][j]){
+								cout<<"isDummyRap"<<endl;
+								readIn=false;
 							}
 
 							if(readIn){
-								double buffer;
-								fgets(line, sizeof(line), fIn); //comment
-								cout<<line<<endl;
-								sscanf(line, "%lf %lf %lf", &pTmean[i][j][k][l][m], &model[i][j][k][l][m], &err_model[i][j][k][l][m]);
+								cout<<"readIn "<<in_name_graph<<endl;
+								SDC_funcInp[i][j][k][l] = (TF1*)infile->Get(in_name_func);
+								model_Graph[i][j][k][l] = (TGraph*)infile->Get(in_name_graph);
+							}
+							else{
+								cout<<"!readIn"<<endl;
+								SDC_funcInp[i][j][k][l] = new TF1("gaus", "gaus", 0., 1.);
+								const int nBinsBuff=1000;
+								double buffX[nBinsBuff] = {NULL};
+								model_Graph[i][j][k][l] = new TGraph(nBinsBuff,buffX,buffX);
 							}
 
-							if(k==1){
-								model[i][j][k][l][m]/=3.;
-								err_model[i][j][k][l][m]/=3.;
-							}
-
-							cout<<pTmean[i][j][k][l][m]<<" "<<model[i][j][k][l][m]<<" "<<err_model[i][j][k][l][m]<<" "<<endl;
+							cout<<"model_Graph[i][j][k][l]->GetN() "<<model_Graph[i][j][k][l]->GetN()<<endl;
 
 						}
-						if(readIn) fgets(line, sizeof(line), fIn); //comment
 					}
 				}
+
+				infile->Close();
+				delete infile;
+				infile = NULL;
+
 			}
+
+
 		}
 
-
-
-		TGraph *model_Graph[nStatesGiven][nRapIntervals][nColorChannelsGiven][nHelicityChannels];
-
-		for(int i=0;i<nStatesGiven;i++){
-			for(int j=0;j<nRapIntervals;j++){
-				for(int k=0;k<nColorChannelsGiven;k++){
-					for(int l=0;l<nHelicityChannels;l++){
-
-						double pTmean_graph[npTBinsPerRap[i][j]];
-						double model_graph[npTBinsPerRap[i][j]];
-						for(int m=0;m<npTBinsPerRap[i][j];m++){
-							pTmean_graph[m]=pTmean[i][j][k][l][m];
-							model_graph[m]=model[i][j][k][l][m];
-						}
-
-						model_Graph[i][j][k][l] = new TGraph(npTBinsPerRap[i][j],pTmean_graph,model_graph);
-
-						cout<<"model_Graph[state"<<i<<"][rap"<<j<<"][CC"<<k<<"][HC"<<l<<"]"<<endl;
-						model_Graph[i][j][k][l]->Print();
-
-					}
-				}
-			}
-		}
 
 
 		//STEP2: convert lp and tp SDC components to SDCs and polarizations
@@ -310,7 +416,8 @@ int main(int argc, char** argv) {
 
 				cout<<"originals: rap "<<j<<" CC "<<k<<" state "<<i<<endl;
 
-				int nBinsOriginal=npTBinsPerRap[i][j];
+				int nBinsOriginal=model_Graph[i][j][k][0]->GetN();
+				cout<<"nBinsOriginal "<<nBinsOriginal<<endl;
 
 				double pTmean_graph_original[nBinsOriginal];
 				double SDC_graph_original[nBinsOriginal];
@@ -381,6 +488,15 @@ int main(int argc, char** argv) {
 					Lamth_graph[m]=Lamth_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
 					Lamph_graph[m]=0;//Lamph_Graph_original[i][j][k]->Eval(pTmean_graph[m]);
 					Lamtp_graph[m]=0;
+
+					if(useTF1inputs){
+						SDC_graph[m]=(SDC_funcInp[i][j][k][0]->Eval(pTmean_graph[m])+2*SDC_funcInp[i][j][k][1]->Eval(pTmean_graph[m]))/rapCorrFactor;
+						Lamth_graph[m]=(SDC_funcInp[i][j][k][1]->Eval(pTmean_graph[m])-SDC_funcInp[i][j][k][0]->Eval(pTmean_graph[m])) / (SDC_funcInp[i][j][k][1]->Eval(pTmean_graph[m])+SDC_funcInp[i][j][k][0]->Eval(pTmean_graph[m]));
+						Lamph_graph[m]=0;
+						Lamtp_graph[m]=0;
+
+					}
+
 				}
 
 				SDC_Graph[i][j][k]= new TGraph(nBinsFinalModels,pTmean_graph,SDC_graph);
@@ -781,6 +897,8 @@ NEW:
 	sprintf(outfilename,"%s/TGraphs_scaled.root",originalmodeldirname);cout<<outfilename<<endl;
 	TFile *outfile = new TFile(outfilename,"RECREATE");
 
+
+
 	for(int i=0;i<nStatesGiven;i++){
 		for(int j=0;j<nRapIntervals;j++){
 			for(int k=0;k<nColorChannelsGiven;k++){
@@ -893,14 +1011,18 @@ NEW:
 		}
 	}
 
-	//TODO: close, write file
 	outfile->Write();
 	outfile->Close();
 	delete outfile;
 	outfile = NULL;
 
 
+	char outfilenameTo[200];
+	if(useTF1inputs) {sprintf(outfilenameTo,"%s/TGraphs_scaled_fromTF1.root",originalmodeldirname);cout<<outfilenameTo<<endl;}
+	if(!useTF1inputs) {sprintf(outfilenameTo,"%s/TGraphs_scaled_noTF1.root",originalmodeldirname);cout<<outfilenameTo<<endl;}
 
+
+	gSystem->CopyFile(outfilename,outfilenameTo,kTRUE);
 
 
   	return 0;

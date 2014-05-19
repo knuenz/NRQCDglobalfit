@@ -51,7 +51,7 @@ Double_t mass[nStates] = {3.096916, 3.51066, 3.55620, 3.686109, 9.46030, 9.89278
 enum {quID_S, quID_P1, quID_P2}; //Definition of QuantumID (S, P1, P2 states)
 int StateQuantumID[nStates]={quID_S, quID_P1, quID_P2, quID_S, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2, quID_S, quID_P1, quID_P2};
 
-const int nModelSystematicScales = 3; //0... theory unc. not included; 3... they are included
+const int nModelSystematicScales = 0; //0... theory unc. not included; 3... they are included
 const int nDataSystematicScales = nExperiments;
 
 //const int nColorChannels_S=4;//includes CS

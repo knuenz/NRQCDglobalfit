@@ -468,6 +468,7 @@ int main(int argc, char** argv) {
 	dmatrix err_Op(NRQCDvars::nStates);
 	dmatrix errhigh_Op(NRQCDvars::nStates);
 	dmatrix errlow_Op(NRQCDvars::nStates);
+	dmatrix Op_PreviousCandidates(NRQCDvars::nStates);
 
 	dmatrix Fractions(NRQCDvars::nStates);
 	vector<double> Fractions_S (NRQCDvars::nColorChannels_S,0);//f0...R, fi: i going from 1 to n=nColorChannels, fn=1-sum(fi_i-(n-1))
@@ -617,6 +618,7 @@ int main(int argc, char** argv) {
 	consts_star_var=consts_star;
 
 	Op=NullMatrix;
+	Op_PreviousCandidates=NullMatrix;
 	transformFractionsToOps(Op, Fractions, consts_star);
 
 
@@ -2340,6 +2342,7 @@ int main(int argc, char** argv) {
 				 Np_US_PreviousCandidates=Np_US;
 				 consts_star_var_PreviousCandidates=consts_star_var;
 				 loglikelihood_PreviousCandidate=loglikelihood_Candidate;
+				 Op_PreviousCandidates=Op;
 	//	    	 if(!BurnIn) data->Fill();
 				 iSampledPoint++;
 				 acceptedSampling=1;
@@ -2389,6 +2392,15 @@ int main(int argc, char** argv) {
 			 acceptedSampling=0;
 			 nMH_rejectedInARow++;
 			 MH_av_eff=double(iSampledPoint)/double(nSampledPointsTotal);
+
+			 //add this here in order to *repair* MH (May 2014)
+			 Candidates=PreviousCandidates;
+			 Np_BR=Np_BR_PreviousCandidates;
+			 Np_US=Np_US_PreviousCandidates;
+			 consts_star_var=consts_star_var_PreviousCandidates;
+			 loglikelihood_Candidate=loglikelihood_PreviousCandidate;
+			 Op=Op_PreviousCandidates;
+
 
 			}
 			//	cout << "PreviousCandidates:"<<endl;
