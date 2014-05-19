@@ -113,7 +113,8 @@ b) ConvertBKmodelToTTree
 
 runNRQCDglobalfit.sh:
 -set run_ConvertBKmodelToTTree=1
--define OriginalModelID (=input)
+-define OriginalModelIDCCbar (=input models for charmonium states)
+-define OriginalModelIDBBbar (=input models for bottomonium states)
 -define ModelID (=output)
 
 src/ConvertBKmodelToTTree.cc:
