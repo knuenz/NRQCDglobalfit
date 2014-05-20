@@ -102,10 +102,10 @@ Input files: storagedir/OriginalModelID/${OriginalModelID}/...
 Output files: storagedir/OriginalModelID/${OriginalModelID}/TGraphs_scaled_XX.root
 
 The purpose of this step is to take the original theory inputs, include all the assumptions of our study (e.g. extrapolation towards high/low pT and throughout all rapidity regions needed, scaling pT/M), and convert the new theory ingredients as TGraphs.
-The input files are the Luping model ingredients (direcly the values sent by the authors)
+The input files are the Luping model ingredients (direcly the values sent by the authors), stored in OriginalModelID/${OriginalModelID}/data-jpsi(ups)/...
 The output file contains TGraphs for all scaled SDCs and polarizations
 
-Alternatively, one can use fitted functions of the transverse and longitudinal SDCsa s inputs (TF1s):
+Alternatively, one can use fitted functions of the transverse and longitudinal SDCs as inputs (TF1s):
 Set useTF1input=true (runNRQCDglobalfit.sh) and put the root input files in OriginalModelID/${OriginalModelID}/data-TF1/....root
 
 
