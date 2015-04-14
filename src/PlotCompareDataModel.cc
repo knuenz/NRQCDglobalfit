@@ -1046,7 +1046,7 @@ int main(int argc, char** argv) {
 
 									outputTreeAllSamplings->GetEvent( i_event-1 );
 
-									bool RequestAcceptedSampling=true;
+									bool RequestAcceptedSampling=false;
 									if(acceptedSampling<0 || BurnInInt==1) continue;
 									if(acceptedSampling!=1 && RequestAcceptedSampling) continue;
 
@@ -3408,7 +3408,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 		fprintf(ReadmeFile,"The results in the files in the sub-directories correspond to the inclusive calculations of the individual observables,\nas function of %s.\nCross sections dsigma/dpT/dy are given in units of nb/GeV.\nThe uncertainties given in the files correspond to 68.3%%, 95.5%% and 99.7%% confidence levels.\n",xAxisChar);
 		fprintf(ReadmeFile,"\nCalculations are provided in both .txt and .root formats.");
-		fprintf(ReadmeFile,"\nThe results are obtained with the fitting procedure as described in PLB 736 (2014) 98Ð109 (http://www.sciencedirect.com/science/article/pii/S0370269314004924).");
+		fprintf(ReadmeFile,"\nThe results are obtained with the fitting procedure as described in PLB 736 (2014) 98?09 (http://www.sciencedirect.com/science/article/pii/S0370269314004924).");
 		fprintf(ReadmeFile,"\nThe calculations for the polarization parameter Lambda_theta are additionally given in a smoothed form.");
 		fprintf(ReadmeFile,"\nThe results correspond to the rapidity region |y|<1.2");
 
