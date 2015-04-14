@@ -8,7 +8,7 @@ storagedir=/scratch/knuenz/NRQCD/NRQCDglobalfit
 #DataID=October9_DataForPtFits #September27_Psi2SUps3Sonly 
 #DataID=December7_addJpsiData_addSomPolUncertainties 
 #DataID=February7_addNewPrelCMSPsi2SUps3SmergedRapData
-DataID=May19 
+DataID=Nov19_ChicRatioData 
 
 
 ### This is the location of the original model (nTuple provided by Sergey or BK model txt file)
@@ -20,10 +20,10 @@ OriginalModelIDBBbar=GWWZ2014model
 ### store here the ModelIngredients.root file and consts_star file
 ########################ModelID=October31_UNCORR_BKmodel70_OriginalAllStates_pTstar_over_m6_UpsAssumption #HP original
 ########################ModelID=October27_BKmodel70_ScaledAllStates_pTstar_over_m6_UpsAssumption #HP scaled
-#ModelID=December2_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
+ModelID=December2_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
 #ModelID=March1_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6_inclPJ_ModelOnly2States
 #ModelID=13May2014_BKmodel70_EpScaled_newRapNorm_pTstar_over_m6
-ModelID=May19
+#ModelID=May19
 
 ### store here the NRQCD objects combining data and model predictions
 ModelSystScaleID=NLOmLO_Nov30
@@ -34,12 +34,13 @@ ModelSystScaleID=NLOmLO_Nov30
 #DataModelCombID=December7_allNew_newRapNorm_newTHunc_realChiPol_addJpsiData_addSomePolUncertainties
 #DataModelCombID=March1_allNew_newRapNorm_noTHunc_realChiPol_addJpsiData_addSomePolUncertainties_inclPJ_ModelOnly2States
 #DataModelCombID=March3_ToyData_THunc
-DataModelCombID=May19
+DataModelCombID=Nov19_ChicRatioData
+#DataModelCombID=July17_addCMS2S
 
 n_nTuple=10000 #for final run should be 5e6
 ##### November30: new TH uncertainty, new P-wave CCs, Ep BK model, more data incl chi, new iExpYear, allScaled
 
-for pTMin in 0;do
+for pTMin in 10;do
 #for pTMin in 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 22 25 27 30;do #new psi2S scan
 #for pTMin in 4 5 6 7 8 9 10 11 12 13 14 15 16;do #psi2S scan
 #for pTMin in 10 11 12 13 14 16 18 20 22 24 26 28 30 32 34 36 38 40 43 46 49 54;do #ups3S scan
@@ -58,9 +59,15 @@ pTMax=200
 #for JobID in BestFitPsi2S_pTmin${pTMin}_January22_1e4BI_1e6steps;do
 #for JobID in BestFitUps3S_pTmin${pTMin}_January22_1e4BI_1e6steps;do
 
-#for JobID in BestFit_Psi2SpTmin12_Ups3SpTmin30_March1_1e4BI_5e5steps_DebugTHuncert;do
+#for JobID in BestFit_Psi2SpTmin12_Ups3SpTmin30_March1_1e4BI_5e5steps_DebugTHuncert;do # = PLB Best Fit Result
 #for JobID in BestFit_inclPJ_Psi2SpTmin12_Ups3SpTmin30_March2_1e4BI_5e4steps_noTHuncert;do
-for JobID in May19;do
+#for JobID in July17_CMSonly_PLBresult;do
+#for JobID in July17_CMSonly;do
+
+#for JobID in BestFit_Psi2SpTmin12_Ups3SpTmin30_March1_1e4BI_5e5steps_DebugTHuncert_Copy;do
+#for JobID in Nov19_ChicRatioData;do
+for JobID in ScanPsi1S_pTmin9_December7_Nov19;do
+
 
 
 run_ConvertDataInput=0
@@ -72,13 +79,13 @@ run_ScaleGWWZmodel=0
 run_ScaleGWWZ2014model=0
 run_ConvertBKmodelToTTree=0
 run_ConvertModelInput=0
-run_CombineDataModel=1
+run_CombineDataModel=0
 run_GenerateToyData=0
 
 #Fit and plot
-run_SamplePPD=1
+run_SamplePPD=0
 run_InterpretPPD=0
-run_PlotCompareDataModel=0
+run_PlotCompareDataModel=1
 
 #individual macros:::
 run_FitPtDists=0
@@ -86,7 +93,7 @@ run_PlotPPD=0
 run_PlotPPDderivative=0
 run_PlotPPD_vs_pTmin=0
 
-reCompile=1 #dangerous in loops...
+reCompile=0 #dangerous in loops...
 
 ##################################
 ########## SELECTION #############
@@ -97,7 +104,7 @@ rapMin=-10
 rapMax=10
 useSstatesOnly=false
 usePstatesOnly=false
-useCharmoniumOnly=false
+useCharmoniumOnly=true
 useBottomoniumOnly=false
 useOnlyState=999 #switch off by setting it to an int > N_STATES
 useCrossSectionOnly=false
@@ -129,14 +136,14 @@ PredictionDataPlot=false
 
 ### SamplePPD
 Minimizer=0		#0...MH, 1...Minuit
-nBurnIn=1000 #H: lowest test
-nSample=5000 #H: lowest test
+nBurnIn=80 #H: lowest test
+nSample=20 #H: lowest test
 #nBurnIn=5000 #H: test
 #nSample=50000 #H: test
 #nBurnIn=10000 #H: best fit
 #nSample=500000 #H: best fit
-SampleNp=true
-SampleNp_consts_star=true
+SampleNp=false
+SampleNp_consts_star=false
 
 ### InterpretPPD
 nSigma=1

@@ -248,14 +248,19 @@ int main(int argc, char** argv) {
 
 	for(int iState=0; iState < nStates; iState++){
 		for(int iMeasurementID=0; iMeasurementID < NRQCDvars::nMeasurementIDs; iMeasurementID++){
+			for(int iStateDenom=0;iStateDenom<iState;iStateDenom++){
+			if(iMeasurementID!=4 && iStateDenom!=0) continue;
+			if(iMeasurementID==4) continue;
 			for(int iExperiment=0; iExperiment < NRQCDvars::nExperiments; iExperiment++){
 				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
 				    	//pTMin=1000;//CHANGE_BACK
-				    	if(iState==3) pTMin=12;//CHANGE_BACK
-				    	if(iState==10) pTMin=30;//CHANGE_BACK
-				    	if(iState!=3 && iState!=10) continue;//CHANGE_BACK
+				    	//if(iState==3) pTMin=12;//CHANGE_BACK
+				    	//if(iState==10) pTMin=30;//CHANGE_BACK
+				    	//if(iState!=3 && iState!=10) continue;//CHANGE_BACK
+
+				    	//if(iState!=3 || iExperiment!=1) continue;//CHANGE_BACK
 
 				    	//if(iMeasurementID!=0) continue;
 				    	//if(iState<1) continue;
@@ -265,8 +270,8 @@ int main(int argc, char** argv) {
 
 				    	//if(iState!=0 || iMeasurementID!=0 || iExperiment!=0 || iRap!=0 || iP!=0) continue;
 
-						sprintf(inname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],
-								MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+						sprintf(inname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState], MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+						if(iMeasurementID==4) sprintf(inname,"%s/ConvertedDataModel_%s_OVER_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState], StateName[iStateDenom], MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
 
 						ifstream in;
 						in.open(inname);
@@ -321,6 +326,7 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
+	}
 	}
 
 	int nDataPoints=DataModelObject.size();

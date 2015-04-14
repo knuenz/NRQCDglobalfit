@@ -59,15 +59,15 @@ const int nDataSystematicScales = nExperiments;
 //Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
 //Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{3}#it{S}_{1}^{[8]}"};
 
-//const int nColorChannels_S=3;//includes CS
-//const int nColorChannels_P=3;//includes CS
-//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
-//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+const int nColorChannels_S=3;//includes CS
+const int nColorChannels_P=3;//includes CS
+Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
+Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}"};
 
-const int nColorChannels_S=4;//includes CS
-const int nColorChannels_P=4;//includes CS
-Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
-Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
+//const int nColorChannels_S=4;//includes CS
+//const int nColorChannels_P=4;//includes CS
+//Char_t *ColorChannelNameTexS[nColorChannels_S] = {"^{3}#it{S}_{1}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
+//Char_t *ColorChannelNameTexP[nColorChannels_P] = {"^{3}#it{P}_{J}^{[1]}", "^{1}#it{S}_{0}^{[8]}", "^{3}#it{S}_{1}^{[8]}", "^{3}#it{P}_{J}^{[8]}"};
 
 //const int nColorChannels_S=2;//includes CS
 //const int nColorChannels_P=2;//includes CS
@@ -136,7 +136,8 @@ double errFeedDownBranchingRatio[nStates][nStates]={
 //};
 
 //TODO:
-double ColorSingletME[nStates]={1.32, 0.1075,  0.1075, 0.76, 9.28, 1e-5, 1e-5, 4.63, 1e-5, 1e-5, 3.54, 1e-5, 1e-5}; //ColorSinglet matrix elements taken from literature
+//double ColorSingletME[nStates]={1.32, 0.1075,  0.1075, 0.76, 9.28, 1e-5, 1e-5, 4.63, 1e-5, 1e-5, 3.54, 1e-5, 1e-5}; //ColorSinglet matrix elements taken from literature
+double ColorSingletME[nStates]={1.32, 1e-5,  1e-5, 0.76, 9.28, 1e-5, 1e-5, 4.63, 1e-5, 1e-5, 3.54, 1e-5, 1e-5}; //ColorSinglet matrix elements taken from literature
 double errColorSingletME[nStates]={0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}; //uncertainty on ColorSinglet matrix elements taken from literature
 //const double pT_star=35.;//20;
 const double pT_star_over_m=6.;

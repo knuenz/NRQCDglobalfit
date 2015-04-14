@@ -1,0 +1,9 @@
+LHCb, ratio prompt chic, sqrt(s) = 7 TeV; EPJC 72 (2012) 2251, global uncertainty due to ratio of branching fractions: 5.6% (not included)
+values from http://hepdata.cedar.ac.uk/View/irn9796347; Lint = 4.6 fb-1; 0 < y(J/psi) < 1.0, PT(Gamma)> 0.5 GeV
+yMin yMax pTMean pTMin	pTMax	ratio	statPos	statNeg	systPos	systNeg
+0.0  1.0  8.0	7.0	9.0	0.811	+0.078	-0.078	+0.045	-0.045
+0.0  1.0  10.0	9.0	11.0	0.774	+0.044	-0.044	+0.042	-0.042
+0.0  1.0  12.0	11.0	13.0	0.752	+0.042	-0.042	+0.029	-0.029
+0.0  1.0  14.5	13.0	16.0	0.78	+0.044	-0.044	+0.028	-0.028
+0.0  1.0  18.0	16.0	20.0	0.665	+0.049	-0.049	+0.027	-0.027
+0.0  1.0  22.5	20.0	25.0	0.669	+0.072	-0.072	+0.039	-0.039

@@ -464,6 +464,9 @@ int main(int argc, char** argv) {
 
 	for(int iState=0; iState < nStates; iState++){
 		for(int iMeasurementID=0; iMeasurementID < NRQCDvars::nMeasurementIDs; iMeasurementID++){
+			for(int iStateDenom=0;iStateDenom<iState;iStateDenom++){
+				if(iMeasurementID!=4 && iStateDenom!=0) continue;
+				//if(iMeasurementID==4) continue;
 			for(int iExperiment=0; iExperiment < NRQCDvars::nExperiments; iExperiment++){
 
 		    	//cout<<"Plot iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]<<endl;
@@ -497,19 +500,23 @@ int main(int argc, char** argv) {
 
 
 
-				    	if(iState==3) {pTMin=12; pTMinModel=12;}//CHANGE_BACK
-				    	if(iState==10) {pTMin=30; pTMinModel=30;}//CHANGE_BACK
-				    	if(iState!=3 && iState!=10) continue;//CHANGE_BACK
+				    	//if(iState==3) {pTMin=12; pTMinModel=12;}//CHANGE_BACK
+				    	//if(iState==10) {pTMin=30; pTMinModel=30;}//CHANGE_BACK
+				    	//if(iState!=3 && iState!=10) continue;//CHANGE_BACK
+                        //
+				    	//if(iState==3 && iExperiment==3) {pTMin=8; pTMinModel=8;}//CHANGE_BACK
+				    	//if(iState==10 && iMeasurementID==1) {pTMin=16; pTMinModel=16;}//CHANGE_BACK
 
-				    	if(iState==3 && iExperiment==3) {pTMin=8; pTMinModel=8;}//CHANGE_BACK
-				    	if(iState==10 && iMeasurementID==1) {pTMin=16; pTMinModel=16;}//CHANGE_BACK
+				    	if(iState==3 && iExperiment==1) {
+				    		pTMin=10; pTMinModel=10;
+				    	}
 
 
 
 				    	if(PredictionPlot){
 					    	if(iState==3) {pTMin=9; pTMinModel=9; pTMax=10000; pTMaxModel=10000;}//CHANGE_BACK
 					    	if(iState==10) {pTMin=22.5; pTMinModel=22.5; pTMax=20000; pTMaxModel=20000;}//CHANGE_BACK
-					    	if(iState!=3 && iState!=10) continue;//CHANGE_BACK
+					    	if(FreeParam_Fractions_States[iState]<1) continue;//CHANGE_BACK
 					    	if(PredictionDataPlot){
 						    	if(iState==3) {pTMin=12; pTMinModel=12; pTMax=10000; pTMaxModel=10000;}//CHANGE_BACK
 						    	if(iState==10) {pTMin=30; pTMinModel=30; pTMax=20000; pTMaxModel=20000;}//CHANGE_BACK
@@ -525,6 +532,7 @@ int main(int argc, char** argv) {
 
 						sprintf(inname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],
 								MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+						if(iMeasurementID==4) sprintf(inname,"%s/ConvertedDataModel_%s_OVER_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState], StateName[iStateDenom], MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
 
 						ifstream inData;
 						inData.open(inname);
@@ -575,7 +583,7 @@ int main(int argc, char** argv) {
 
 
 							if(DataSelected){
-								//cout<<"Data selected"<<endl;
+								cout<<"Data selected, pTmin = "<<DataModelObject[iRap][iP]->getpTMin()<<endl;
 								DataPresentAndSelected[iRap][iP]=true;
 								nPtBinsSel++;
 								if(!definedRap){
@@ -678,8 +686,8 @@ int main(int argc, char** argv) {
 							if(MinimizerMH) LoopThroughPPD=true;
 
 							//if(iMeasurementID==0) LoopThroughPPD=false;
-							//LoopThroughPPD=false;
-							//if(iMeasurementID==1)  LoopThroughPPD=true;
+							LoopThroughPPD=false;
+							//if(iMeasurementID==1 && iState==10 && iP==4)  LoopThroughPPD=true;
 							//if(iExperiment>5 && iState==10)  LoopThroughPPD=true;
 							//if(iMeasurementID==1 && iState==10)  LoopThroughPPD=true;
 
@@ -729,8 +737,8 @@ int main(int argc, char** argv) {
 								ModelPrediction=ObjectLikelihoodVec[1];
 								model_centralval.push_back(ModelPrediction);
 
-								//cout<<"directProductionCube"<<endl;
-								//cout<<directProductionCube<<endl;
+								cout<<"directProductionCube"<<endl;
+								cout<<directProductionCube<<endl;
 								//cout<<"promptProductionMatrix"<<endl;
 								//cout<<promptProductionMatrix<<endl;
 								//cout<<"polCorrFactor"<<endl;
@@ -776,7 +784,7 @@ int main(int argc, char** argv) {
 
 
 
-					    		//cout<<"Calculate Inclusive FeedDown"<<endl;
+					    		cout<<"Calculate Inclusive FeedDown"<<endl;
 					    		//Calculate Inclusive FeedDown
 					    		dvector FeedDownContVec;
 					    		//dvector FeedDownLamthVec;
@@ -826,7 +834,7 @@ int main(int argc, char** argv) {
 					    		}
 
 
-					    		//cout<<"Calculate individual FeedDown contributions"<<endl;
+					    		cout<<"Calculate individual FeedDown contributions"<<endl;
 					    		//Calculate individual FeedDown contributions
 							    dvector Buff_model_FeedDownVec;
 							    dvector model_FeedDownVec;
@@ -850,15 +858,18 @@ int main(int argc, char** argv) {
 							    model_FeedDown.push_back(model_FeedDownVec);
 
 
-					    		//cout<<"Calculate individual color channel contributions of the directly produced state"<<endl;
+					    		cout<<"Calculate individual color channel contributions of the directly produced state"<<endl;
 					    		//Calculate individual color channel contributions of the directly produced state
 
 							    dmatrix Buff_model_directProductionMatrix=directProductionCube.at(0);
+							    cout<<"test"<<endl;
 							    dvector model_directProductionVec;
-							    model_directProductionVec=Buff_model_directProductionMatrix.at(iMeasurementID);
+							    if(iMeasurementID!=4) model_directProductionVec=Buff_model_directProductionMatrix.at(iMeasurementID);
+							    else model_directProductionVec=Buff_model_directProductionMatrix.at(0);
+							    cout<<"test"<<endl;
 							    model_directProduction.push_back(model_directProductionVec);
 
-								//cout<<"model_directProductionVec: "<<endl;
+								cout<<"model_directProductionVec: "<<endl;
 								//cout<<model_directProductionVec<<endl;
 
 									int nColorChannels_state;
@@ -1035,7 +1046,9 @@ int main(int argc, char** argv) {
 
 									outputTreeAllSamplings->GetEvent( i_event-1 );
 
+									bool RequestAcceptedSampling=true;
 									if(acceptedSampling<0 || BurnInInt==1) continue;
+									if(acceptedSampling!=1 && RequestAcceptedSampling) continue;
 
 									//cout<<"set Op"<<endl;
 
@@ -1223,6 +1236,7 @@ int main(int argc, char** argv) {
 										    nFilled++;
 									ModelPredictionTree->Fill();
 
+									//if(nFilled>50) break;
 									//PAPER: Add the color channel 'prediction'-values to the ModelPredictionTree
 
 
@@ -1248,6 +1262,8 @@ int main(int argc, char** argv) {
 
 							  	h_ModelPrediction_min[0]=ModelPredictionTree->GetMinimum("ModelPrediction")-expandMinMaxBy*TMath::Abs(ModelPredictionTree->GetMinimum("ModelPrediction"));
 							  	h_ModelPrediction_max[0]=ModelPredictionTree->GetMaximum("ModelPrediction")+expandMinMaxBy*TMath::Abs(ModelPredictionTree->GetMaximum("ModelPrediction"));
+							  	if(iMeasurementID==1 && h_ModelPrediction_min[0]<-5) h_ModelPrediction_min[0]=-5.;
+							  	if(iMeasurementID==1 && h_ModelPrediction_max[0]>+5) h_ModelPrediction_max[0]=+5.;
 							  	//cout<<"h_ModelPrediction_min[0] "<<h_ModelPrediction_min[0]<<" h_ModelPrediction_max[0] "<<h_ModelPrediction_max[0]<<endl;
 							  	sprintf(hist_name,"h_ModelPrediction");
 								h_ModelPrediction[0] = new TH1D( hist_name, hist_name, nBins_h, h_ModelPrediction_min[0], h_ModelPrediction_max[0] );
@@ -1551,8 +1567,8 @@ int main(int argc, char** argv) {
 				    }
 
 
-				    //cout<<"model_directProduction_THunc_CS"<<endl;
-				    //cout<<model_directProduction_THunc_CS<<endl;
+				    cout<<"model_directProduction_THunc_CS"<<endl;
+				    cout<<model_directProduction_THunc_CS<<endl;
 
 					const int StatesCont_c=globalStatesCont;
 					int nColorChannels_state;
@@ -1933,22 +1949,29 @@ int main(int argc, char** argv) {
 							if(PredictionDataPlot && iSmoothPlot>0) continue;
 							if(iSmoothPlot==0) smoothPol=false;
 							else smoothPol=true;
+							cout<<"plotComp"<<endl;
 							plotComp( iState,  iMeasurementID,  iExperiment,  iRap,  jobdirname, rapchar, data_Graph, model_Graph, model_Graph_low, model_Graph_high, plotInclusiveFeedDown, plotIndividualFeedDown, plotDirectColorChannels, StatesCont_c, ColorChannels_c, model_Graph_FeedDowns, model_Graph_ColorChannels, data_Graph_nopolcorr, StatesContributing_, chi2Min, chi2Prob, ndf, HPbool, pTMinModel, pTMaxModel, longrapchar, model_Graph_ColorChannels_Bands, model_Graph_low_Bands, model_Graph_high_Bands, model_Graph_Bands, model_CS_THunc, model_CS_THuncBand, plotDirectInclusive, nDataPointsInRange, PredictionPlot, PredictionDataPlot, smoothPol, PlotVSpToverM);
+							cout<<"plotComp finished"<<endl;
 
 						}
 
 				}
 
 
+					cout<<"Finished Loop over rap "<<iRap<<endl;
 				}//rap loop
 
 
-
+				cout<<"Finished Loop over Experiment "<<iExperiment<<endl;
 			}
+			}
+			cout<<"Finished Loop over MeasurementID "<<iMeasurementID<<endl;
 		}
+		cout<<"Finished Loop over State "<<iState<<endl;
 	}
 
 
+	cout<<"WARNINGs:"<<endl;
 
 
 	for(int iState=0; iState < nStates; iState++){
@@ -1983,16 +2006,19 @@ int main(int argc, char** argv) {
 
 
 void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jobdirname[200], char rapchar[200], TGraphAsymmErrors *data_Graph, TGraph *model_Graph, TGraph *model_Graph_low, TGraph *model_Graph_high, bool plotInclusiveFeedDown, bool plotIndividualFeedDown, bool plotDirectColorChannels, const int StatesCont_c, const int ColorChannels_c, TGraph *model_Graph_FeedDowns[500], TGraph *model_Graph_ColorChannels[500], /*TGraphAsymmErrors *model_Graph_ColorChannels[3][500],*/ TGraph *data_Graph_nopolcorr, vector<int> StatesContributing, double chi2Min, double chi2Prob, int ndf, bool HPbool, double pTMinModel, double pTMaxModel, bool longrapchar, TGraphAsymmErrors *model_Graph_ColorChannels_Bands[3][500], TGraph *model_Graph_low_Bands[3], TGraph *model_Graph_high_Bands[3], TGraphAsymmErrors *model_Graph_Bands[3], TGraph *model_CS_THunc[3], TGraphAsymmErrors *model_CS_THuncBand, bool plotDirectInclusive, int nDataPointsInRange, bool PredictionPlot, bool PredictionDataPlot, bool smoothPol, bool PlotVSpToverM){
-	gROOT->Reset();
+	cout<<"plotComp internal: start"<<endl;
+	//gROOT->Reset();
 	gStyle->SetOptStat(11);
 	gStyle->SetOptFit(101);
 	gStyle->SetFillColor(kWhite);
 
+	cout<<"plotComp internal: setMargins"<<endl;
 	gStyle->SetPadBottomMargin(0.13);
 	gStyle->SetPadLeftMargin(0.12);
 	gStyle->SetPadRightMargin(0.02);
 	gStyle->SetPadTopMargin(0.02);
 
+	cout<<"plotComp internal: narrowCanvas"<<endl;
 	bool narrowCanvas=false;
 	if(PredictionPlot) narrowCanvas=true;
 	double narrFac=0.8;
@@ -2005,6 +2031,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 
 	bool isSstate=(StateQuantumID[iState] > NRQCDvars::quID_S)?false:true;
 
+	cout<<"plotComp internal: singlePointModel"<<endl;
 	bool singlePointModel=false;
 	if(nDataPointsInRange<2) singlePointModel=true;
 	cout<<"nDataPointsInRange = "<<nDataPointsInRange<<endl;
@@ -2123,10 +2150,14 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	if(iState==3){
 		y_min=2.001e-3; y_max =2.999e2;
 		x_min=0.001; x_max=49.999;
+		y_min=1.001e-5; y_max =2.999e2;
+		x_min=0.001; x_max=119.999;
 		if(PredictionPlot){
-			y_min=1.001e-6; y_max =9.999e0;
-			x_min=10.001; x_max=99.999;
-			y_min=5.001e-9; y_max =9.999e0;
+			//y_min=1.001e-6; y_max =9.999e0;
+			//x_min=10.001; x_max=99.999;
+			//y_min=5.001e-9; y_max =9.999e0;
+			x_min=0; x_max=125;
+			y_min=1e-5; y_max =200.;
 		}
 
 	}
@@ -2173,6 +2204,12 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	}
 	if(iMeasurementID==2) { y_min=-0.699; y_max =0.699; }
 	if(iMeasurementID==3) { y_min=-0.699; y_max =0.699; }
+
+	//CrossSectionRatio specials
+	if(iMeasurementID==4) {
+		y_min=0.; y_max =2.5;
+		x_min=0.001; x_max=34.999;
+	}
 
 	if(PlotVSpToverM){
 		x_min/=NRQCDvars::mass[iState]; x_max/=NRQCDvars::mass[iState];
@@ -2257,7 +2294,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	cout<<"final pTMinModel = "<<pTMinModel<<endl;
 	cout<<"final pTMaxModel = "<<pTMaxModel<<endl;
 
-	if(iState==10&&iMeasurementID==1) pTMaxModel=50.;
+	if(iState==10&&iMeasurementID==1 && !PredictionPlot) pTMaxModel=50.;
 
 	/////
 
@@ -2280,6 +2317,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 		int c_sign=0;
 		int polOrder=0;
 
+
 		for(int iColorChannel=0;iColorChannel<ColorChannels_c;iColorChannel++){
 			if(iColorChannel==1) continue;
 			monotonicInt=0;
@@ -2291,7 +2329,6 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 			model_Graph_ColorChannels[iColorChannel]=smoothPolFunc(model_Graph_ColorChannels[iColorChannel], monotonicInt, c_sign);
 			//model_Graph_ColorChannels[iColorChannel]->Print();
 
-
 			for(int iSig=0;iSig<3;iSig++){
 				model_Graph_ColorChannels_Bands[iSig][iColorChannel] = CloneCentralValueFromGraph(model_Graph_ColorChannels_Bands[iSig][iColorChannel], model_Graph_ColorChannels[iColorChannel]);
 				polOrder=1;
@@ -2301,7 +2338,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 					double buffx, buffy;
 					int buffN=model_Graph_ColorChannels_Bands[iSig][iColorChannel]->GetN();
 					model_Graph_ColorChannels_Bands[iSig][iColorChannel]->GetPoint(buffN-1, buffx, buffy);
-					model_Graph_ColorChannels_Bands[iSig][iColorChannel]->SetPoint(buffN-1, 50., buffy);
+					if(buffx<50) model_Graph_ColorChannels_Bands[iSig][iColorChannel]->SetPoint(buffN-1, 50., buffy);
 					//cout<<"lll "<<iSig<<endl;
 					//model_Graph_ColorChannels_Bands[iSig][iColorChannel]->Print();
 				}
@@ -2544,10 +2581,12 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 		for(int j=0;j<nGraph;j++){
 			double buffx, buffy;
 			model_Graph->GetPoint(jTG, buffx, buffy);
-			//cout<<"pTbuff "<<buffx<<endl;
+			cout<<"pTbuff "<<buffx<<endl;
+			cout<<"pTMinModel "<<pTMinModel<<endl;
+			cout<<"pTMaxModel "<<pTMaxModel<<endl;
 			if(buffx<pTMinModel || buffx>pTMaxModel){
 				model_Graph->RemovePoint(jTG);
-				//cout<<"remove point "<<j<<endl;
+				cout<<"remove point "<<j<<endl;
 				jTG--;
 			}
 			jTG++;
@@ -2627,6 +2666,7 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	}
 
 
+	cout<<"model_Graph->GetN()2 = "<<model_Graph->GetN()<<endl;
 
 	int nLegendEntries=1;
 	if(plotDirectColorChannels) nLegendEntries+=ColorChannels_c;
@@ -3341,6 +3381,206 @@ void plotComp(int iState, int iMeasurementID, int iExperiment, int iRap, char jo
 	//sprintf(savename,"%s/Figures/PNG_DataModelComp_%s_%s_%s_rap%d.png",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], ExpName[iExperiment], iRap+1);
 	//cout<<"... and saved here: "<<savename<<endl;
 	//plotCanvas->SaveAs(savename);
+
+
+
+	//if(PredictionPlot && !smoothPol){
+		if(PredictionPlot){
+		//text file -> write out model_Graph and model_Graph_low/high_Bands[0] -> this is the full model +- 1 sigma
+
+		sprintf(savename,"%s/Figures/Predictions",jobdirname);
+		gSystem->mkdir(savename);
+		sprintf(savename,"%s/Figures/Predictions/%s",jobdirname, StateName[iState]);
+		gSystem->mkdir(savename);
+		sprintf(savename,"%s/Figures/Predictions/%s/%s",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID]);
+		gSystem->mkdir(savename);
+
+		sprintf(savename,"%s/Figures/Predictions/ReadMe.txt",jobdirname);
+
+		FILE *ReadmeFile;
+
+		ReadmeFile = fopen(savename,"w");
+
+		char xAxisChar[200];
+
+		if(PlotVSpToverM) sprintf(xAxisChar,"pT/M, with pT the transverse momentum of the state and M the mass of the quarkonium state");
+		if(!PlotVSpToverM) sprintf(xAxisChar,"pT [GeV], with pT the transverse momentum of the quarkonium state");
+
+		fprintf(ReadmeFile,"The results in the files in the sub-directories correspond to the inclusive calculations of the individual observables,\nas function of %s.\nCross sections dsigma/dpT/dy are given in units of nb/GeV.\nThe uncertainties given in the files correspond to 68.3%%, 95.5%% and 99.7%% confidence levels.\n",xAxisChar);
+		fprintf(ReadmeFile,"\nCalculations are provided in both .txt and .root formats.");
+		fprintf(ReadmeFile,"\nThe results are obtained with the fitting procedure as described in PLB 736 (2014) 98Ð109 (http://www.sciencedirect.com/science/article/pii/S0370269314004924).");
+		fprintf(ReadmeFile,"\nThe calculations for the polarization parameter Lambda_theta are additionally given in a smoothed form.");
+		fprintf(ReadmeFile,"\nThe results correspond to the rapidity region |y|<1.2");
+
+		fclose(ReadmeFile);
+
+		////////////////////////////////////
+
+		char inname[500];
+		sprintf(inname,"%s/results.txt",jobdirname);
+		cout<<"read results from "<<inname<<endl;
+
+	  	dmatrix fi_MPV;
+	  	dmatrix fi_errlow;
+	 	dmatrix fi_errhigh;
+	  	dmatrix Oi_MPV;
+	  	dmatrix Oi_errlow;
+	 	dmatrix Oi_errhigh;
+
+	    ifstream in;
+	    in.open(inname);//, std::ofstream::app);
+
+		in >> fi_MPV;
+		in >> fi_errlow;
+		in >> fi_errhigh;
+		in >> Oi_MPV;
+		in >> Oi_errlow;
+		in >> Oi_errhigh;
+
+	    in.close();
+
+	    cout<<"fi_MPV:"<<endl;
+		cout<<fi_MPV<<endl;
+	    cout<<"fi_errlow:"<<endl;
+		cout<<fi_errlow<<endl;
+	    cout<<"fi_errhigh:"<<endl;
+		cout<<fi_errhigh<<endl;
+	    cout<<"Oi_MPV:"<<endl;
+		cout<<Oi_MPV<<endl;
+	    cout<<"Oi_errlow:"<<endl;
+		cout<<Oi_errlow<<endl;
+	    cout<<"Oi_errhigh:"<<endl;
+		cout<<Oi_errhigh<<endl;
+
+
+		sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d.txt",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		if(smoothPol){
+			sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID]);
+			gSystem->mkdir(savename);
+			sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d.txt",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		}
+
+		FILE *PredictionFile;
+
+		PredictionFile = fopen(savename,"w");
+
+
+		fprintf(PredictionFile,"Obtained LDMEs:\n");
+		fprintf(PredictionFile,"LDME ^{1}S_{0}^{[8]}: %1.8f+%1.8f-%1.8f [GeV^{3}]\n", Oi_MPV[iState][1], Oi_errhigh[iState][1], Oi_errlow[iState][1]);
+		fprintf(PredictionFile,"LDME ^{3}S_{1}^{[8]}: %1.8f+%1.8f-%1.8f [GeV^{3}]\n", Oi_MPV[iState][2], Oi_errhigh[iState][2], Oi_errlow[iState][2]);
+
+		fprintf(PredictionFile,"\n");
+		if(!PlotVSpToverM) fprintf(PredictionFile,"pT [GeV]      central      err pos [68.3%%CL]      err neg [68.3%%CL]      err pos [95.5%%CL]      err neg [95.5%%CL]      err pos [99.7%%CL]      err neg [99.7%%CL]\n");
+		if(PlotVSpToverM) fprintf(PredictionFile,"pT/M       central      err pos [68.3%%CL]      err neg [68.3%%CL]      err pos [95.5%%CL]      err neg [95.5%%CL]      err pos [99.7%%CL]      err neg [99.7%%CL]\n");
+
+		cout<<"PredictionGraph:"<<endl;
+		model_Graph->Print();
+		cout<<"PredictionGraph low:"<<endl;
+		model_Graph_Bands[0]->Print();
+		cout<<"PredictionGraph high:"<<endl;
+		model_Graph_Bands[0]->Print();
+
+		model_Graph->Print("all");
+		for(int iModel=0; iModel<model_Graph->GetN();iModel++){
+			double buffModelPred_pT, buffModelPred_central, buffModelPred_low1Sig, buffModelPred_high1Sig, buffModelPred_low2Sig, buffModelPred_high2Sig, buffModelPred_low3Sig, buffModelPred_high3Sig;
+			model_Graph->GetPoint(iModel, buffModelPred_pT, buffModelPred_central);
+			buffModelPred_high1Sig=model_Graph_Bands[0]->GetErrorYhigh(iModel);
+			buffModelPred_low1Sig=model_Graph_Bands[0]->GetErrorYlow(iModel);
+			buffModelPred_high2Sig=model_Graph_Bands[1]->GetErrorYhigh(iModel);
+			buffModelPred_low2Sig=model_Graph_Bands[1]->GetErrorYlow(iModel);
+			buffModelPred_high3Sig=model_Graph_Bands[2]->GetErrorYhigh(iModel);
+			buffModelPred_low3Sig=model_Graph_Bands[2]->GetErrorYlow(iModel);
+			cout<<"buffModelPred_pT "<<buffModelPred_pT<<endl;
+			cout<<"buffModelPred_central "<<buffModelPred_central<<endl;
+			cout<<"buffModelPred_low1Sig "<<buffModelPred_low1Sig<<endl;
+			cout<<"buffModelPred_high1Sig "<<buffModelPred_high1Sig<<endl;
+			cout<<"buffModelPred_low2Sig "<<buffModelPred_low2Sig<<endl;
+			cout<<"buffModelPred_high2Sig "<<buffModelPred_high2Sig<<endl;
+			cout<<"buffModelPred_low3Sig "<<buffModelPred_low3Sig<<endl;
+			cout<<"buffModelPred_high3Sig "<<buffModelPred_high3Sig<<endl;
+			fprintf(PredictionFile,"%1.3f      %1.8f      %1.8f             %1.8f             %1.8f             %1.8f             %1.8f             %1.8f\n", buffModelPred_pT, buffModelPred_central, buffModelPred_high1Sig, buffModelPred_low1Sig, buffModelPred_high2Sig, buffModelPred_low2Sig, buffModelPred_high3Sig, buffModelPred_low3Sig);
+		}
+
+		fclose(PredictionFile);
+
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_central.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_central.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_low_1Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_low_1Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_low_Bands[0]->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_low_2Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_low_2Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_low_Bands[1]->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_low_3Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_low_3Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_low_Bands[2]->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_high_1Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_high_1Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_high_Bands[0]->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_high_2Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_high_2Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_high_Bands[1]->SaveAs(savename);
+		// sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_high_3Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_high_3Sig.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		// model_Graph_high_Bands[2]->SaveAs(savename);
+
+		sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		TFile *outfile = new TFile(savename,"RECREATE");
+		model_Graph_Bands[0]->SetName("Prediction_1Sig");
+		model_Graph_Bands[1]->SetName("Prediction_2Sig");
+		model_Graph_Bands[2]->SetName("Prediction_3Sig");
+
+		outfile->cd();
+		model_Graph_Bands[0]->Draw("P");
+		model_Graph_Bands[0]->Write();
+		model_Graph_Bands[1]->Draw("P");
+		model_Graph_Bands[1]->Write();
+		model_Graph_Bands[2]->Draw("P");
+		model_Graph_Bands[2]->Write();
+
+		outfile->Write();
+		outfile->Close();
+		delete outfile;
+		outfile = NULL;
+
+		sprintf(savename,"%s/Figures/Predictions/%s/%s/Prediction_rap%d_components.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		if(smoothPol) sprintf(savename,"%s/Figures/Predictions/%s/%s_smooth/Prediction_rap%d_components.root",jobdirname, StateName[iState], MeasurementIDName[iMeasurementID], iRap+1);
+		TFile *outfile2 = new TFile(savename,"RECREATE");
+		outfile2->cd();
+
+
+		for(int i=1;i<StatesCont_c+1;i++){
+			model_Graph_FeedDowns[i]->SetName(Form("Prediction_FeedDown_%d",i));
+			if(i==StatesCont_c) model_Graph_FeedDowns[i]->SetName(Form("Prediction_FeedDown_inclusive"));
+			model_Graph_FeedDowns[i]->Draw("P");
+			model_Graph_FeedDowns[i]->Write();
+		}
+		for(int iTHunc=0;iTHunc<nTHunc;iTHunc++){
+			model_CS_THunc[iTHunc]->SetName(Form("Prediction_CS_THunc_%d",iTHunc));
+			model_CS_THunc[iTHunc]->Draw("P");
+			model_CS_THunc[iTHunc]->Write();
+		}
+		for(int iColorChannel=0;iColorChannel<ColorChannels_c;iColorChannel++){
+			model_Graph_ColorChannels[iColorChannel]->SetName(Form("Prediction_ColorChannel_%d",iColorChannel));
+			model_Graph_ColorChannels[iColorChannel]->Draw("P");
+			model_Graph_ColorChannels[iColorChannel]->Write();
+			for(int iSig=0;iSig<3;iSig++){
+				model_Graph_ColorChannels_Bands[iSig][iColorChannel]->SetName(Form("Prediction_ColorChannel_%d_%dSig_Band",iColorChannel,iSig+1));
+				model_Graph_ColorChannels_Bands[iSig][iColorChannel]->Draw("P");
+				model_Graph_ColorChannels_Bands[iSig][iColorChannel]->Write();
+			}
+		}
+
+
+		outfile2->Write();
+		outfile2->Close();
+		delete outfile;
+		outfile2 = NULL;
+
+	}
+
 
 
 

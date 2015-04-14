@@ -129,13 +129,16 @@ int main(int argc, char** argv) {
 
 	for(int iState=0;iState<NRQCDvars::nStates;iState++){
 		for(int iMeasurementID=0;iMeasurementID<NRQCDvars::nMeasurementIDs;iMeasurementID++){
+			//if(iMeasurementID!=4) continue;
+			for(int iStateDenom=0;iStateDenom<iState;iStateDenom++){
+				if(iMeasurementID!=4 && iStateDenom!=0) continue;
 			for(int iExperiment=0;iExperiment<NRQCDvars::nExperiments;iExperiment++){
 //				for(int iRap = 0; iRap < NRQCDvars::nMaxRapBins; iRap++){
 //				    for(int iP = 0; iP < NRQCDvars::nMaxPtBins; iP++){
 
 				    	//if(iState!=10 || iMeasurementID!=0 || iExperiment!=1 /*|| iRap!=0 || iP!=0*/) continue;
 				    	cout<<"calculate and set model for iState="<<StateName[iState]<<", iMeasurementID="<<MeasurementIDName[iMeasurementID]<<", iExperiment="<<ExpName[iExperiment]/*<<", iRap="<<iRap<<", iP="<<iP*/<<endl;
-				    	//if(iState!=1 && iState!=2) continue;
+				    	//if(iState!=3) continue;
 
 
 				    	NRQCDglobalfitObject *DataObject[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -149,6 +152,7 @@ int main(int argc, char** argv) {
 
 								//get data input file
 								sprintf(inname,"%s/ConvertedData_%s_%s_%s_rap%d_pT%d.txt",datadirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+								if(iMeasurementID==4) sprintf(inname,"%s/ConvertedData_%s_OVER_%s_%s_%s_rap%d_pT%d.txt",datadirname, StateName[iState], StateName[iStateDenom],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
 								ifstream in;
 								in.open(inname);
 
@@ -299,6 +303,7 @@ int main(int argc, char** argv) {
 											int n_events = int( nTupleModel_Transformed->GetEntries() );
 											cout<<n_events<<" events: Looping through nTuple of iMother="<<iMother<<", iColorChannel="<<iColorChannel<<", iCascade="<<iCascade<<endl;
 
+											//n_events=10000;
 											//TH1F* h_SDC_CS_pT0 = new TH1F("h_SDC_CS_pT0","h_SDC_CS_pT0",100,0,1);
 
 											int i_eventPerBin[NRQCDvars::nMaxRapBins][NRQCDvars::nMaxPtBins];
@@ -314,6 +319,11 @@ int main(int argc, char** argv) {
 
 												//cout<<"i_event="<<i_event<<endl;
 
+												if(iMeasurementID==4){
+													 if(iStateDenom==NRQCDvars::CHIC1_1P && iState==NRQCDvars::CHIC2_1P){
+														 model_pT_mother*=NRQCDvars::mass[NRQCDvars::PSI_1S]/NRQCDvars::mass[NRQCDvars::CHIC1_1P];
+													 }
+												}
 
 												int pT_index=-1;
 												int rap_index=-1;
@@ -838,12 +848,12 @@ int main(int argc, char** argv) {
 												setModel_Lamtp_globalSystNeg_val=lamVecSumCascades[2]+setModel_Lamtp_globalSystNeg_val;
 
 
-												//cout<<"Buffer_ShortDistanceCoef "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
-												//cout<<"setModel_SDC_globalSystPos_val "<<setModel_SDC_globalSystPos_val<<endl;
-												//cout<<"setModel_SDC_globalSystNeg_val "<<setModel_SDC_globalSystNeg_val<<endl;
-												//cout<<"lamVecSumCascades[0] "<<lamVecSumCascades[0]<<endl;
-												//cout<<"setModel_Lamth_globalSystPos_val "<<setModel_Lamth_globalSystPos_val<<endl;
-												//cout<<"setModel_Lamth_globalSystNeg_val "<<setModel_Lamth_globalSystNeg_val<<endl;
+												cout<<"Buffer_ShortDistanceCoef "<<Buffer_ShortDistanceCoef[iRap][iP]<<endl;
+												cout<<"setModel_SDC_globalSystPos_val "<<setModel_SDC_globalSystPos_val<<endl;
+												cout<<"setModel_SDC_globalSystNeg_val "<<setModel_SDC_globalSystNeg_val<<endl;
+												cout<<"lamVecSumCascades[0] "<<lamVecSumCascades[0]<<endl;
+												cout<<"setModel_Lamth_globalSystPos_val "<<setModel_Lamth_globalSystPos_val<<endl;
+												cout<<"setModel_Lamth_globalSystNeg_val "<<setModel_Lamth_globalSystNeg_val<<endl;
 
 											}
 											else{
@@ -930,6 +940,7 @@ int main(int argc, char** argv) {
 
 							//write updated NRQCDglobalfitObject containing data+model components to output file
 							sprintf(outname,"%s/ConvertedDataModel_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
+							if(iMeasurementID==4) sprintf(outname,"%s/ConvertedDataModel_%s_OVER_%s_%s_%s_rap%d_pT%d.txt",datamodeldirname, StateName[iState], StateName[iStateDenom],  MeasurementIDName[iMeasurementID],  ExpName[iExperiment], iRap, iP);
 							cout<<"write "<<outname<<endl;
 							ofstream out;
 							out.open(outname);
@@ -943,6 +954,7 @@ int main(int argc, char** argv) {
 //				    }//iP
 //				}//iRap
 			}//iExperiment
+		}//iStateDenom
 		}//iMeasurementID
 	}//iState
 

@@ -578,6 +578,13 @@ vector<double> NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &
 			                                                       Data_PointByPoint_Untertainty*Data_PointByPoint_Untertainty);
 
 	dvector PromptProductionRatioDenom;
+	dcube directProductionCubeDenom;
+	//dmatrix directProductionMatrix_;
+    //dvector model_directProductionVec_;
+	//dmatrix directProductionMatrixDenom_;
+    //dvector model_directProductionVecDenom_;
+
+
 //	int MeasurementID=getMeasurementID();
 	switch(Object_MeasurementID){ //modified by Joao
 	case 0:
@@ -593,11 +600,24 @@ vector<double> NRQCDglobalfitObject::getObjectLikelihood(dmatrix  &Op, dmatrix &
 		ModelPrediction=PromptProduction[Object_MeasurementID];
 		break;
 	case 4:
-		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCube, promptProductionMatrix);
+		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCubeDenom, promptProductionMatrix);
 		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US, returnMPDetails, polCorrFactor)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US, returnMPDetails, polCorrFactor);
-		break;
+
+
+
+		//directProductionMatrix_=directProductionCube.at(0);
+	    //model_directProductionVec_=directProductionMatrix_.at(0);
+		//directProductionMatrixDenom_=directProductionCubeDenom.at(0);
+	    //model_directProductionVecDenom_=directProductionMatrixDenom_.at(0);
+
+		// That would be the solution:
+		//directProductionCube[0][0][0]=directProductionCube[0][0][0]/directProductionCubeDenom[0][0][0];
+		//similar for promptProductionMatrix... make a different object for the denominator and divide
+
+
+	    break;
 	case 5:
-		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCube, promptProductionMatrix);//Prompt Jpsi
+		PromptProductionRatioDenom = getPromptProduction(getStateDenom(), Op, Np_BR, Np_US, returnMPDetails, directProductionCubeDenom, promptProductionMatrix);//Prompt Jpsi
 		ModelPrediction=getCorrPromptCrossSect(PromptProduction, Np_BR, Np_US, returnMPDetails, polCorrFactor)/getCorrPromptCrossSect(PromptProductionRatioDenom, Np_BR, Np_US, returnMPDetails, polCorrFactor);
 		break;
 	default:
